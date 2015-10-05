@@ -24,4 +24,6 @@ import java.util.concurrent.TimeUnit;
 public interface RateLimitProvider {
 
     RateLimitResult acquire(Serializable key, long limit, long periodTime, TimeUnit periodTimeUnit);
+
+    RateLimitResult acquire(Serializable key, int pound, long limit, long periodTime, TimeUnit periodTimeUnit);
 }

@@ -22,7 +22,6 @@ import io.gravitee.policy.ratelimit.provider.RateLimitResult;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -36,32 +35,22 @@ public class LocalCacheRateLimitProvider implements RateLimitProvider {
 
     @Override
     public RateLimitResult acquire(Serializable key, long limit, long periodTime, TimeUnit periodTimeUnit) {
+        return acquire(key, 1, limit, periodTime, periodTimeUnit);
+    }
+
+    @Override
+    public RateLimitResult acquire(Serializable key, int pound, long limit, long periodTime, TimeUnit periodTimeUnit) {
         RateLimit rateLimit = rateLimits.getOrDefault(key, new RateLimit());
         RateLimitResult rateLimitResult = new RateLimitResult();
 
-        // Do we need to reset counter in rate limit ?
-        long lastCheck = rateLimit.getLastCheck();
-
-        Duration duration = null;
-
-        switch (periodTimeUnit) {
-            case SECONDS:
-                duration = Duration.ofSeconds(periodTime);
-                break;
-            case MINUTES:
-                duration = Duration.ofMinutes(periodTime);
-                break;
-            case HOURS:
-                duration = Duration.ofHours(periodTime);
-                break;
-            case DAYS:
-                duration = Duration.ofDays(periodTime);
-                break;
-        }
-
         // We prefer currentTimeMillis in place of nanoTime() because nanoTime is relatively
         // expensive call and depends on the underlying architecture.
-        if (System.currentTimeMillis() >= Instant.ofEpochMilli(lastCheck).plus(duration).toEpochMilli()) {
+
+        long now = System.currentTimeMillis();
+        long lastCheck = rateLimit.getLastRequest();
+        long endOfWindow = getEndOfPeriod(lastCheck, periodTime, periodTimeUnit);
+
+        if (now >= endOfWindow) {
             rateLimit.setCounter(0);
         }
 
@@ -70,13 +59,14 @@ public class LocalCacheRateLimitProvider implements RateLimitProvider {
         } else {
             // Update rate limiter
             rateLimitResult.setExceeded(false);
-            rateLimit.setCounter(rateLimit.getCounter() + 1);
-            rateLimit.setLastCheck(System.currentTimeMillis());
+            rateLimit.setCounter(rateLimit.getCounter() + pound);
+            rateLimit.setLastRequest(now);
         }
 
         // Set the time at which the current rate limit window resets in UTC epoch seconds.
-        rateLimitResult.setResetTime(getResetTimeInEpochSeconds(periodTime, periodTimeUnit));
+        rateLimitResult.setResetTime(getEndOfPeriod(now, periodTime, periodTimeUnit) / 1000L);
         rateLimitResult.setRemains(limit - rateLimit.getCounter());
+
         rateLimits.put(key, rateLimit);
 
         return rateLimitResult;
@@ -86,9 +76,7 @@ public class LocalCacheRateLimitProvider implements RateLimitProvider {
         rateLimits.clear();
     }
 
-    private long getResetTimeInEpochSeconds(long periodTime, TimeUnit periodTimeUnit) {
-        long now = System.currentTimeMillis();
-
+    private long getEndOfPeriod(long startingTime, long periodTime, TimeUnit periodTimeUnit) {
         Duration duration = null;
 
         switch (periodTimeUnit) {
@@ -106,6 +94,6 @@ public class LocalCacheRateLimitProvider implements RateLimitProvider {
                 break;
         }
 
-        return ((Instant.ofEpochMilli(now).plus(duration).toEpochMilli()) / 1000L);
+        return Instant.ofEpochMilli(startingTime).plus(duration).toEpochMilli();
     }
 }

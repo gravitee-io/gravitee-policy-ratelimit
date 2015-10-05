@@ -22,16 +22,16 @@ import java.io.Serializable;
  */
 public class RateLimit implements Serializable {
 
-    private long lastCheck = System.currentTimeMillis();
+    private long lastRequest = System.currentTimeMillis();
 
     private long counter;
 
-    public long getLastCheck() {
-        return lastCheck;
+    public long getLastRequest() {
+        return lastRequest;
     }
 
-    public void setLastCheck(long lastCheck) {
-        this.lastCheck = lastCheck;
+    public void setLastRequest(long lastRequest) {
+        this.lastRequest = lastRequest;
     }
 
     public long getCounter() {

@@ -88,7 +88,7 @@ public class RateLimitPolicyTest {
     }
 
     @Test
-    public void multipleRequest() {
+    public void multipleRequests() {
         final HttpHeaders headers = new HttpHeaders();
         headers.setAll(new HashMap<String, String>() {
             {
