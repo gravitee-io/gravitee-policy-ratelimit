@@ -24,6 +24,8 @@ public class RateLimitResult {
 
     private long remains;
 
+    private long resetTime;
+
     public boolean isExceeded() {
         return exceeded;
     }
@@ -38,5 +40,13 @@ public class RateLimitResult {
 
     public void setRemains(long remains) {
         this.remains = remains;
+    }
+
+    public long getResetTime() {
+        return resetTime;
+    }
+
+    public void setResetTime(long resetTime) {
+        this.resetTime = resetTime;
     }
 }

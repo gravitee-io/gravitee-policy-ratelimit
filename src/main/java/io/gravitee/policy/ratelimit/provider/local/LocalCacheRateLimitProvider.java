@@ -61,7 +61,7 @@ public class LocalCacheRateLimitProvider implements RateLimitProvider {
 
         // We prefer currentTimeMillis in place of nanoTime() because nanoTime is relatively
         // expensive call and depends on the underlying architecture.
-        if (System.currentTimeMillis() >= Date.from(Instant.ofEpochMilli(lastCheck).plus(duration)).getTime()) {
+        if (System.currentTimeMillis() >= Instant.ofEpochMilli(lastCheck).plus(duration).toEpochMilli()) {
             rateLimit.setCounter(0);
         }
 
@@ -74,6 +74,8 @@ public class LocalCacheRateLimitProvider implements RateLimitProvider {
             rateLimit.setLastCheck(System.currentTimeMillis());
         }
 
+        // Set the time at which the current rate limit window resets in UTC epoch seconds.
+        rateLimitResult.setResetTime(getResetTimeInEpochSeconds(periodTime, periodTimeUnit));
         rateLimitResult.setRemains(limit - rateLimit.getCounter());
         rateLimits.put(key, rateLimit);
 
@@ -82,5 +84,28 @@ public class LocalCacheRateLimitProvider implements RateLimitProvider {
 
     public void clean() {
         rateLimits.clear();
+    }
+
+    private long getResetTimeInEpochSeconds(long periodTime, TimeUnit periodTimeUnit) {
+        long now = System.currentTimeMillis();
+
+        Duration duration = null;
+
+        switch (periodTimeUnit) {
+            case SECONDS:
+                duration = Duration.ofSeconds(periodTime);
+                break;
+            case MINUTES:
+                duration = Duration.ofMinutes(periodTime);
+                break;
+            case HOURS:
+                duration = Duration.ofHours(periodTime);
+                break;
+            case DAYS:
+                duration = Duration.ofDays(periodTime);
+                break;
+        }
+
+        return ((Instant.ofEpochMilli(now).plus(duration).toEpochMilli()) / 1000L);
     }
 }

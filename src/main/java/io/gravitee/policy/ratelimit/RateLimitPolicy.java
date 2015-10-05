@@ -47,17 +47,17 @@ public class RateLimitPolicy  {
     /**
      * The maximum number of requests that the consumer is permitted to make per time unit.
      */
-    private static final String X_RATE_LIMIT_LIMIT = "X-Rate-Limit-Limit";
+    public static final String X_RATE_LIMIT_LIMIT = "X-Rate-Limit-Limit";
 
     /**
      * The number of requests remaining in the current rate limit window.
      */
-    private static final String X_RATE_LIMIT_REMAINING = "X-Rate-Limit-Remaining";
+    public static final String X_RATE_LIMIT_REMAINING = "X-Rate-Limit-Remaining";
 
     /**
      * The time at which the current rate limit window resets in UTC epoch seconds.
      */
-    private static final String X_RATE_LIMIT_RESET = "X-Rate-Limit-Reset";
+    public static final String X_RATE_LIMIT_RESET = "X-Rate-Limit-Reset";
 
     /**
      * Rate limit policy configuration
@@ -79,10 +79,12 @@ public class RateLimitPolicy  {
                 rateLimitPolicyConfiguration.getPeriodTimeUnit()
         );
 
+        // Set Rate Limit headers on response
+        response.headers().set(X_RATE_LIMIT_LIMIT, Long.toString(rateLimitPolicyConfiguration.getLimit()));
+        response.headers().set(X_RATE_LIMIT_REMAINING, Long.toString(rateLimitResult.getRemains()));
+        response.headers().set(X_RATE_LIMIT_RESET, Long.toString(rateLimitResult.getResetTime()));
+
         if (rateLimitResult.isExceeded()) {
-            response.headers().set(X_RATE_LIMIT_LIMIT, Long.toString(rateLimitPolicyConfiguration.getLimit()));
-            response.headers().set(X_RATE_LIMIT_REMAINING, Long.toString(rateLimitResult.getRemains()));
-            response.headers().set(X_RATE_LIMIT_RESET, Long.toString(rateLimitResult.getRemains()));
             policyChain.failWith(createLimitExceeded());
         } else {
             policyChain.doNext(request, response);
