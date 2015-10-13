@@ -109,13 +109,14 @@ public class RateLimitPolicyTest {
 
         InOrder inOrder = inOrder(policyChain);
 
-        int calls = 11;
+        int calls = 15;
+        int exceedCalls = calls - (int) policyConfiguration.getLimit();
 
         for (int i = 0 ; i < calls ; i++) {
             rateLimitPolicy.onRequest(request, response, policyChain);
         }
 
-        inOrder.verify(policyChain, times(calls-1)).doNext(request, response);
-        inOrder.verify(policyChain, times(1)).failWith(any(PolicyResult.class));
+        inOrder.verify(policyChain, times((int)policyConfiguration.getLimit())).doNext(request, response);
+        inOrder.verify(policyChain, times(exceedCalls)).failWith(any(PolicyResult.class));
     }
 }
