@@ -20,11 +20,12 @@ import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.policy.PolicyChain;
+import io.gravitee.gateway.api.policy.PolicyContext;
 import io.gravitee.gateway.api.policy.PolicyResult;
 import io.gravitee.gateway.api.policy.annotations.OnRequest;
 import io.gravitee.policy.ratelimit.configuration.RateLimitPolicyConfiguration;
-import io.gravitee.policy.ratelimit.provider.RateLimitProviderFactory;
-import io.gravitee.policy.ratelimit.provider.RateLimitResult;
+import io.gravitee.repository.ratelimit.api.RateLimitRepository;
+import io.gravitee.repository.ratelimit.model.RateLimitResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,15 +70,15 @@ public class RateLimitPolicy  {
     }
 
     @OnRequest
-    public void onRequest(Request request, Response response, PolicyChain policyChain) {
+    public void onRequest(Request request, Response response, PolicyContext policyContext, PolicyChain policyChain) {
         String storageKey = createStorageKey(request);
 
-        RateLimitResult rateLimitResult = RateLimitProviderFactory.getRateLimitProvider().acquire(
-                storageKey,
+        RateLimitRepository<String> rateLimitRepository = policyContext.getComponent(RateLimitRepository.class);
+        RateLimitResult rateLimitResult = rateLimitRepository.acquire(
+                storageKey, 1,
                 rateLimitPolicyConfiguration.getLimit(),
                 rateLimitPolicyConfiguration.getPeriodTime(),
-                rateLimitPolicyConfiguration.getPeriodTimeUnit()
-        );
+                rateLimitPolicyConfiguration.getPeriodTimeUnit());
 
         // Set Rate Limit headers on response
         response.headers().set(X_RATE_LIMIT_LIMIT, Long.toString(rateLimitPolicyConfiguration.getLimit()));

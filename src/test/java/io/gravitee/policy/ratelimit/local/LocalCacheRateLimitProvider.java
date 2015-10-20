@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.ratelimit.provider.local;
+package io.gravitee.policy.ratelimit.local;
 
-import io.gravitee.policy.ratelimit.provider.RateLimit;
-import io.gravitee.policy.ratelimit.provider.RateLimitProvider;
-import io.gravitee.policy.ratelimit.provider.RateLimitResult;
+import io.gravitee.repository.ratelimit.api.RateLimitRepository;
+import io.gravitee.repository.ratelimit.model.RateLimitResult;
 
 import java.io.Serializable;
 import java.time.Duration;
@@ -29,14 +28,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author David BRASSELY (brasseld at gmail.com)
  */
-public class LocalCacheRateLimitProvider implements RateLimitProvider {
+public class LocalCacheRateLimitProvider implements RateLimitRepository {
 
     private Map<Serializable, RateLimit> rateLimits = new HashMap<>();
-
-    @Override
-    public RateLimitResult acquire(Serializable key, long limit, long periodTime, TimeUnit periodTimeUnit) {
-        return acquire(key, 1, limit, periodTime, periodTimeUnit);
-    }
 
     @Override
     public RateLimitResult acquire(Serializable key, int pound, long limit, long periodTime, TimeUnit periodTimeUnit) {

@@ -13,40 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.ratelimit.provider;
+package io.gravitee.policy.ratelimit.local;
+
+import java.io.Serializable;
 
 /**
  * @author David BRASSELY (brasseld at gmail.com)
  */
-public class RateLimitResult {
+public class RateLimit implements Serializable {
 
-    private boolean exceeded;
+    private long lastRequest = System.currentTimeMillis();
 
-    private long remains;
+    private long counter;
 
-    private long resetTime;
-
-    public boolean isExceeded() {
-        return exceeded;
+    public long getLastRequest() {
+        return lastRequest;
     }
 
-    public void setExceeded(boolean exceeded) {
-        this.exceeded = exceeded;
+    public void setLastRequest(long lastRequest) {
+        this.lastRequest = lastRequest;
     }
 
-    public long getRemains() {
-        return remains;
+    public long getCounter() {
+        return counter;
     }
 
-    public void setRemains(long remains) {
-        this.remains = remains;
-    }
-
-    public long getResetTime() {
-        return resetTime;
-    }
-
-    public void setResetTime(long resetTime) {
-        this.resetTime = resetTime;
+    public void setCounter(long counter) {
+        this.counter = counter;
     }
 }

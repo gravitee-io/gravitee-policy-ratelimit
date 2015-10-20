@@ -35,6 +35,7 @@
 
     <properties>
         <gravitee-gateway-api.version>0.1.0-SNAPSHOT</gravitee-gateway-api.version>
+        <gravitee-repository-api.version>0.1.0-SNAPSHOT</gravitee-repository-api.version>
         <gravitee-common.version>0.1.0-SNAPSHOT</gravitee-common.version>
 
         <json-schema-generator-maven-plugin.version>1.0.0-SNAPSHOT</json-schema-generator-maven-plugin.version>
@@ -49,6 +50,13 @@
             <groupId>io.gravitee.gateway</groupId>
             <artifactId>gravitee-gateway-api</artifactId>
             <version>${gravitee-gateway-api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.gravitee.repository</groupId>
+            <artifactId>gravitee-repository</artifactId>
+            <version>${gravitee-repository-api.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -102,7 +110,7 @@
                         </goals>
                         <configuration>
                             <includes>
-                                <include>io/gravitee/policy/ratelimit/configuration/ApiKeyPolicyConfiguration.class</include>
+                                <include>io/gravitee/policy/ratelimit/configuration/RateLimitPolicyConfiguration.class</include>
                             </includes>
                             <outputDirectory>${json-schema-generator-maven-plugin.outputDirectory}</outputDirectory>
                         </configuration>

@@ -19,10 +19,11 @@ import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.policy.PolicyChain;
+import io.gravitee.gateway.api.policy.PolicyContext;
 import io.gravitee.gateway.api.policy.PolicyResult;
 import io.gravitee.policy.ratelimit.configuration.RateLimitPolicyConfiguration;
-import io.gravitee.policy.ratelimit.provider.RateLimitProviderFactory;
-import io.gravitee.policy.ratelimit.provider.local.LocalCacheRateLimitProvider;
+import io.gravitee.policy.ratelimit.local.LocalCacheRateLimitProvider;
+import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,6 +49,8 @@ public class RateLimitPolicyTest {
     private static final String API_KEY_HEADER_VALUE = "fbc40d50-5746-40af-b283-d7e99c1775c7";
     private static final String API_NAME_HEADER_VALUE = "my-api";
 
+    private RateLimitRepository rateLimitRepository;
+
     @Mock
     protected Request request;
 
@@ -57,9 +60,13 @@ public class RateLimitPolicyTest {
     @Mock
     protected PolicyChain policyChain;
 
+    @Mock
+    protected PolicyContext policyContext;
+
     @Before
     public void init() {
-        ((LocalCacheRateLimitProvider)RateLimitProviderFactory.getRateLimitProvider()).clean();
+        rateLimitRepository = new LocalCacheRateLimitProvider();
+        ((LocalCacheRateLimitProvider)rateLimitRepository).clean();
         initMocks(this);
     }
 
@@ -80,9 +87,10 @@ public class RateLimitPolicyTest {
 
         RateLimitPolicy rateLimitPolicy = new RateLimitPolicy(policyConfiguration);
 
+        when(policyContext.getComponent(RateLimitRepository.class)).thenReturn(rateLimitRepository);
         when(request.headers()).thenReturn(headers);
         when(response.headers()).thenReturn(new HttpHeaders());
-        rateLimitPolicy.onRequest(request, response, policyChain);
+        rateLimitPolicy.onRequest(request, response, policyContext, policyChain);
 
         verify(policyChain).doNext(request, response);
     }
@@ -104,6 +112,7 @@ public class RateLimitPolicyTest {
 
         RateLimitPolicy rateLimitPolicy = new RateLimitPolicy(policyConfiguration);
 
+        when(policyContext.getComponent(RateLimitRepository.class)).thenReturn(rateLimitRepository);
         when(request.headers()).thenReturn(headers);
         when(response.headers()).thenReturn(new HttpHeaders());
 
@@ -113,7 +122,7 @@ public class RateLimitPolicyTest {
         int exceedCalls = calls - (int) policyConfiguration.getLimit();
 
         for (int i = 0 ; i < calls ; i++) {
-            rateLimitPolicy.onRequest(request, response, policyChain);
+            rateLimitPolicy.onRequest(request, response, policyContext, policyChain);
         }
 
         inOrder.verify(policyChain, times((int)policyConfiguration.getLimit())).doNext(request, response);
