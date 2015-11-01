@@ -34,9 +34,9 @@
     </parent>
 
     <properties>
-        <gravitee-gateway-api.version>0.1.0</gravitee-gateway-api.version>
-        <gravitee-repository-api.version>0.1.0</gravitee-repository-api.version>
-        <gravitee-common.version>0.1.0</gravitee-common.version>
+        <gravitee-gateway-api.version>0.2.0</gravitee-gateway-api.version>
+        <gravitee-repository-api.version>0.2.0</gravitee-repository-api.version>
+        <gravitee-common.version>0.2.0</gravitee-common.version>
 
         <json-schema-generator-maven-plugin.version>1.0.0</json-schema-generator-maven-plugin.version>
         <json-schema-generator-maven-plugin.outputDirectory>${project.build.directory}/schemas</json-schema-generator-maven-plugin.outputDirectory>
