@@ -15,7 +15,7 @@
  */
 package io.gravitee.policy.ratelimit.configuration;
 
-import io.gravitee.gateway.api.policy.PolicyConfiguration;
+import io.gravitee.policy.api.PolicyConfiguration;
 
 import java.util.concurrent.TimeUnit;
 
