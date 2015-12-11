@@ -16,10 +16,10 @@
 package io.gravitee.policy.ratelimit;
 
 import io.gravitee.common.http.HttpHeaders;
+import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.policy.api.PolicyChain;
-import io.gravitee.policy.api.PolicyContext;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.ratelimit.configuration.RateLimitPolicyConfiguration;
 import io.gravitee.policy.ratelimit.local.LocalCacheRateLimitProvider;
@@ -61,7 +61,7 @@ public class RateLimitPolicyTest {
     protected PolicyChain policyChain;
 
     @Mock
-    protected PolicyContext policyContext;
+    protected ExecutionContext executionContext;
 
     @Before
     public void init() {
@@ -87,10 +87,10 @@ public class RateLimitPolicyTest {
 
         RateLimitPolicy rateLimitPolicy = new RateLimitPolicy(policyConfiguration);
 
-        when(policyContext.getComponent(RateLimitRepository.class)).thenReturn(rateLimitRepository);
+        when(executionContext.getComponent(RateLimitRepository.class)).thenReturn(rateLimitRepository);
         when(request.headers()).thenReturn(headers);
         when(response.headers()).thenReturn(new HttpHeaders());
-        rateLimitPolicy.onRequest(request, response, policyContext, policyChain);
+        rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
 
         verify(policyChain).doNext(request, response);
     }
@@ -112,7 +112,7 @@ public class RateLimitPolicyTest {
 
         RateLimitPolicy rateLimitPolicy = new RateLimitPolicy(policyConfiguration);
 
-        when(policyContext.getComponent(RateLimitRepository.class)).thenReturn(rateLimitRepository);
+        when(executionContext.getComponent(RateLimitRepository.class)).thenReturn(rateLimitRepository);
         when(request.headers()).thenReturn(headers);
         when(response.headers()).thenReturn(new HttpHeaders());
 
@@ -122,7 +122,7 @@ public class RateLimitPolicyTest {
         int exceedCalls = calls - (int) policyConfiguration.getLimit();
 
         for (int i = 0 ; i < calls ; i++) {
-            rateLimitPolicy.onRequest(request, response, policyContext, policyChain);
+            rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
         }
 
         inOrder.verify(policyChain, times((int)policyConfiguration.getLimit())).doNext(request, response);

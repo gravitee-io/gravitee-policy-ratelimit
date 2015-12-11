@@ -17,10 +17,10 @@ package io.gravitee.policy.ratelimit;
 
 import io.gravitee.common.http.GraviteeHttpHeader;
 import io.gravitee.common.http.HttpStatusCode;
+import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.policy.api.PolicyChain;
-import io.gravitee.policy.api.PolicyContext;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequest;
 import io.gravitee.policy.ratelimit.configuration.RateLimitPolicyConfiguration;
@@ -70,10 +70,10 @@ public class RateLimitPolicy  {
     }
 
     @OnRequest
-    public void onRequest(Request request, Response response, PolicyContext policyContext, PolicyChain policyChain) {
+    public void onRequest(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
         String storageKey = createStorageKey(request);
 
-        RateLimitRepository<String> rateLimitRepository = policyContext.getComponent(RateLimitRepository.class);
+        RateLimitRepository<String> rateLimitRepository = executionContext.getComponent(RateLimitRepository.class);
         RateLimitResult rateLimitResult = rateLimitRepository.acquire(
                 storageKey, 1,
                 rateLimitPolicyConfiguration.getLimit(),
