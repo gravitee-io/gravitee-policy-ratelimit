@@ -93,14 +93,11 @@ public class RateLimitPolicy  {
     }
 
     private String createRateLimitKey(Request request, ExecutionContext executionContext) {
-        StringBuilder builder = new StringBuilder();
-
-        builder
+        return new StringBuilder()
                 .append(request.headers().getFirst(GraviteeHttpHeader.X_GRAVITEE_API_NAME))
                 .append(';')
-                .append((String) executionContext.getAttribute(ExecutionContext.ATTR_APPLICATION));
-
-        return builder.toString();
+                .append(executionContext.getAttribute(ExecutionContext.ATTR_APPLICATION))
+                .toString();
     }
 
     private PolicyResult createLimitExceeded() {
