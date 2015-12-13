@@ -71,7 +71,7 @@ public class RateLimitPolicy  {
 
     @OnRequest
     public void onRequest(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
-        String storageKey = createStorageKey(request);
+        String storageKey = createRateLimitKey(request, executionContext);
 
         RateLimitRepository<String> rateLimitRepository = executionContext.getComponent(RateLimitRepository.class);
         RateLimitResult rateLimitResult = rateLimitRepository.acquire(
@@ -92,18 +92,13 @@ public class RateLimitPolicy  {
         }
     }
 
-    private String createStorageKey(Request request) {
+    private String createRateLimitKey(Request request, ExecutionContext executionContext) {
         StringBuilder builder = new StringBuilder();
 
-        String userId = request.headers().getFirst(GraviteeHttpHeader.X_GRAVITEE_API_KEY);
-        if (userId == null || userId.isEmpty()) {
-            // Use the remote (client) IP if no API Key has been specified in HTTP headers
-            userId = request.remoteAddress();
-        }
-
-        builder.append(userId);
-        builder.append(';');
-        builder.append(request.headers().getFirst(GraviteeHttpHeader.X_GRAVITEE_API_NAME));
+        builder
+                .append(request.headers().getFirst(GraviteeHttpHeader.X_GRAVITEE_API_NAME))
+                .append(';')
+                .append((String) executionContext.getAttribute(ExecutionContext.ATTR_APPLICATION));
 
         return builder.toString();
     }
