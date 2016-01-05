@@ -1,0 +1,24 @@
+{
+  "type" : "object",
+  "id" : "urn:jsonschema:io:gravitee:policy:ratelimit:configuration:RateLimitPolicyConfiguration",
+  "properties" : {
+    "limit" : {
+      "title": "Max requests",
+      "type" : "integer"
+    },
+    "periodTime" : {
+      "title": "Time period",
+      "type" : "integer"
+    },
+    "periodTimeUnit" : {
+      "title": "Time unit",
+      "type" : "string",
+      "enum" : [ "SECONDS", "MINUTES", "HOURS", "DAYS" ]
+    },
+    "required": [
+      "limit",
+      "periodTime",
+      "periodTimeUnit"
+    ]
+  }
+}

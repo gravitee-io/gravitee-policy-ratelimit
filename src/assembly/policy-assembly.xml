@@ -34,7 +34,7 @@
     <fileSets>
         <!-- Then include Policy configuration schemas -->
         <fileSet>
-            <directory>${json-schema-generator-maven-plugin.outputDirectory}</directory>
+            <directory>src/main/resources/schemas</directory>
             <outputDirectory>schemas</outputDirectory>
         </fileSet>
 
