@@ -17,40 +17,21 @@ package io.gravitee.policy.ratelimit.configuration;
 
 import io.gravitee.policy.api.PolicyConfiguration;
 
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author David BRASSELY (brasseld at gmail.com)
  */
 public class RateLimitPolicyConfiguration implements PolicyConfiguration {
 
-    private long limit;
+    private List<RateLimitConfiguration> rateLimits = new ArrayList<>();
 
-    private long periodTime;
-
-    private TimeUnit periodTimeUnit;
-
-    public long getLimit() {
-        return limit;
+    public List<RateLimitConfiguration> getRateLimits() {
+        return rateLimits;
     }
 
-    public void setLimit(long limit) {
-        this.limit = limit;
-    }
-
-    public long getPeriodTime() {
-        return periodTime;
-    }
-
-    public void setPeriodTime(long periodTime) {
-        this.periodTime = periodTime;
-    }
-
-    public TimeUnit getPeriodTimeUnit() {
-        return periodTimeUnit;
-    }
-
-    public void setPeriodTimeUnit(TimeUnit periodTimeUnit) {
-        this.periodTimeUnit = periodTimeUnit;
+    public void setRateLimits(List<RateLimitConfiguration> rateLimits) {
+        this.rateLimits = rateLimits;
     }
 }

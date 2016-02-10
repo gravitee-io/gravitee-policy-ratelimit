@@ -13,32 +13,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.ratelimit.local;
+package io.gravitee.policy.ratelimit.configuration;
 
-import java.io.Serializable;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author David BRASSELY (brasseld at gmail.com)
+ * @author GraviteeSource Team
  */
-public class RateLimit implements Serializable {
+public class RateLimitConfiguration {
 
-    private long lastRequest = System.currentTimeMillis();
+    private long limit;
 
-    private long counter;
+    private long periodTime;
 
-    public long getLastRequest() {
-        return lastRequest;
+    private TimeUnit periodTimeUnit;
+
+    public long getLimit() {
+        return limit;
     }
 
-    public void setLastRequest(long lastRequest) {
-        this.lastRequest = lastRequest;
+    public void setLimit(long limit) {
+        this.limit = limit;
     }
 
-    public long getCounter() {
-        return counter;
+    public long getPeriodTime() {
+        return periodTime;
     }
 
-    public void setCounter(long counter) {
-        this.counter = counter;
+    public void setPeriodTime(long periodTime) {
+        this.periodTime = periodTime;
+    }
+
+    public TimeUnit getPeriodTimeUnit() {
+        return periodTimeUnit;
+    }
+
+    public void setPeriodTimeUnit(TimeUnit periodTimeUnit) {
+        this.periodTimeUnit = periodTimeUnit;
     }
 }
