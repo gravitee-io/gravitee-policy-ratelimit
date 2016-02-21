@@ -1,9 +1,9 @@
-=== RateLimit Policy
+= RateLimit Policy
 
 https://github.com/gravitee-io/gravitee-policy-ratelimit[Source code],
 image:http://build.gravitee.io/jenkins/buildStatus/icon?job=gravitee-policy-ratelimit["Build status", link="http://build.gravitee.io/jenkins/job/gravitee-policy-ratelimit/"]
 
-==== Scope
+== Scope
 
 |===
 |onRequest |onResponse
@@ -13,11 +13,11 @@ image:http://build.gravitee.io/jenkins/buildStatus/icon?job=gravitee-policy-rate
 
 |===
 
-==== Description
+== Description
 
 Todo
 
-==== Configuration
+== Configuration
 
 You can configure the policy with the following options :
 
