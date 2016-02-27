@@ -4,7 +4,7 @@
   "properties" : {
     "async": {
       "type": "boolean",
-      "title": "Mode async"
+      "title": "Strict mode"
     },
     "rateLimits" : {
       "type" : "array",
