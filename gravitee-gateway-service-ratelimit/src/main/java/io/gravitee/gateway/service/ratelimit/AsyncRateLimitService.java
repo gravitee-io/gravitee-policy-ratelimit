@@ -62,16 +62,16 @@ public class AsyncRateLimitService extends AbstractService {
 
     @Override
     protected void doStart() throws Exception {
+        super.doStart();
+
+        DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) ((ConfigurableApplicationContext) applicationContext).getBeanFactory();
+        DefaultListableBeanFactory parentBeanFactory = (DefaultListableBeanFactory) ((ConfigurableApplicationContext) applicationContext.getParent()).getBeanFactory();
+
+        // Retrieve the current rate-limit repository implementation
+        RateLimitRepository rateLimitRepository = parentBeanFactory.getBean(RateLimitRepository.class);
+        LOGGER.debug("Rate-limit repository implementation is {}", rateLimitRepository.getClass().getName());
+
         if (enabled) {
-            super.doStart();
-
-            DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) ((ConfigurableApplicationContext) applicationContext).getBeanFactory();
-            DefaultListableBeanFactory parentBeanFactory = (DefaultListableBeanFactory) ((ConfigurableApplicationContext) applicationContext.getParent()).getBeanFactory();
-
-            // Retrieve the current rate-limit repository implementation
-            RateLimitRepository rateLimitRepository = parentBeanFactory.getBean(RateLimitRepository.class);
-            LOGGER.debug("Rate-limit repository implementation is {}", rateLimitRepository.getClass().getName());
-
             // Prepare caches
             RateLimitRepository aggregateCacheRateLimitRepository = new CachedRateLimitRepository(aggregateCache);
             RateLimitRepository localCacheRateLimitRepository = new CachedRateLimitRepository(localCache);
@@ -112,6 +112,13 @@ public class AsyncRateLimitService extends AbstractService {
 
             LOGGER.info("Start rate-limit updater");
             rateLimitUpdaterExecutor.submit(rateLimitUpdater);
+        } else {
+            // By disabling async and cached rate limiting, only the strict mode is allowed
+            LOGGER.info("Register the rate-limit service bridge for strict mode only");
+            DefaultRateLimitService rateLimitService = new DefaultRateLimitService();
+            rateLimitService.setRateLimitRepository(rateLimitRepository);
+            rateLimitService.setAsyncRateLimitRepository(rateLimitRepository);
+            parentBeanFactory.registerSingleton(RateLimitService.class.getName(), rateLimitService);
         }
     }
 
