@@ -32,16 +32,16 @@
               "DAYS"
             ]
           }
-        }
-      },
-      "required": [
-        "limit",
-        "periodTime",
-        "periodTimeUnit"
-      ]
-    },
-    "required": [
-      "rateLimits"
-    ]
-  }
+        },
+        "required": [
+          "limit",
+          "periodTime",
+          "periodTimeUnit"
+        ]
+      }
+    }
+  },
+  "required": [
+    "rateLimits"
+  ]
 }
