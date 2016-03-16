@@ -80,22 +80,7 @@ public class RateLimitPolicy {
         RateLimitService rateLimitService = executionContext.getComponent(RateLimitService.class);
 
         if (rateLimitService == null) {
-            policyChain.failWith(new PolicyResult() {
-                @Override
-                public boolean isFailure() {
-                    return true;
-                }
-
-                @Override
-                public int httpStatusCode() {
-                    return 500;
-                }
-
-                @Override
-                public String message() {
-                    return "No rate-limit service has been installed.";
-                }
-            });
+            policyChain.failWith(PolicyResult.failure("No rate-limit service has been installed."));
 
             return;
         }
@@ -192,23 +177,9 @@ public class RateLimitPolicy {
     }
 
     private PolicyResult createLimitExceeded(RateLimitConfiguration rateLimitConfiguration) {
-        return new PolicyResult() {
-            @Override
-            public boolean isFailure() {
-                return true;
-            }
-
-            @Override
-            public int httpStatusCode() {
-                return HttpStatusCode.TOO_MANY_REQUESTS_429;
-            }
-
-            @Override
-            public String message() {
-                return "Rate limit exceeded ! You reach the limit fixed to " + rateLimitConfiguration.getLimit() +
+        return PolicyResult.failure(HttpStatusCode.TOO_MANY_REQUESTS_429,
+                "Rate limit exceeded ! You reach the limit fixed to " + rateLimitConfiguration.getLimit() +
                         " requests per " + rateLimitConfiguration.getPeriodTime() + ' ' +
-                        rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase();
-            }
-        };
+                        rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase());
     }
 }

@@ -36,7 +36,7 @@
 
     <properties>
         <gravitee-gateway-api.version>0.8.0</gravitee-gateway-api.version>
-        <gravitee-policy-api.version>0.5.0</gravitee-policy-api.version>
+        <gravitee-policy-api.version>0.6.0-SNAPSHOT</gravitee-policy-api.version>
         <gravitee-repository-api.version>0.8.0</gravitee-repository-api.version>
         <gravitee-common.version>0.5.0</gravitee-common.version>
     </properties>
