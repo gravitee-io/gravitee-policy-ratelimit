@@ -26,7 +26,6 @@ import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.ratelimit.configuration.RateLimitConfiguration;
 import io.gravitee.policy.ratelimit.configuration.RateLimitPolicyConfiguration;
 import io.gravitee.policy.ratelimit.local.LocalCacheRateLimitProvider;
-import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import org.junit.Before;
 import org.junit.Test;

@@ -25,10 +25,6 @@ import java.util.concurrent.TimeUnit;
  */
 public final class DateUtils {
 
-    public static long getEndOfWindow(long lastRequest, long periodTime, TimeUnit periodTimeUnit) {
-        return getEndOfPeriod(lastRequest, periodTime, periodTimeUnit);
-    }
-
     public static long getEndOfPeriod(long startingTime, long periodTime, TimeUnit periodTimeUnit) {
         Duration duration = null;
 
