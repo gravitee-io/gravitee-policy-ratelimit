@@ -100,6 +100,7 @@ public class RateLimitPolicy {
 
             if (rateLimit.getResetTime() != 0 && now >= rateLimit.getResetTime()) {
                 rateLimit.setCounter(0);
+                rateLimit.setResetTime(0);
             }
 
             if (rateLimit.getCounter() >= rateLimitConfiguration.getLimit()) {
