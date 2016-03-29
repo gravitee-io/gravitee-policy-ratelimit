@@ -116,11 +116,9 @@ public class RateLimitPolicy {
             if (rateLimit.getResetTime() == 0) {
                 long resetTimeMillis = DateUtils.getEndOfPeriod(now,
                     rateLimitConfiguration.getPeriodTime(), rateLimitConfiguration.getPeriodTimeUnit());
-                long resetTime = resetTimeMillis / 1000L;
                 rateLimit.setResetTime(resetTimeMillis);
             }
 
-            long remains = rateLimitConfiguration.getLimit() - rateLimit.getCounter();
             rateLimit.setAsync(rateLimitPolicyConfiguration.isAsync());
             rateLimit.setUpdatedAt(now);
             if(rateLimit.getCreatedAt() == 0) {
@@ -129,15 +127,18 @@ public class RateLimitPolicy {
 
             rateLimitService.save(rateLimit, rateLimitPolicyConfiguration.isAsync());
 
+            long remains = rateLimitConfiguration.getLimit() - rateLimit.getCounter();
+            long resetTime = rateLimit.getResetTime() / 1000L;
+
             // Set Rate Limit headers on response
             if (rateLimitConfigurations.size() == 1 || rateLimitExceeded) {
                 response.headers().set(X_RATE_LIMIT_LIMIT, Long.toString(rateLimitConfiguration.getLimit()));
                 response.headers().set(X_RATE_LIMIT_REMAINING, Long.toString(remains));
-                response.headers().set(X_RATE_LIMIT_RESET, Long.toString(rateLimit.getResetTime()));
+                response.headers().set(X_RATE_LIMIT_RESET, Long.toString(resetTime));
             } else {
                 response.headers().set(X_RATE_LIMIT_LIMIT + '-' + idx, Long.toString(rateLimitConfiguration.getLimit()));
                 response.headers().set(X_RATE_LIMIT_REMAINING + '-' + idx, Long.toString(remains));
-                response.headers().set(X_RATE_LIMIT_RESET + '-' + idx, Long.toString(rateLimit.getResetTime()));
+                response.headers().set(X_RATE_LIMIT_RESET + '-' + idx, Long.toString(resetTime));
             }
 
             if (rateLimitExceeded) {
