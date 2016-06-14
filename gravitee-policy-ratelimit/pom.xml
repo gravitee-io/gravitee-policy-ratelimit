@@ -21,7 +21,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>gravitee-policy-ratelimit</artifactId>
-    <version>0.9.0</version>
+    <version>0.10.0-SNAPSHOT</version>
 
     <name>Rate Limit Gravitee Policy</name>
     <description>Description of the Rate Limit Gravitee Policy</description>
@@ -29,7 +29,7 @@
     <parent>
         <groupId>io.gravitee.policy</groupId>
         <artifactId>gravitee-ratelimit-parent</artifactId>
-        <version>0.9.0</version>
+        <version>0.10.0-SNAPSHOT</version>
     </parent>
 
     <properties>
