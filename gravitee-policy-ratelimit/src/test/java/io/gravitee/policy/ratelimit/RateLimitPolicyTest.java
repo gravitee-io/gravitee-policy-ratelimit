@@ -17,7 +17,7 @@ package io.gravitee.policy.ratelimit;
 
 import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.node.Node;
-import io.gravitee.common.utils.UUIDGenerator;
+import io.gravitee.common.utils.UUID;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
@@ -75,7 +75,7 @@ public class RateLimitPolicyTest {
         ((LocalCacheRateLimitProvider)rateLimitService).clean();
         initMocks(this);
 
-        when(node.id()).thenReturn(UUIDGenerator.generate().toString());
+        when(node.id()).thenReturn(UUID.toString(UUID.random()));
         when(executionContext.getComponent(Node.class)).thenReturn(node);
     }
 
