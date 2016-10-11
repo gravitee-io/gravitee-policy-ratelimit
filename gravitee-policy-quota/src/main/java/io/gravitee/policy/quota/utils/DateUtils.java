@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.ratelimit.utils;
+package io.gravitee.policy.quota.utils;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
 /**
- * @author David BRASSELY (david.brassely at graviteesource.com)
+ * @author David BRASSELY (brasseld at gmail.com)
  * @author GraviteeSource Team
  */
 public final class DateUtils {

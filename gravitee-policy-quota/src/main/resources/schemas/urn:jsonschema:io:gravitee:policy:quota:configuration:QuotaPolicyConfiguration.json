@@ -1,22 +1,22 @@
 {
   "type" : "object",
-  "id" : "urn:jsonschema:io:gravitee:policy:ratelimit:configuration:RateLimitPolicyConfiguration",
+  "id" : "urn:jsonschema:io:gravitee:policy:quota:configuration:QuotaPolicyConfiguration",
   "properties" : {
     "async": {
       "type": "boolean",
       "default": false,
       "title": "Non-strict mode (async)",
-      "description": "By activating this option, rate-limiting is applied in an asynchronous way meaning that the distributed counter value is not strict."
+      "description": "By activating this option, quota is applied in an asynchronous way meaning that the distributed counter value is not strict."
     },
     "addHeaders": {
       "type": "boolean",
-      "default": false,
+      "default": true,
       "title": "Add response headers",
-      "description": "Add X-Rate-Limit-Limit, X-Rate-Limit-Remaining and X-Rate-Limit-Reset headers in HTTP response"
+      "description": "Add X-Quota-Limit, X-Quota-Remaining and X-Quota-Reset headers in HTTP response"
     },
     "rate" : {
       "type" : "object",
-      "id" : "urn:jsonschema:io:gravitee:policy:ratelimit:configuration:RateLimitConfiguration",
+      "id" : "urn:jsonschema:io:gravitee:policy:quota:configuration:QuotaConfiguration",
       "properties" : {
         "limit" : {
           "type" : "integer",
@@ -24,12 +24,12 @@
         },
         "periodTime" : {
           "type" : "integer",
-          "default": 1,
+          "default": 30,
           "description": "Time duration."
         },
         "periodTimeUnit" : {
           "type" : "string",
-          "default": "MINUTES",
+          "default": "DAYS",
           "enum" : [ "SECONDS", "MINUTES", "HOURS", "DAYS" ],
           "description": "Time duration unit."
         }

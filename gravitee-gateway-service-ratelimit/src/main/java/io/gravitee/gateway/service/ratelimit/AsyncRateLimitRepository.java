@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
 
 /**
- * @author David BRASSELY (brasseld at gmail.com)
+ * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
 public class AsyncRateLimitRepository implements RateLimitRepository {

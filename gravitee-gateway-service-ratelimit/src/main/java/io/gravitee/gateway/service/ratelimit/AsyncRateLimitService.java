@@ -32,7 +32,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import java.util.concurrent.*;
 
 /**
- * @author David BRASSELY (brasseld at gmail.com)
+ * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
 public class AsyncRateLimitService extends AbstractService {
