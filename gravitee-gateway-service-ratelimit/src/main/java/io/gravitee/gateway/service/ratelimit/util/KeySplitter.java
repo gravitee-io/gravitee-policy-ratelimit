@@ -16,14 +16,15 @@
 package io.gravitee.gateway.service.ratelimit.util;
 
 /**
- * @author David BRASSELY (brasseld at gmail.com)
+ * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
 public final class KeySplitter {
 
     /**
      * Extract gateway_id from rate-limit key
-     * RateLimit key format is gateway-id:api-id:app-id:resolved-path:hash:idx:gateway-id
+     * RateLimit key format is gateway-id:type:subscription-id:resolved-path-hash
+     * Example: xxx-xxx-xxx-xxx-xxx:q:xxx-xxx-xxx-xxx:13456
      *
      * @param key
      * @return

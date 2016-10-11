@@ -13,43 +13,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.ratelimit.configuration;
+package io.gravitee.policy.quota.configuration;
 
-import java.util.concurrent.TimeUnit;
+import io.gravitee.policy.api.PolicyConfiguration;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
-public class RateLimitConfiguration {
+public class QuotaPolicyConfiguration implements PolicyConfiguration {
 
-    private long limit;
+    private boolean async;
 
-    private long periodTime;
+    private boolean addHeaders;
 
-    private TimeUnit periodTimeUnit;
+    private QuotaConfiguration quota;
 
-    public long getLimit() {
-        return limit;
+    public QuotaConfiguration getQuota() {
+        return quota;
     }
 
-    public void setLimit(long limit) {
-        this.limit = limit;
+    public void setQuota(QuotaConfiguration quota) {
+        this.quota = quota;
     }
 
-    public long getPeriodTime() {
-        return periodTime;
+    public boolean isAsync() {
+        return async;
     }
 
-    public void setPeriodTime(long periodTime) {
-        this.periodTime = periodTime;
+    public void setAsync(boolean async) {
+        this.async = async;
     }
 
-    public TimeUnit getPeriodTimeUnit() {
-        return periodTimeUnit;
+    public boolean isAddHeaders() {
+        return addHeaders;
     }
 
-    public void setPeriodTimeUnit(TimeUnit periodTimeUnit) {
-        this.periodTimeUnit = periodTimeUnit;
+    public void setAddHeaders(boolean addHeaders) {
+        this.addHeaders = addHeaders;
     }
 }

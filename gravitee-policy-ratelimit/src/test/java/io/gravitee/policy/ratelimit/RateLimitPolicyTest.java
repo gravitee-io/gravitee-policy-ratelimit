@@ -87,7 +87,7 @@ public class RateLimitPolicyTest {
         rateLimitConfiguration.setLimit(1);
         rateLimitConfiguration.setPeriodTime(1);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
-        policyConfiguration.getRateLimits().add(rateLimitConfiguration);
+        policyConfiguration.setRate(rateLimitConfiguration);
 
         RateLimitPolicy rateLimitPolicy = new RateLimitPolicy(policyConfiguration);
 
@@ -112,7 +112,7 @@ public class RateLimitPolicyTest {
         rateLimitConfiguration.setLimit(10);
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
-        policyConfiguration.getRateLimits().add(rateLimitConfiguration);
+        policyConfiguration.setRate(rateLimitConfiguration);
 
         RateLimitPolicy rateLimitPolicy = new RateLimitPolicy(policyConfiguration);
 
@@ -144,7 +144,7 @@ public class RateLimitPolicyTest {
         rateLimitConfiguration.setLimit(10);
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
-        policyConfiguration.getRateLimits().add(rateLimitConfiguration);
+        policyConfiguration.setRate(rateLimitConfiguration);
 
         RateLimitPolicy rateLimitPolicy = new RateLimitPolicy(policyConfiguration);
 

@@ -17,24 +17,24 @@ package io.gravitee.policy.ratelimit.configuration;
 
 import io.gravitee.policy.api.PolicyConfiguration;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * @author David BRASSELY (brasseld at gmail.com)
+ * @author David BRASSELY (david.brassely at graviteesource.com)
+ * @author GraviteeSource Team
  */
 public class RateLimitPolicyConfiguration implements PolicyConfiguration {
 
     private boolean async;
 
-    private List<RateLimitConfiguration> rateLimits = new ArrayList<>();
+    private boolean addHeaders;
 
-    public List<RateLimitConfiguration> getRateLimits() {
-        return rateLimits;
+    private RateLimitConfiguration rate;
+
+    public RateLimitConfiguration getRate() {
+        return rate;
     }
 
-    public void setRateLimits(List<RateLimitConfiguration> rateLimits) {
-        this.rateLimits = rateLimits;
+    public void setRate(RateLimitConfiguration rate) {
+        this.rate = rate;
     }
 
     public boolean isAsync() {
@@ -43,5 +43,13 @@ public class RateLimitPolicyConfiguration implements PolicyConfiguration {
 
     public void setAsync(boolean async) {
         this.async = async;
+    }
+
+    public boolean isAddHeaders() {
+        return addHeaders;
+    }
+
+    public void setAddHeaders(boolean addHeaders) {
+        this.addHeaders = addHeaders;
     }
 }

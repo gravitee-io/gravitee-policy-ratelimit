@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.ratelimit.configuration;
+package io.gravitee.policy.quota.configuration;
 
 import java.util.concurrent.TimeUnit;
 
@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
-public class RateLimitConfiguration {
+public class QuotaConfiguration {
 
     private long limit;
 

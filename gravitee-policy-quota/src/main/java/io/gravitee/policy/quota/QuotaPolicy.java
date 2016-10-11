@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.ratelimit;
+package io.gravitee.policy.quota;
 
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.node.Node;
@@ -23,9 +23,9 @@ import io.gravitee.gateway.api.Response;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequest;
-import io.gravitee.policy.ratelimit.configuration.RateLimitConfiguration;
-import io.gravitee.policy.ratelimit.configuration.RateLimitPolicyConfiguration;
-import io.gravitee.policy.ratelimit.utils.DateUtils;
+import io.gravitee.policy.quota.configuration.QuotaConfiguration;
+import io.gravitee.policy.quota.configuration.QuotaPolicyConfiguration;
+import io.gravitee.policy.quota.utils.DateUtils;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import org.slf4j.Logger;
@@ -41,39 +41,39 @@ import org.slf4j.LoggerFactory;
  * @author GraviteeSource Team
  */
 @SuppressWarnings("unused")
-public class RateLimitPolicy {
+public class QuotaPolicy {
 
     /**
      * LOGGER
      */
-    private static final Logger LOGGER = LoggerFactory.getLogger(RateLimitPolicy.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(QuotaPolicy.class);
 
     /**
      * The maximum number of requests that the consumer is permitted to make per time unit.
      */
-    public static final String X_RATE_LIMIT_LIMIT = "X-Rate-Limit-Limit";
+    public static final String X_QUOTA_LIMIT = "X-Quota-Limit";
 
     /**
      * The number of requests remaining in the current rate limit window.
      */
-    public static final String X_RATE_LIMIT_REMAINING = "X-Rate-Limit-Remaining";
+    public static final String X_QUOTA_REMAINING = "X-Quota-Remaining";
 
     /**
      * The time at which the current rate limit window resets in UTC epoch seconds.
      */
-    public static final String X_RATE_LIMIT_RESET = "X-Rate-Limit-Reset";
+    public static final String X_QUOTA_RESET = "X-Quota-Reset";
 
     private static char KEY_SEPARATOR = ':';
 
-    private static String RATE_LIMIT_TYPE = "rl";
+    private static char RATE_LIMIT_TYPE = 'q';
 
     /**
      * Rate limit policy configuration
      */
-    private final RateLimitPolicyConfiguration rateLimitPolicyConfiguration;
+    private final QuotaPolicyConfiguration quotaPolicyConfiguration;
 
-    public RateLimitPolicy(RateLimitPolicyConfiguration rateLimitPolicyConfiguration) {
-        this.rateLimitPolicyConfiguration = rateLimitPolicyConfiguration;
+    public QuotaPolicy(QuotaPolicyConfiguration quotaPolicyConfiguration) {
+        this.quotaPolicyConfiguration = quotaPolicyConfiguration;
     }
 
     @OnRequest
@@ -90,10 +90,10 @@ public class RateLimitPolicy {
         // expensive call and depends on the underlying architecture.
         long now = System.currentTimeMillis();
 
-        RateLimitConfiguration rateLimitConfiguration = rateLimitPolicyConfiguration.getRate();
+        QuotaConfiguration quotaConfiguration = quotaPolicyConfiguration.getQuota();
 
-        String rateLimitKey = createRateLimitKey(rateLimitPolicyConfiguration.isAsync(), request, executionContext);
-        RateLimit rateLimit = rateLimitService.get(rateLimitKey, rateLimitPolicyConfiguration.isAsync());
+        String rateLimitKey = createRateLimitKey(quotaPolicyConfiguration.isAsync(), request, executionContext);
+        RateLimit rateLimit = rateLimitService.get(rateLimitKey, quotaPolicyConfiguration.isAsync());
 
         boolean rateLimitExceeded = false;
 
@@ -102,9 +102,9 @@ public class RateLimitPolicy {
             rateLimit.setResetTime(0);
         }
 
-        if (rateLimit.getCounter() >= rateLimitConfiguration.getLimit()) {
+        if (rateLimit.getCounter() >= quotaConfiguration.getLimit()) {
             rateLimitExceeded = true;
-            rateLimit.setCounter(rateLimitConfiguration.getLimit());
+            rateLimit.setCounter(quotaConfiguration.getLimit());
         } else {
             // Update rate limiter
             // By default, weight is 1 (can be configurable in the future)
@@ -115,32 +115,33 @@ public class RateLimitPolicy {
         // Set the time at which the current rate limit window resets in UTC epoch seconds.
         if (rateLimit.getResetTime() == 0) {
             long resetTimeMillis = DateUtils.getEndOfPeriod(now,
-                    rateLimitConfiguration.getPeriodTime(), rateLimitConfiguration.getPeriodTimeUnit());
+                    quotaConfiguration.getPeriodTime(), quotaConfiguration.getPeriodTimeUnit());
             rateLimit.setResetTime(resetTimeMillis);
         }
 
-        rateLimit.setAsync(rateLimitPolicyConfiguration.isAsync());
+        rateLimit.setAsync(quotaPolicyConfiguration.isAsync());
         rateLimit.setUpdatedAt(now);
         if(rateLimit.getCreatedAt() == 0) {
             rateLimit.setCreatedAt(now);
         }
 
-        rateLimitService.save(rateLimit, rateLimitPolicyConfiguration.isAsync());
+        rateLimitService.save(rateLimit, quotaPolicyConfiguration.isAsync());
 
-        long remains = rateLimitConfiguration.getLimit() - rateLimit.getCounter();
+        long remains = quotaConfiguration.getLimit() - rateLimit.getCounter();
         long resetTime = rateLimit.getResetTime() / 1000L;
 
         // Set Rate Limit headers on response
-        if (rateLimitPolicyConfiguration.isAddHeaders()) {
-            response.headers().set(X_RATE_LIMIT_LIMIT, Long.toString(rateLimitConfiguration.getLimit()));
-            response.headers().set(X_RATE_LIMIT_REMAINING, Long.toString(remains));
-            response.headers().set(X_RATE_LIMIT_RESET, Long.toString(resetTime));
+        if (quotaPolicyConfiguration.isAddHeaders()) {
+            response.headers().set(X_QUOTA_LIMIT, Long.toString(quotaConfiguration.getLimit()));
+            response.headers().set(X_QUOTA_REMAINING, Long.toString(remains));
+            response.headers().set(X_QUOTA_RESET, Long.toString(resetTime));
         }
 
         if (rateLimitExceeded) {
-            policyChain.failWith(createLimitExceeded(rateLimitConfiguration));
+            policyChain.failWith(createLimitExceeded(quotaConfiguration));
             return;
         }
+
 
         policyChain.doNext(request, response);
     }
@@ -164,10 +165,10 @@ public class RateLimitPolicy {
                 ((resolvedPath != null) ? resolvedPath.hashCode() : "");
     }
 
-    private PolicyResult createLimitExceeded(RateLimitConfiguration rateLimitConfiguration) {
+    private PolicyResult createLimitExceeded(QuotaConfiguration quotaConfiguration) {
         return PolicyResult.failure(HttpStatusCode.TOO_MANY_REQUESTS_429,
-                "Rate limit exceeded ! You reach the limit fixed to " + rateLimitConfiguration.getLimit() +
-                        " requests per " + rateLimitConfiguration.getPeriodTime() + ' ' +
-                        rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase());
+                "Quota exceeded ! You reach the limit fixed to " + quotaConfiguration.getLimit() +
+                        " requests per " + quotaConfiguration.getPeriodTime() + ' ' +
+                        quotaConfiguration.getPeriodTimeUnit().name().toLowerCase());
     }
 }

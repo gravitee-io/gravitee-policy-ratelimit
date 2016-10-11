@@ -26,9 +26,9 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>gravitee-policy-ratelimit</artifactId>
-    <name>Rate Limit Gravitee Policy</name>
-    <description>Description of the Rate Limit Gravitee Policy</description>
+    <artifactId>gravitee-policy-quota</artifactId>
+    <name>Quota Gravitee Policy</name>
+    <description>Description of the Quota Gravitee Policy</description>
 
     <properties>
         <json-schema-generator-maven-plugin.version>1.1.0</json-schema-generator-maven-plugin.version>
@@ -103,7 +103,7 @@
                         </goals>
                         <configuration>
                             <includes>
-                                <include>io/gravitee/policy/ratelimit/configuration/RateLimitPolicyConfiguration.class</include>
+                                <include>io/gravitee/policy/quota/configuration/QuotaPolicyConfiguration.class</include>
                             </includes>
                             <outputDirectory>${json-schema-generator-maven-plugin.outputDirectory}</outputDirectory>
                         </configuration>
