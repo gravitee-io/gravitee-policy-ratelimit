@@ -39,6 +39,7 @@
         <gravitee-policy-api.version>1.0.0-SNAPSHOT</gravitee-policy-api.version>
         <gravitee-repository-api.version>1.0.0-SNAPSHOT</gravitee-repository-api.version>
         <gravitee-common.version>1.0.0-SNAPSHOT</gravitee-common.version>
+        <jackson.version>2.5.3</jackson.version>
     </properties>
 
     <modules>

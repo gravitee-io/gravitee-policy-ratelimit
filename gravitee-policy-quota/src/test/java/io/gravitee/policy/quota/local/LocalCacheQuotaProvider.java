@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.ratelimit.local;
+package io.gravitee.policy.quota.local;
 
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
@@ -26,7 +26,7 @@ import java.util.Map;
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
-public class LocalCacheRateLimitProvider implements RateLimitService {
+public class LocalCacheQuotaProvider implements RateLimitService {
 
     private Map<Serializable, RateLimit> rateLimits = new HashMap<>();
 

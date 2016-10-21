@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.ratelimit;
+package io.gravitee.policy.quota;
 
 import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.node.Node;
@@ -23,9 +23,9 @@ import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
-import io.gravitee.policy.ratelimit.configuration.RateLimitConfiguration;
-import io.gravitee.policy.ratelimit.configuration.RateLimitPolicyConfiguration;
-import io.gravitee.policy.ratelimit.local.LocalCacheRateLimitProvider;
+import io.gravitee.policy.quota.configuration.QuotaConfiguration;
+import io.gravitee.policy.quota.configuration.QuotaPolicyConfiguration;
+import io.gravitee.policy.quota.local.LocalCacheQuotaProvider;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,7 +48,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
  * @author GraviteeSource Team
  */
 @RunWith(MockitoJUnitRunner.class)
-public class RateLimitPolicyTest {
+public class QuotaPolicyTest {
 
     private static final String API_KEY_HEADER_VALUE = "fbc40d50-5746-40af-b283-d7e99c1775c7";
     private static final String API_NAME_HEADER_VALUE = "my-api";
@@ -70,10 +70,13 @@ public class RateLimitPolicyTest {
     @Mock
     private Node node;
 
+    @Mock
+    private HttpHeaders responseHttpHeaders;
+
     @Before
     public void init() {
-        rateLimitService = new LocalCacheRateLimitProvider();
-        ((LocalCacheRateLimitProvider)rateLimitService).clean();
+        rateLimitService = new LocalCacheQuotaProvider();
+        ((LocalCacheQuotaProvider)rateLimitService).clean();
         initMocks(this);
 
         when(node.id()).thenReturn(UUID.toString(UUID.random()));
@@ -82,15 +85,15 @@ public class RateLimitPolicyTest {
 
     @Test
     public void rateLimit_noRepository() {
-        RateLimitPolicyConfiguration policyConfiguration = new RateLimitPolicyConfiguration();
-        RateLimitConfiguration rateLimitConfiguration = new RateLimitConfiguration();
+        QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
+        QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
 
         rateLimitConfiguration.setLimit(1);
         rateLimitConfiguration.setPeriodTime(1);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
-        policyConfiguration.setRate(rateLimitConfiguration);
+        policyConfiguration.setQuota(rateLimitConfiguration);
 
-        RateLimitPolicy rateLimitPolicy = new RateLimitPolicy(policyConfiguration);
+        QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
 
         rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
 
@@ -98,7 +101,7 @@ public class RateLimitPolicyTest {
     }
 
     @Test
-    public void singleRequest() {
+    public void singleRequest_withQuotaHeaders() {
         final HttpHeaders headers = new HttpHeaders();
         headers.setAll(new HashMap<String, String>() {
             {
@@ -107,15 +110,15 @@ public class RateLimitPolicyTest {
             }
         });
 
-        RateLimitPolicyConfiguration policyConfiguration = new RateLimitPolicyConfiguration();
-        RateLimitConfiguration rateLimitConfiguration = new RateLimitConfiguration();
+        QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
+        QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
 
         rateLimitConfiguration.setLimit(10);
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
-        policyConfiguration.setRate(rateLimitConfiguration);
+        policyConfiguration.setQuota(rateLimitConfiguration);
 
-        RateLimitPolicy rateLimitPolicy = new RateLimitPolicy(policyConfiguration);
+        QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
 
         when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
         when(executionContext.getAttribute(ExecutionContext.ATTR_APPLICATION)).thenReturn("app-id");
@@ -123,9 +126,48 @@ public class RateLimitPolicyTest {
         when(executionContext.getAttribute(ExecutionContext.ATTR_RESOLVED_PATH)).thenReturn("/");
 
         when(request.headers()).thenReturn(headers);
-        when(response.headers()).thenReturn(new HttpHeaders());
+        when(response.headers()).thenReturn(responseHttpHeaders);
+
         rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
 
+        verify(responseHttpHeaders).set(QuotaPolicy.X_QUOTA_LIMIT, "10");
+        verify(responseHttpHeaders).set(QuotaPolicy.X_QUOTA_REMAINING, "9");
+        verify(policyChain).doNext(request, response);
+    }
+
+    @Test
+    public void singleRequest_withoutQuotaHeaders() {
+        final HttpHeaders headers = new HttpHeaders();
+        headers.setAll(new HashMap<String, String>() {
+            {
+                put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
+                put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
+            }
+        });
+
+        QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
+        QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
+
+        rateLimitConfiguration.setLimit(10);
+        rateLimitConfiguration.setPeriodTime(10);
+        rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
+        policyConfiguration.setQuota(rateLimitConfiguration);
+        policyConfiguration.setAddHeaders(false);
+
+        QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
+
+        when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
+        when(executionContext.getAttribute(ExecutionContext.ATTR_APPLICATION)).thenReturn("app-id");
+        when(executionContext.getAttribute(ExecutionContext.ATTR_API)).thenReturn("api-id");
+        when(executionContext.getAttribute(ExecutionContext.ATTR_RESOLVED_PATH)).thenReturn("/");
+
+        when(request.headers()).thenReturn(headers);
+        when(response.headers()).thenReturn(responseHttpHeaders);
+
+        rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
+
+        verify(responseHttpHeaders, never()).set(QuotaPolicy.X_QUOTA_LIMIT, "10");
+        verify(responseHttpHeaders, never()).set(QuotaPolicy.X_QUOTA_REMAINING, "9");
         verify(policyChain).doNext(request, response);
     }
 
@@ -139,15 +181,15 @@ public class RateLimitPolicyTest {
             }
         });
 
-        RateLimitPolicyConfiguration policyConfiguration = new RateLimitPolicyConfiguration();
-        RateLimitConfiguration rateLimitConfiguration = new RateLimitConfiguration();
+        QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
+        QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
 
         rateLimitConfiguration.setLimit(10);
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
-        policyConfiguration.setRate(rateLimitConfiguration);
+        policyConfiguration.setQuota(rateLimitConfiguration);
 
-        RateLimitPolicy rateLimitPolicy = new RateLimitPolicy(policyConfiguration);
+        QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
 
         when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
         when(executionContext.getAttribute(ExecutionContext.ATTR_APPLICATION)).thenReturn("app-id");
@@ -155,7 +197,7 @@ public class RateLimitPolicyTest {
         when(executionContext.getAttribute(ExecutionContext.ATTR_RESOLVED_PATH)).thenReturn("/");
 
         when(request.headers()).thenReturn(headers);
-        when(response.headers()).thenReturn(new HttpHeaders());
+        when(response.headers()).thenReturn(responseHttpHeaders);
 
         InOrder inOrder = inOrder(policyChain);
 
@@ -168,5 +210,8 @@ public class RateLimitPolicyTest {
 
         inOrder.verify(policyChain, times((int)rateLimitConfiguration.getLimit())).doNext(request, response);
         inOrder.verify(policyChain, times(exceedCalls)).failWith(any(PolicyResult.class));
+
+        verify(responseHttpHeaders, times(15)).set(QuotaPolicy.X_QUOTA_LIMIT, "10");
+        verify(responseHttpHeaders, times(6)).set(QuotaPolicy.X_QUOTA_REMAINING, "0");
     }
 }

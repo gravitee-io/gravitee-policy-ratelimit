@@ -25,7 +25,7 @@ public class QuotaPolicyConfiguration implements PolicyConfiguration {
 
     private boolean async;
 
-    private boolean addHeaders;
+    private boolean addHeaders = true;
 
     private QuotaConfiguration quota;
 

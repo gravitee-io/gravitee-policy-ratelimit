@@ -167,7 +167,7 @@ public class QuotaPolicy {
 
     private PolicyResult createLimitExceeded(QuotaConfiguration quotaConfiguration) {
         return PolicyResult.failure(HttpStatusCode.TOO_MANY_REQUESTS_429,
-                "Quota exceeded ! You reach the limit fixed to " + quotaConfiguration.getLimit() +
+                "Quota exceeded ! You reach the limit of " + quotaConfiguration.getLimit() +
                         " requests per " + quotaConfiguration.getPeriodTime() + ' ' +
                         quotaConfiguration.getPeriodTimeUnit().name().toLowerCase());
     }
