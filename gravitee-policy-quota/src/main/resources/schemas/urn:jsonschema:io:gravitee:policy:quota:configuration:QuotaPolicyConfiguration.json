@@ -16,22 +16,24 @@
     },
     "quota" : {
       "type" : "object",
+      "title": "Apply quota",
       "id" : "urn:jsonschema:io:gravitee:policy:quota:configuration:QuotaConfiguration",
       "properties" : {
         "limit" : {
           "type" : "integer",
+          "title": "Max requests",
           "description": "Limit on the number of requests that can be sent."
         },
         "periodTime" : {
           "type" : "integer",
-          "default": 30,
-          "description": "Time duration."
+          "title": "Time duration",
+          "default": 30
         },
         "periodTimeUnit" : {
           "type" : "string",
+          "title": "Time unit",
           "default": "DAYS",
-          "enum" : [ "SECONDS", "MINUTES", "HOURS", "DAYS" ],
-          "description": "Time duration unit."
+          "enum" : [ "SECONDS", "MINUTES", "HOURS", "DAYS" ]
         }
       },
       "required": [

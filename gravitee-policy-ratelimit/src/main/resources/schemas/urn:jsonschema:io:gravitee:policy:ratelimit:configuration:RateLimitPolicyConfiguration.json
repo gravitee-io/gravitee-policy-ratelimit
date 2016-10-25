@@ -16,22 +16,24 @@
     },
     "rate" : {
       "type" : "object",
+      "title": "Apply rate-limiting",
       "id" : "urn:jsonschema:io:gravitee:policy:ratelimit:configuration:RateLimitConfiguration",
       "properties" : {
         "limit" : {
           "type" : "integer",
+          "title": "Max requests",
           "description": "Limit on the number of requests that can be sent."
         },
         "periodTime" : {
           "type" : "integer",
-          "default": 1,
-          "description": "Time duration."
+          "title": "Time duration",
+          "default": 1
         },
         "periodTimeUnit" : {
           "type" : "string",
+          "title": "Time unit",
           "default": "MINUTES",
-          "enum" : [ "SECONDS", "MINUTES", "HOURS", "DAYS" ],
-          "description": "Time duration unit."
+          "enum" : [ "SECONDS", "MINUTES", "HOURS", "DAYS" ]
         }
       },
       "required": [
