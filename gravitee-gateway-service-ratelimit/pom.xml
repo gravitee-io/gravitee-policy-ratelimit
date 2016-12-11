@@ -28,7 +28,7 @@
     </parent>
 
     <artifactId>gravitee-gateway-services-ratelimit</artifactId>
-    <name>Gravitee IO - Gateway - Services - Rate Limit proxy</name>
+    <name>Gravitee.io APIM - Gateway - Services - Rate Limit proxy</name>
 
     <dependencies>
         <!-- Gravitee.io dependencies -->

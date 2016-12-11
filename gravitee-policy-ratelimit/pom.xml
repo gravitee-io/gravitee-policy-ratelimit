@@ -27,7 +27,7 @@
     </parent>
 
     <artifactId>gravitee-policy-ratelimit</artifactId>
-    <name>Rate Limit Gravitee Policy</name>
+    <name>Gravitee.io APIM - Policy - Rate Limit</name>
     <description>Description of the Rate Limit Gravitee Policy</description>
 
     <properties>

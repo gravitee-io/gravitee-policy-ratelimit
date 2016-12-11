@@ -27,7 +27,7 @@
     </parent>
 
     <artifactId>gravitee-policy-quota</artifactId>
-    <name>Quota Gravitee Policy</name>
+    <name>Gravitee.io APIM - Policy - Quota</name>
     <description>Description of the Quota Gravitee Policy</description>
 
     <properties>
