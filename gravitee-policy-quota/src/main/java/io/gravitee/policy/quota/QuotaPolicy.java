@@ -156,11 +156,11 @@ public class QuotaPolicy {
 
         if (async) {
             return executionContext.getComponent(Node.class).id() + KEY_SEPARATOR + RATE_LIMIT_TYPE + KEY_SEPARATOR +
-                    executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION) + KEY_SEPARATOR +
+                    executionContext.getAttribute(ExecutionContext.ATTR_USER_ID) + KEY_SEPARATOR +
                     ((resolvedPath != null) ? resolvedPath.hashCode() : "");
         }
 
-        return (String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION) + KEY_SEPARATOR +
+        return (String) executionContext.getAttribute(ExecutionContext.ATTR_USER_ID) + KEY_SEPARATOR +
                 RATE_LIMIT_TYPE + KEY_SEPARATOR +
                 ((resolvedPath != null) ? resolvedPath.hashCode() : "");
     }
