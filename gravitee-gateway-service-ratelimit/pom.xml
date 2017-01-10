@@ -35,13 +35,16 @@
         <dependency>
             <groupId>io.gravitee.common</groupId>
             <artifactId>gravitee-common</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>io.gravitee.repository</groupId>
             <artifactId>gravitee-repository</artifactId>
-            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
 
         <!-- EHCache dependency -->
