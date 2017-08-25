@@ -15,6 +15,7 @@
  */
 package io.gravitee.policy.quota.configuration;
 
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -27,7 +28,8 @@ public class QuotaConfiguration {
 
     private long periodTime;
 
-    private TimeUnit periodTimeUnit;
+    private ChronoUnit periodTimeUnit;
+//    private TimeUnit periodTimeUnit;
 
     public long getLimit() {
         return limit;
@@ -45,11 +47,11 @@ public class QuotaConfiguration {
         this.periodTime = periodTime;
     }
 
-    public TimeUnit getPeriodTimeUnit() {
+    public ChronoUnit getPeriodTimeUnit() {
         return periodTimeUnit;
     }
 
-    public void setPeriodTimeUnit(TimeUnit periodTimeUnit) {
+    public void setPeriodTimeUnit(ChronoUnit periodTimeUnit) {
         this.periodTimeUnit = periodTimeUnit;
     }
 }

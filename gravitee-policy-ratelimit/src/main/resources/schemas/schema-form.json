@@ -32,8 +32,8 @@
         "periodTimeUnit" : {
           "type" : "string",
           "title": "Time unit",
-          "default": "MINUTES",
-          "enum" : [ "SECONDS", "MINUTES", "HOURS", "DAYS" ]
+          "default": "SECONDS",
+          "enum" : [ "SECONDS", "MINUTES" ]
         }
       },
       "required": [

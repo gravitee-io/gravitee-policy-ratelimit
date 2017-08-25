@@ -21,6 +21,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.net.URL;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -42,7 +43,7 @@ public class QuotaPolicyConfigurationTest {
         Assert.assertNotNull(configuration.getQuota());
         Assert.assertEquals(10, configuration.getQuota().getLimit());
         Assert.assertEquals(10, configuration.getQuota().getPeriodTime());
-        Assert.assertEquals(TimeUnit.MINUTES, configuration.getQuota().getPeriodTimeUnit());
+        Assert.assertEquals(ChronoUnit.MINUTES, configuration.getQuota().getPeriodTimeUnit());
     }
 
     @Test
