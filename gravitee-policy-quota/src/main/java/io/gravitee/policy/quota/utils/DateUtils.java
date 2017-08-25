@@ -15,34 +15,22 @@
  */
 package io.gravitee.policy.quota.utils;
 
-import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.TimeUnit;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 
 /**
- * @author David BRASSELY (brasseld at gmail.com)
+ * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
 public final class DateUtils {
 
-    public static long getEndOfPeriod(long startingTime, long periodTime, TimeUnit periodTimeUnit) {
-        Duration duration = null;
-
-        switch (periodTimeUnit) {
-            case SECONDS:
-                duration = Duration.ofSeconds(periodTime);
-                break;
-            case MINUTES:
-                duration = Duration.ofMinutes(periodTime);
-                break;
-            case HOURS:
-                duration = Duration.ofHours(periodTime);
-                break;
-            case DAYS:
-                duration = Duration.ofDays(periodTime);
-                break;
-        }
-
-        return Instant.ofEpochMilli(startingTime).plus(duration).toEpochMilli();
+    public static long getEndOfPeriod(long startingTime, long periodTime, ChronoUnit periodTimeUnit) {
+        return ZonedDateTime
+                .ofInstant(Instant.ofEpochMilli(startingTime), ZoneId.systemDefault())
+                .plus(periodTime, periodTimeUnit)
+                .toInstant()
+                .toEpochMilli();
     }
 }

@@ -27,13 +27,13 @@
         "periodTime" : {
           "type" : "integer",
           "title": "Time duration",
-          "default": 30
+          "default": 1
         },
         "periodTimeUnit" : {
           "type" : "string",
           "title": "Time unit",
-          "default": "DAYS",
-          "enum" : [ "SECONDS", "MINUTES", "HOURS", "DAYS" ]
+          "default": "MONTHS",
+          "enum" : [ "HOURS", "DAYS", "WEEKS", "MONTHS" ]
         }
       },
       "required": [

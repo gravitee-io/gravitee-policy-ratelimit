@@ -34,8 +34,8 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
-import java.util.concurrent.TimeUnit;
 
 import static io.gravitee.common.http.GraviteeHttpHeader.X_GRAVITEE_API_KEY;
 import static io.gravitee.common.http.GraviteeHttpHeader.X_GRAVITEE_API_NAME;
@@ -90,7 +90,7 @@ public class QuotaPolicyTest {
 
         rateLimitConfiguration.setLimit(1);
         rateLimitConfiguration.setPeriodTime(1);
-        rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
+        rateLimitConfiguration.setPeriodTimeUnit(ChronoUnit.SECONDS);
         policyConfiguration.setQuota(rateLimitConfiguration);
 
         QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
@@ -115,7 +115,7 @@ public class QuotaPolicyTest {
 
         rateLimitConfiguration.setLimit(10);
         rateLimitConfiguration.setPeriodTime(10);
-        rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
+        rateLimitConfiguration.setPeriodTimeUnit(ChronoUnit.SECONDS);
         policyConfiguration.setQuota(rateLimitConfiguration);
 
         QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
@@ -150,7 +150,7 @@ public class QuotaPolicyTest {
 
         rateLimitConfiguration.setLimit(10);
         rateLimitConfiguration.setPeriodTime(10);
-        rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
+        rateLimitConfiguration.setPeriodTimeUnit(ChronoUnit.SECONDS);
         policyConfiguration.setQuota(rateLimitConfiguration);
         policyConfiguration.setAddHeaders(false);
 
@@ -186,7 +186,7 @@ public class QuotaPolicyTest {
 
         rateLimitConfiguration.setLimit(10);
         rateLimitConfiguration.setPeriodTime(10);
-        rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
+        rateLimitConfiguration.setPeriodTimeUnit(ChronoUnit.SECONDS);
         policyConfiguration.setQuota(rateLimitConfiguration);
 
         QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);

@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The rate limit policy, also known as throttling insure that a user (given its api key or IP address) is allowed
+ * The quota policy, also known as throttling insure that a user (given its api key or IP address) is allowed
  * to make x requests per y time period.
  *
  * Useful when you want to ensure that your APIs does not get flooded with requests.
