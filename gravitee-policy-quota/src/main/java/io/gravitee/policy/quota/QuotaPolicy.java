@@ -20,9 +20,13 @@ import io.gravitee.common.node.Node;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
+import io.gravitee.policy.api.ChainScope;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
+import io.gravitee.policy.api.annotations.Category;
 import io.gravitee.policy.api.annotations.OnRequest;
+import io.gravitee.policy.api.annotations.Policy;
+import io.gravitee.policy.api.annotations.Scope;
 import io.gravitee.policy.quota.configuration.QuotaConfiguration;
 import io.gravitee.policy.quota.configuration.QuotaPolicyConfiguration;
 import io.gravitee.policy.quota.utils.DateUtils;
@@ -41,6 +45,10 @@ import org.slf4j.LoggerFactory;
  * @author GraviteeSource Team
  */
 @SuppressWarnings("unused")
+@Policy(
+        category = @Category(io.gravitee.policy.api.Category.SECURITY),
+        scope = @Scope({ChainScope.API, ChainScope.PLAN})
+)
 public class QuotaPolicy {
 
     /**
