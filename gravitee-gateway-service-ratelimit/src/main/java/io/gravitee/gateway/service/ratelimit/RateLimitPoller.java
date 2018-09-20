@@ -15,8 +15,8 @@
  */
 package io.gravitee.gateway.service.ratelimit;
 
-import io.gravitee.common.node.Node;
 import io.gravitee.gateway.service.ratelimit.util.KeySplitter;
+import io.gravitee.node.api.Node;
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import org.slf4j.Logger;
