@@ -16,11 +16,11 @@
 package io.gravitee.policy.ratelimit;
 
 import io.gravitee.common.http.HttpHeaders;
-import io.gravitee.common.node.Node;
 import io.gravitee.common.utils.UUID;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
+import io.gravitee.node.api.Node;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.ratelimit.configuration.RateLimitConfiguration;

@@ -16,10 +16,10 @@
 package io.gravitee.policy.quota;
 
 import io.gravitee.common.http.HttpStatusCode;
-import io.gravitee.common.node.Node;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
+import io.gravitee.node.api.Node;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequest;
