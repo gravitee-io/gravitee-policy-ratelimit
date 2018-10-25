@@ -142,6 +142,10 @@ public class QuotaPolicy {
             return;
         }
 
+        executionContext.setAttribute(ExecutionContext.ATTR_QUOTA_COUNT, rateLimit.getCounter());
+        executionContext.setAttribute(ExecutionContext.ATTR_QUOTA_REMAINING, remains);
+        executionContext.setAttribute(ExecutionContext.ATTR_QUOTA_LIMIT, quotaConfiguration.getLimit());
+        executionContext.setAttribute(ExecutionContext.ATTR_QUOTA_RESET_TIME, resetTime);
 
         policyChain.doNext(request, response);
     }
