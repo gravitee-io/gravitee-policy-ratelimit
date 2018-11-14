@@ -40,7 +40,7 @@
         <gravitee-repository-api.version>1.20.0</gravitee-repository-api.version>
         <gravitee-common.version>1.13.0</gravitee-common.version>
         <gravitee-node.version>1.0.0</gravitee-node.version>
-        <jackson.version>2.5.3</jackson.version>
+        <jackson.version>2.9.7</jackson.version>
     </properties>
 
     <modules>
