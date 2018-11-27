@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.gateway.service.ratelimit;
+package io.gravitee.gateway.services.ratelimit;
 
 import io.gravitee.common.service.AbstractService;
 import io.gravitee.common.util.BlockingArrayQueue;
