@@ -46,7 +46,7 @@
     <modules>
         <module>gravitee-policy-ratelimit</module>
         <module>gravitee-policy-quota</module>
-        <module>gravitee-gateway-service-ratelimit</module>
+        <module>gravitee-gateway-services-ratelimit</module>
     </modules>
 
     <dependencyManagement>
