@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.gateway.service.ratelimit.spring;
+package io.gravitee.gateway.services.ratelimit.spring;
 
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;

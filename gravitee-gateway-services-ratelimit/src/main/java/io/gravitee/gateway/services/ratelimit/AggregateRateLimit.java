@@ -13,26 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.gateway.service.ratelimit.util;
+package io.gravitee.gateway.services.ratelimit;
+
+import io.gravitee.repository.ratelimit.model.RateLimit;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
-public final class KeySplitter {
+class AggregateRateLimit extends RateLimit {
 
-    /**
-     * Extract gateway_id from rate-limit key
-     * RateLimit key format is gateway-id:type:subscription-id:resolved-path-hash
-     * Example: xxx-xxx-xxx-xxx-xxx:q:xxx-xxx-xxx-xxx:13456
-     *
-     * @param key
-     * @return
-     */
-    public static String [] split(String key) {
-        return new String [] {
-                key.substring(0, key.indexOf(':')),
-                key.substring(key.indexOf(':') + 1, key.length())
-        };
+    private long aggregateCounter = 0;
+
+    AggregateRateLimit(RateLimit rateLimit) {
+        super(rateLimit);
+    }
+
+    public long getAggregateCounter() {
+        return aggregateCounter;
+    }
+
+    public void setAggregateCounter(long aggregateCounter) {
+        this.aggregateCounter = aggregateCounter;
     }
 }
