@@ -16,7 +16,6 @@
 package io.gravitee.policy.quota;
 
 import io.gravitee.common.http.HttpHeaders;
-import io.gravitee.common.utils.UUID;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
@@ -32,7 +31,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -41,7 +40,6 @@ import static io.gravitee.common.http.GraviteeHttpHeader.X_GRAVITEE_API_KEY;
 import static io.gravitee.common.http.GraviteeHttpHeader.X_GRAVITEE_API_NAME;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -77,10 +75,6 @@ public class QuotaPolicyTest {
     public void init() {
         rateLimitService = new LocalCacheQuotaProvider();
         ((LocalCacheQuotaProvider)rateLimitService).clean();
-        initMocks(this);
-
-        when(node.id()).thenReturn(UUID.toString(UUID.random()));
-        when(executionContext.getComponent(Node.class)).thenReturn(node);
     }
 
     @Test
@@ -121,11 +115,6 @@ public class QuotaPolicyTest {
         QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
 
         when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
-        when(executionContext.getAttribute(ExecutionContext.ATTR_APPLICATION)).thenReturn("app-id");
-        when(executionContext.getAttribute(ExecutionContext.ATTR_API)).thenReturn("api-id");
-        when(executionContext.getAttribute(ExecutionContext.ATTR_RESOLVED_PATH)).thenReturn("/");
-
-        when(request.headers()).thenReturn(headers);
         when(response.headers()).thenReturn(responseHttpHeaders);
 
         rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
@@ -157,12 +146,6 @@ public class QuotaPolicyTest {
         QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
 
         when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
-        when(executionContext.getAttribute(ExecutionContext.ATTR_APPLICATION)).thenReturn("app-id");
-        when(executionContext.getAttribute(ExecutionContext.ATTR_API)).thenReturn("api-id");
-        when(executionContext.getAttribute(ExecutionContext.ATTR_RESOLVED_PATH)).thenReturn("/");
-
-        when(request.headers()).thenReturn(headers);
-        when(response.headers()).thenReturn(responseHttpHeaders);
 
         rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
 
@@ -192,11 +175,6 @@ public class QuotaPolicyTest {
         QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
 
         when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
-        when(executionContext.getAttribute(ExecutionContext.ATTR_APPLICATION)).thenReturn("app-id");
-        when(executionContext.getAttribute(ExecutionContext.ATTR_API)).thenReturn("api-id");
-        when(executionContext.getAttribute(ExecutionContext.ATTR_RESOLVED_PATH)).thenReturn("/");
-
-        when(request.headers()).thenReturn(headers);
         when(response.headers()).thenReturn(responseHttpHeaders);
 
         InOrder inOrder = inOrder(policyChain);
