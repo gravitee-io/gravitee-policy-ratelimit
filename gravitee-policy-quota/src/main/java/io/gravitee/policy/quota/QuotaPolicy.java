@@ -16,6 +16,7 @@
 package io.gravitee.policy.quota;
 
 import io.gravitee.common.http.HttpStatusCode;
+import io.gravitee.common.util.Maps;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
@@ -47,6 +48,8 @@ public class QuotaPolicy {
      * LOGGER
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(QuotaPolicy.class);
+
+    private static final String QUOTA_TOO_MANY_REQUESTS = "QUOTA_TOO_MANY_REQUESTS";
 
     /**
      * The maximum number of requests that the consumer is permitted to make per time unit.
@@ -170,9 +173,16 @@ public class QuotaPolicy {
     }
 
     private PolicyResult createLimitExceeded(QuotaConfiguration quotaConfiguration) {
-        return PolicyResult.failure(HttpStatusCode.TOO_MANY_REQUESTS_429,
+        return PolicyResult.failure(
+                QUOTA_TOO_MANY_REQUESTS,
+                HttpStatusCode.TOO_MANY_REQUESTS_429,
                 "Quota exceeded ! You reach the limit of " + quotaConfiguration.getLimit() +
                         " requests per " + quotaConfiguration.getPeriodTime() + ' ' +
-                        quotaConfiguration.getPeriodTimeUnit().name().toLowerCase());
+                        quotaConfiguration.getPeriodTimeUnit().name().toLowerCase(),
+                Maps.<String, Object>builder()
+                        .put("limit", quotaConfiguration.getLimit())
+                        .put("period_time", quotaConfiguration.getPeriodTime())
+                        .put("period_unit", quotaConfiguration.getPeriodTimeUnit())
+                        .build());
     }
 }

@@ -16,6 +16,7 @@
 package io.gravitee.policy.ratelimit;
 
 import io.gravitee.common.http.HttpStatusCode;
+import io.gravitee.common.util.Maps;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
@@ -47,6 +48,8 @@ public class RateLimitPolicy {
      * LOGGER
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(RateLimitPolicy.class);
+
+    private static final String RATE_LIMIT_TOO_MANY_REQUESTS = "RATE_LIMIT_TOO_MANY_REQUESTS";
 
     /**
      * The maximum number of requests that the consumer is permitted to make per time unit.
@@ -165,9 +168,16 @@ public class RateLimitPolicy {
     }
 
     private PolicyResult createLimitExceeded(RateLimitConfiguration rateLimitConfiguration) {
-        return PolicyResult.failure(HttpStatusCode.TOO_MANY_REQUESTS_429,
+        return PolicyResult.failure(
+                RATE_LIMIT_TOO_MANY_REQUESTS,
+                HttpStatusCode.TOO_MANY_REQUESTS_429,
                 "Rate limit exceeded ! You reach the limit of " + rateLimitConfiguration.getLimit() +
                         " requests per " + rateLimitConfiguration.getPeriodTime() + ' ' +
-                        rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase());
+                        rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase(),
+                Maps.<String, Object>builder()
+                        .put("limit", rateLimitConfiguration.getLimit())
+                        .put("period_time", rateLimitConfiguration.getPeriodTime())
+                        .put("period_unit", rateLimitConfiguration.getPeriodTimeUnit())
+                        .build());
     }
 }

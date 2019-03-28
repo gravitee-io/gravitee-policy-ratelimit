@@ -43,3 +43,23 @@ You can configure the policy with the following options :
   "todo": true
 }
 ----
+
+== Errors
+If you're looking to override the default response provided by the policy, you can do it
+thanks to the response templates feature. These templates must be define at the API level (see `Response Templates`
+from the `Proxy` menu).
+
+Here are the error keys send by this policy:
+
+[cols="2*", options="header"]
+|===
+^|Key
+^|Parameters
+
+.^|RATE_LIMIT_TOO_MANY_REQUESTS
+^.^|limit - period_time - period_unit
+
+.^|QUOTA_TOO_MANY_REQUESTS
+^.^|limit - period_time - period_unit
+
+|===
