@@ -18,6 +18,10 @@ package io.gravitee.gateway.services.ratelimit;
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
+import io.reactivex.Single;
+import io.reactivex.functions.Function;
+
+import java.util.function.Supplier;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -25,28 +29,18 @@ import io.gravitee.repository.ratelimit.model.RateLimit;
  */
 public class DefaultRateLimitService implements RateLimitService {
 
-    private RateLimitRepository rateLimitRepository;
-    private RateLimitRepository asyncRateLimitRepository;
+    private RateLimitRepository<RateLimit> rateLimitRepository;
+    private RateLimitRepository<RateLimit> asyncRateLimitRepository;
 
-    @Override
-    public RateLimit get(String rateLimitKey, boolean async) {
-        return getRateLimitRepository(async).get(rateLimitKey);
-    }
-
-    @Override
-    public void save(RateLimit rateLimit, boolean async) {
-        getRateLimitRepository(async).save(rateLimit);
-    }
-
-    private RateLimitRepository getRateLimitRepository(boolean async) {
+    private RateLimitRepository<RateLimit> getRateLimitRepository(boolean async) {
         return (async) ? asyncRateLimitRepository : rateLimitRepository;
     }
 
-    public RateLimitRepository getAsyncRateLimitRepository() {
+    public RateLimitRepository<RateLimit> getAsyncRateLimitRepository() {
         return asyncRateLimitRepository;
     }
 
-    public void setAsyncRateLimitRepository(RateLimitRepository asyncRateLimitRepository) {
+    public void setAsyncRateLimitRepository(RateLimitRepository<RateLimit> asyncRateLimitRepository) {
         this.asyncRateLimitRepository = asyncRateLimitRepository;
     }
 
@@ -54,7 +48,18 @@ public class DefaultRateLimitService implements RateLimitService {
         return rateLimitRepository;
     }
 
-    public void setRateLimitRepository(RateLimitRepository rateLimitRepository) {
+    public void setRateLimitRepository(RateLimitRepository<RateLimit> rateLimitRepository) {
         this.rateLimitRepository = rateLimitRepository;
+    }
+
+    @Override
+    public Single<RateLimit> incrementAndGet(String key, long weight, boolean async, Supplier<RateLimit> supplier) {
+        try {
+            return getRateLimitRepository(async)
+                    .incrementAndGet(key, weight, supplier)
+                    .map(rateLimit -> rateLimit);
+        } catch (Exception ex) {
+            return Single.error(ex);
+        }
     }
 }

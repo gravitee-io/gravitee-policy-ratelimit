@@ -17,23 +17,28 @@ package io.gravitee.gateway.services.ratelimit;
 
 import io.gravitee.repository.ratelimit.model.RateLimit;
 
-/**
- * @author David BRASSELY (david.brassely at graviteesource.com)
- * @author GraviteeSource Team
- */
-class AggregateRateLimit extends RateLimit {
+class LocalRateLimit extends RateLimit {
 
-    private long aggregateCounter = 0;
+    private long local;
 
-    AggregateRateLimit(RateLimit rateLimit) {
-        super(rateLimit);
+    private LocalRateLimit(String key) {
+        super(key);
     }
 
-    public long getAggregateCounter() {
-        return aggregateCounter;
+    LocalRateLimit(RateLimit rateLimit) {
+        this(rateLimit.getKey());
+
+        setLimit(rateLimit.getLimit());
+        setCounter(rateLimit.getCounter());
+        setResetTime(rateLimit.getResetTime());
+        setSubscription(rateLimit.getSubscription());
     }
 
-    public void setAggregateCounter(long aggregateCounter) {
-        this.aggregateCounter = aggregateCounter;
+    long getLocal() {
+        return local;
+    }
+
+    void setLocal(long local) {
+        this.local = local;
     }
 }
