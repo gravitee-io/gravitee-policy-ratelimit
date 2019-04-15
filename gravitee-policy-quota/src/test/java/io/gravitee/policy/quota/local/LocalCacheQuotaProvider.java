@@ -17,10 +17,12 @@ package io.gravitee.policy.quota.local;
 
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
+import io.reactivex.Single;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.Supplier;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -28,19 +30,16 @@ import java.util.Map;
  */
 public class LocalCacheQuotaProvider implements RateLimitService {
 
-    private Map<Serializable, RateLimit> rateLimits = new HashMap<>();
+    private ConcurrentMap<Serializable, RateLimit> rateLimits = new ConcurrentHashMap<>();
 
     public void clean() {
         rateLimits.clear();
     }
 
     @Override
-    public RateLimit get(String rateLimitKey, boolean sync) {
-        return rateLimits.getOrDefault(rateLimitKey, new RateLimit(rateLimitKey));
-    }
-
-    @Override
-    public void save(RateLimit rateLimit, boolean sync) {
-        rateLimits.put(rateLimit.getKey(), rateLimit);
+    public Single<RateLimit> incrementAndGet(String key, long weight, boolean async, Supplier<RateLimit> supplier) {
+        RateLimit rateLimit = rateLimits.computeIfAbsent(key, serializable -> supplier.get());
+        rateLimit.setCounter(rateLimit.getCounter() + weight);
+        return Single.just(rateLimit);
     }
 }

@@ -35,7 +35,6 @@ public class RateLimitProxyConfiguration {
     private static final Logger LOGGER = LoggerFactory.getLogger(RateLimitProxyConfiguration.class);
 
     private static final String RATE_LIMIT_LOCAL_CACHE_NAME = "ratelimit";
-    private static final String RATE_LIMIT_AGGREGATE_CACHE_NAME = "ratelimit-agg";
 
     @Bean(name = "local")
     public Cache cacheLocal() {
@@ -48,19 +47,6 @@ public class RateLimitProxyConfiguration {
         }
 
         return cacheManager.getCache(RATE_LIMIT_LOCAL_CACHE_NAME);
-    }
-
-    @Bean(name = "aggregate")
-    public Cache cacheAggregate() {
-        CacheManager cacheManager = cacheManager();
-        Cache aggregateCache = cacheManager.getCache(RATE_LIMIT_AGGREGATE_CACHE_NAME);
-        if (aggregateCache == null) {
-            LOGGER.info("EHCache cache for {} not found. Fallback to default EHCache configuration", RATE_LIMIT_AGGREGATE_CACHE_NAME);
-            CacheConfiguration cacheConfiguration = new CacheConfiguration(RATE_LIMIT_AGGREGATE_CACHE_NAME, 0);
-            cacheManager.addCache(new Cache(cacheConfiguration));
-        }
-
-        return cacheManager.getCache(RATE_LIMIT_AGGREGATE_CACHE_NAME);
     }
 
     @Bean
