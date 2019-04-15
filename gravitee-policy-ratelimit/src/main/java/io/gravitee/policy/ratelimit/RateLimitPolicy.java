@@ -20,7 +20,6 @@ import io.gravitee.common.util.Maps;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
-import io.gravitee.node.api.Node;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequest;
@@ -29,8 +28,15 @@ import io.gravitee.policy.ratelimit.configuration.RateLimitPolicyConfiguration;
 import io.gravitee.policy.ratelimit.utils.DateUtils;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
+import io.reactivex.SingleObserver;
+import io.reactivex.disposables.Disposable;
+import io.vertx.core.Context;
+import io.vertx.core.Vertx;
+import io.vertx.reactivex.RxHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.function.Supplier;
 
 /**
  * The rate limit policy, also known as throttling insure that a user (given its api key or IP address) is allowed
@@ -85,86 +91,90 @@ public class RateLimitPolicy {
 
         if (rateLimitService == null) {
             policyChain.failWith(PolicyResult.failure("No rate-limit service has been installed."));
-
             return;
         }
-
-        // We prefer currentTimeMillis in place of nanoTime() because nanoTime is relatively
-        // expensive call and depends on the underlying architecture.
-        long now = System.currentTimeMillis();
 
         RateLimitConfiguration rateLimitConfiguration = rateLimitPolicyConfiguration.getRate();
+        String key = createRateLimitKey(request, executionContext);
 
-        String rateLimitKey = createRateLimitKey(rateLimitPolicyConfiguration.isAsync(), request, executionContext);
-        RateLimit rateLimit = rateLimitService.get(rateLimitKey, rateLimitPolicyConfiguration.isAsync());
+        Context context = Vertx.currentContext();
 
-        boolean rateLimitExceeded = false;
+        rateLimitService
+                .incrementAndGet(key, rateLimitPolicyConfiguration.isAsync(), new Supplier<RateLimit>() {
+                    @Override
+                    public RateLimit get() {
+                        // Set the time at which the current rate limit window resets in UTC epoch seconds.
+                        long resetTimeMillis = DateUtils.getEndOfPeriod(
+                                request.timestamp(),
+                                rateLimitConfiguration.getPeriodTime(),
+                                rateLimitConfiguration.getPeriodTimeUnit());
 
-        if (rateLimit.getResetTime() != 0 && now >= rateLimit.getResetTime()) {
-            rateLimit.setCounter(0);
-            rateLimit.setResetTime(0);
-        }
+                        RateLimit rate = new RateLimit(key);
+                        rate.setCounter(0);
+                        rate.setLimit(rateLimitConfiguration.getLimit());
+                        rate.setResetTime(resetTimeMillis);
+                        rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+                        return rate;
+                    }
+                })
+                .observeOn(RxHelper.scheduler(context))
+                .subscribe(new SingleObserver<RateLimit>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
 
-        if (rateLimit.getCounter() >= rateLimitConfiguration.getLimit()) {
-            rateLimitExceeded = true;
-            rateLimit.setCounter(rateLimitConfiguration.getLimit());
-        } else {
-            // Update rate limiter
-            // By default, weight is 1 (can be configurable in the future)
-            rateLimit.setCounter(rateLimit.getCounter() + 1);
-            rateLimit.setLastRequest(now);
-        }
+                    }
 
-        // Set the time at which the current rate limit window resets in UTC epoch seconds.
-        if (rateLimit.getResetTime() == 0) {
-            long resetTimeMillis = DateUtils.getEndOfPeriod(now,
-                    rateLimitConfiguration.getPeriodTime(), rateLimitConfiguration.getPeriodTimeUnit());
-            rateLimit.setResetTime(resetTimeMillis);
-        }
+                    @Override
+                    public void onSuccess(RateLimit rateLimit) {
+                        // Set Rate Limit headers on response
+                        if (rateLimitPolicyConfiguration.isAddHeaders()) {
+                            response.headers().set(X_RATE_LIMIT_LIMIT, Long.toString(rateLimitConfiguration.getLimit()));
+                            response.headers().set(X_RATE_LIMIT_REMAINING, Long.toString(Math.max(0, rateLimitConfiguration.getLimit() - rateLimit.getCounter())));
+                            response.headers().set(X_RATE_LIMIT_RESET, Long.toString(rateLimit.getResetTime()));
+                        }
 
-        rateLimit.setAsync(rateLimitPolicyConfiguration.isAsync());
-        rateLimit.setUpdatedAt(now);
-        if(rateLimit.getCreatedAt() == 0) {
-            rateLimit.setCreatedAt(now);
-        }
+                        if (rateLimit.getCounter() <= rateLimitConfiguration.getLimit()) {
+                            policyChain.doNext(request, response);
+                        } else {
+                            policyChain.failWith(createLimitExceeded(rateLimitConfiguration));
+                        }
+                    }
 
-        rateLimitService.save(rateLimit, rateLimitPolicyConfiguration.isAsync());
+                    @Override
+                    public void onError(Throwable throwable) {
+                        // Set Rate Limit headers on response
+                        if (rateLimitPolicyConfiguration.isAddHeaders()) {
+                            response.headers().set(X_RATE_LIMIT_LIMIT, Long.toString(rateLimitConfiguration.getLimit()));
+                            // We don't know about the remaining calls, let's assume it is the same as the limit
+                            response.headers().set(X_RATE_LIMIT_REMAINING, Long.toString(rateLimitConfiguration.getLimit()));
+                            response.headers().set(X_RATE_LIMIT_RESET, Long.toString(-1));
+                        }
 
-        long remains = rateLimitConfiguration.getLimit() - rateLimit.getCounter();
-        long resetTime = rateLimit.getResetTime() / 1000L;
-
-        // Set Rate Limit headers on response
-        if (rateLimitPolicyConfiguration.isAddHeaders()) {
-            response.headers().set(X_RATE_LIMIT_LIMIT, Long.toString(rateLimitConfiguration.getLimit()));
-            response.headers().set(X_RATE_LIMIT_REMAINING, Long.toString(remains));
-            response.headers().set(X_RATE_LIMIT_RESET, Long.toString(resetTime));
-        }
-
-        if (rateLimitExceeded) {
-            policyChain.failWith(createLimitExceeded(rateLimitConfiguration));
-            return;
-        }
-
-        policyChain.doNext(request, response);
+                        // If an errors occurs at the repository level, we accept the call
+                        policyChain.doNext(request, response);
+                    }
+                });
     }
 
-    private String createRateLimitKey(boolean async, Request request, ExecutionContext executionContext) {
+    private String createRateLimitKey(Request request, ExecutionContext executionContext) {
         // Rate limit key must contain :
-        // 1_ GATEWAY_ID (async mode only)
-        // 2_ Rate Type (throttling / quota)
-        // 3_ SUBSCRIPTION_ID
-        // 4_ RESOLVED_PATH
+        // 1_ PLAN_ID
+        // 1_ SUBSCRIPTION_ID
+        // 2_ Rate Type (rate-limit / quota)
+        // 3_ RESOLVED_PATH (policy attached to a path rather than a plan)
         String resolvedPath = (String) executionContext.getAttribute(ExecutionContext.ATTR_RESOLVED_PATH);
 
-        if (async) {
-            return executionContext.getComponent(Node.class).id() + KEY_SEPARATOR + RATE_LIMIT_TYPE + KEY_SEPARATOR +
-                    executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID) + KEY_SEPARATOR +
-                    ((resolvedPath != null) ? resolvedPath.hashCode() : "");
+        StringBuilder key = new StringBuilder((String) executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
+                .append(KEY_SEPARATOR)
+                .append((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID))
+                .append(KEY_SEPARATOR)
+                .append(RATE_LIMIT_TYPE);
+
+        if (resolvedPath != null) {
+            key.append(KEY_SEPARATOR).append(resolvedPath.hashCode());
         }
 
-        return (String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID) + KEY_SEPARATOR +
-                RATE_LIMIT_TYPE + KEY_SEPARATOR +
-                ((resolvedPath != null) ? resolvedPath.hashCode() : "");
+        return key.toString();
     }
 
     private PolicyResult createLimitExceeded(RateLimitConfiguration rateLimitConfiguration) {
