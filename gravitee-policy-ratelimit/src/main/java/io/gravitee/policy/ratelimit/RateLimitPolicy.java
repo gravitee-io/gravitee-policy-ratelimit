@@ -141,7 +141,7 @@ public class RateLimitPolicy {
         }
 
         if (rateLimitExceeded) {
-            policyChain.failWith(createLimitExceeded(rateLimitConfiguration));
+            policyChain.failWith(createLimitExceeded(rateLimitConfiguration, executionContext));
             return;
         }
 
@@ -167,7 +167,8 @@ public class RateLimitPolicy {
                 ((resolvedPath != null) ? resolvedPath.hashCode() : "");
     }
 
-    private PolicyResult createLimitExceeded(RateLimitConfiguration rateLimitConfiguration) {
+    private PolicyResult createLimitExceeded(RateLimitConfiguration rateLimitConfiguration, ExecutionContext executionContext) {
+        executionContext.request().metrics().setErrorKey(RATE_LIMIT_TOO_MANY_REQUESTS);
         return PolicyResult.failure(
                 RATE_LIMIT_TOO_MANY_REQUESTS,
                 HttpStatusCode.TOO_MANY_REQUESTS_429,

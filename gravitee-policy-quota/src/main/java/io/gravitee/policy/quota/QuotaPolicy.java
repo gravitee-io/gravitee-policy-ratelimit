@@ -141,7 +141,7 @@ public class QuotaPolicy {
         }
 
         if (rateLimitExceeded) {
-            policyChain.failWith(createLimitExceeded(quotaConfiguration));
+            policyChain.failWith(createLimitExceeded(quotaConfiguration, executionContext));
             return;
         }
 
@@ -172,7 +172,8 @@ public class QuotaPolicy {
                 ((resolvedPath != null) ? resolvedPath.hashCode() : "");
     }
 
-    private PolicyResult createLimitExceeded(QuotaConfiguration quotaConfiguration) {
+    private PolicyResult createLimitExceeded(QuotaConfiguration quotaConfiguration, ExecutionContext executionContext) {
+        executionContext.request().metrics().setErrorKey(QUOTA_TOO_MANY_REQUESTS);
         return PolicyResult.failure(
                 QUOTA_TOO_MANY_REQUESTS,
                 HttpStatusCode.TOO_MANY_REQUESTS_429,
