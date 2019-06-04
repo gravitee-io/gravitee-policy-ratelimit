@@ -42,7 +42,7 @@ public class RateLimitProxyConfiguration {
         CacheManager cacheManager = cacheManager();
         Cache localCache = cacheManager.getCache(RATE_LIMIT_LOCAL_CACHE_NAME);
         if (localCache == null) {
-            LOGGER.warn("EHCache cache for {} not found. Fallback to default EHCache configuration", RATE_LIMIT_LOCAL_CACHE_NAME);
+            LOGGER.info("EHCache cache for {} not found. Fallback to default EHCache configuration", RATE_LIMIT_LOCAL_CACHE_NAME);
             CacheConfiguration cacheConfiguration = new CacheConfiguration(RATE_LIMIT_LOCAL_CACHE_NAME, 1000);
             cacheManager.addCache(new Cache(cacheConfiguration));
         }
@@ -55,7 +55,7 @@ public class RateLimitProxyConfiguration {
         CacheManager cacheManager = cacheManager();
         Cache aggregateCache = cacheManager.getCache(RATE_LIMIT_AGGREGATE_CACHE_NAME);
         if (aggregateCache == null) {
-            LOGGER.warn("EHCache cache for {} not found. Fallback to default EHCache configuration", RATE_LIMIT_AGGREGATE_CACHE_NAME);
+            LOGGER.info("EHCache cache for {} not found. Fallback to default EHCache configuration", RATE_LIMIT_AGGREGATE_CACHE_NAME);
             CacheConfiguration cacheConfiguration = new CacheConfiguration(RATE_LIMIT_AGGREGATE_CACHE_NAME, 0);
             cacheManager.addCache(new Cache(cacheConfiguration));
         }
