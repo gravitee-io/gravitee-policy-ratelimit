@@ -35,11 +35,11 @@
     </parent>
 
     <properties>
-        <gravitee-gateway-api.version>1.15.0</gravitee-gateway-api.version>
+        <gravitee-gateway-api.version>1.16.1</gravitee-gateway-api.version>
         <gravitee-policy-api.version>1.5.0</gravitee-policy-api.version>
-        <gravitee-repository-api.version>1.25.0</gravitee-repository-api.version>
+        <gravitee-repository-api.version>1.26.0</gravitee-repository-api.version>
         <gravitee-common.version>1.15.0</gravitee-common.version>
-        <gravitee-node.version>1.4.0</gravitee-node.version>
+        <gravitee-node.version>1.4.1</gravitee-node.version>
     </properties>
 
     <modules>
