@@ -22,7 +22,7 @@
 
     <groupId>io.gravitee.policy</groupId>
     <artifactId>gravitee-ratelimit-parent</artifactId>
-    <version>1.6.2-SNAPSHOT</version>
+    <version>1.6.2</version>
     <packaging>pom</packaging>
 
     <name>Gravitee.io APIM - Policy - Rate Limit Parent</name>
@@ -37,8 +37,8 @@
     <properties>
         <gravitee-gateway-api.version>1.16.1</gravitee-gateway-api.version>
         <gravitee-policy-api.version>1.5.0</gravitee-policy-api.version>
-        <gravitee-repository-api.version>1.25.2-SNAPSHOT</gravitee-repository-api.version>
-        <gravitee-common.version>1.15.0</gravitee-common.version>
+        <gravitee-repository-api.version>1.25.2</gravitee-repository-api.version>
+        <gravitee-common.version>1.15.1</gravitee-common.version>
         <gravitee-node.version>1.4.1</gravitee-node.version>
     </properties>
 
