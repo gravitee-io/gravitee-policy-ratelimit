@@ -13,17 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.ratelimit.utils;
+package io.gravitee.gateway.services.ratelimit.rx;
 
-import java.util.concurrent.TimeUnit;
+import io.gravitee.gateway.services.ratelimit.BaseSchedulerProvider;
+import io.reactivex.Scheduler;
 
-/**
- * @author David BRASSELY (david.brassely at graviteesource.com)
- * @author GraviteeSource Team
- */
-public final class DateUtils {
+public class TestSchedulerProvider implements BaseSchedulerProvider {
 
-    public static long getEndOfPeriod(long startingTime, long periodTime, TimeUnit periodTimeUnit) {
-        return startingTime + periodTimeUnit.toMillis(periodTime);
+    private final Scheduler scheduler;
+
+    public TestSchedulerProvider(Scheduler scheduler) {
+        this.scheduler = scheduler;
+    }
+
+    @Override
+    public Scheduler io() {
+        return scheduler;
+    }
+
+    @Override
+    public Scheduler computation() {
+        return scheduler;
     }
 }
