@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -46,7 +47,7 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
     private LocalRateLimitRepository localCacheRateLimitRepository;
     private RateLimitRepository<RateLimit> remoteCacheRateLimitRepository;
 
-    private final Set<String> keys = new HashSet<>();
+    private final Set<String> keys = new CopyOnWriteArraySet<>();
 
     private final BaseSchedulerProvider schedulerProvider;
 
