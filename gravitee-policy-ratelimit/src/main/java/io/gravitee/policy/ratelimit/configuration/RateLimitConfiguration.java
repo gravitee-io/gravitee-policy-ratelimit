@@ -25,6 +25,8 @@ public class RateLimitConfiguration {
 
     private long limit;
 
+    private String templatableLimit;
+
     private long periodTime;
 
     private TimeUnit periodTimeUnit;
@@ -35,6 +37,14 @@ public class RateLimitConfiguration {
 
     public void setLimit(long limit) {
         this.limit = limit;
+    }
+
+    public String getTemplatableLimit() {
+        return templatableLimit;
+    }
+
+    public void setTemplatableLimit(String templatableLimit) {
+        this.templatableLimit = templatableLimit;
     }
 
     public long getPeriodTime() {

@@ -41,6 +41,7 @@ public class RateLimitPolicyConfigurationTest {
 
         Assert.assertNotNull(configuration.getRate());
         Assert.assertEquals(10, configuration.getRate().getLimit());
+        Assert.assertEquals("10", configuration.getRate().getTemplatableLimit());
         Assert.assertEquals(10, configuration.getRate().getPeriodTime());
         Assert.assertEquals(TimeUnit.MINUTES, configuration.getRate().getPeriodTimeUnit());
     }
@@ -54,6 +55,8 @@ public class RateLimitPolicyConfigurationTest {
         Assert.assertTrue(configuration.isAddHeaders());
         Assert.assertTrue(configuration.isAsync());
     }
+
+    // TODO test on old format (no templatableLimit)
 
     private <T> T load(String resource, Class<T> type) throws IOException {
         URL jsonFile = this.getClass().getResource(resource);
