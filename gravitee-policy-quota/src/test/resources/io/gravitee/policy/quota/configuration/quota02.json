@@ -3,6 +3,7 @@
   "async": true,
   "quota": {
     "limit": 10,
+    "templatableLimit": "10",
     "periodTime": 10,
     "periodTimeUnit": "MINUTES"
   }

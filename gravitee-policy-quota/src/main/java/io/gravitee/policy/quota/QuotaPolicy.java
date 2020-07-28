@@ -95,8 +95,10 @@ public class QuotaPolicy {
             return;
         }
 
+        String key = createRateLimitKey(request, executionContext, quotaPolicyConfiguration);
+
         QuotaConfiguration quotaConfiguration = quotaPolicyConfiguration.getQuota();
-        String key = createRateLimitKey(request, executionContext);
+        Long limit = evaluateActualLimit(executionContext, quotaConfiguration);
 
         Context context = Vertx.currentContext();
 
@@ -111,7 +113,7 @@ public class QuotaPolicy {
 
                 RateLimit rate = new RateLimit(key);
                 rate.setCounter(0);
-                rate.setLimit(quotaConfiguration.getLimit());
+                rate.setLimit(limit);
                 rate.setResetTime(resetTimeMillis);
                 rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
                 return rate;
@@ -128,15 +130,15 @@ public class QuotaPolicy {
                     public void onSuccess(RateLimit rateLimit) {
                         // Set Rate Limit headers on response
                         if (quotaPolicyConfiguration.isAddHeaders()) {
-                            response.headers().set(X_QUOTA_LIMIT, Long.toString(quotaConfiguration.getLimit()));
-                            response.headers().set(X_QUOTA_REMAINING, Long.toString(Math.max(0, quotaConfiguration.getLimit() - rateLimit.getCounter())));
+                            response.headers().set(X_QUOTA_LIMIT, Long.toString(limit));
+                            response.headers().set(X_QUOTA_REMAINING, Long.toString(Math.max(0, limit - rateLimit.getCounter())));
                             response.headers().set(X_QUOTA_RESET, Long.toString(rateLimit.getResetTime()));
                         }
 
-                        if (rateLimit.getCounter() <= quotaConfiguration.getLimit()) {
+                        if (rateLimit.getCounter() <= limit) {
                             policyChain.doNext(request, response);
                         } else {
-                            policyChain.failWith(createLimitExceeded(quotaConfiguration));
+                            policyChain.failWith(createLimitExceeded(quotaConfiguration, limit));
                         }
                     }
 
@@ -144,9 +146,9 @@ public class QuotaPolicy {
                     public void onError(Throwable e) {
                         // Set Rate Limit headers on response
                         if (quotaPolicyConfiguration.isAddHeaders()) {
-                            response.headers().set(X_QUOTA_LIMIT, Long.toString(quotaConfiguration.getLimit()));
+                            response.headers().set(X_QUOTA_LIMIT, Long.toString(limit));
                             // We don't know about the remaining calls, let's assume it is the same as the limit
-                            response.headers().set(X_QUOTA_REMAINING, Long.toString(quotaConfiguration.getLimit()));
+                            response.headers().set(X_QUOTA_REMAINING, Long.toString(limit));
                             response.headers().set(X_QUOTA_RESET, Long.toString(-1));
                         }
 
@@ -156,19 +158,37 @@ public class QuotaPolicy {
                 });
     }
 
-    private String createRateLimitKey(Request request, ExecutionContext executionContext) {
+    private long evaluateActualLimit(ExecutionContext executionContext, QuotaConfiguration quotaConfiguration) {
+        if (quotaConfiguration.getTemplatableLimit() == null) {
+            return quotaConfiguration.getLimit();
+        } else {
+            try {
+                return Long.parseLong(quotaConfiguration.getTemplatableLimit());
+            } catch (NumberFormatException nfe) {
+                return executionContext.getTemplateEngine().getValue(quotaConfiguration.getTemplatableLimit(), Long.class);
+            }
+        }
+    }
+
+    private String createRateLimitKey(Request request, ExecutionContext executionContext, QuotaPolicyConfiguration quotaPolicyConfiguration) {
         // Rate limit key must contain :
-        // 1_ PLAN_ID
-        // 1_ SUBSCRIPTION_ID
+        // 1_ User-defined key, or (PLAN_ID, SUBSCRIPTION_ID) by default
         // 2_ Rate Type (rate-limit / quota)
         // 3_ RESOLVED_PATH (policy attached to a path rather than a plan)
         String resolvedPath = (String) executionContext.getAttribute(ExecutionContext.ATTR_RESOLVED_PATH);
 
-        StringBuilder key = new StringBuilder((String) executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
+        StringBuilder key = new StringBuilder();
+
+        if (quotaPolicyConfiguration.getKey() == null || quotaPolicyConfiguration.getKey().isEmpty()) {
+            key.append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
                 .append(KEY_SEPARATOR)
-                .append((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID))
-                .append(KEY_SEPARATOR)
-                .append(RATE_LIMIT_TYPE);
+                .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+        } else {
+            key.append(executionContext.getTemplateEngine().getValue(quotaPolicyConfiguration.getKey(), String.class));
+        }
+
+        key.append(KEY_SEPARATOR)
+            .append(RATE_LIMIT_TYPE);
 
         if (resolvedPath != null) {
             key.append(KEY_SEPARATOR).append(resolvedPath.hashCode());
@@ -177,15 +197,15 @@ public class QuotaPolicy {
         return key.toString();
     }
 
-    private PolicyResult createLimitExceeded(QuotaConfiguration quotaConfiguration) {
+    private PolicyResult createLimitExceeded(QuotaConfiguration quotaConfiguration, long actualLimit) {
         return PolicyResult.failure(
                 QUOTA_TOO_MANY_REQUESTS,
                 HttpStatusCode.TOO_MANY_REQUESTS_429,
-                "Quota exceeded ! You reach the limit of " + quotaConfiguration.getLimit() +
+                "Quota exceeded ! You reach the limit of " + actualLimit +
                         " requests per " + quotaConfiguration.getPeriodTime() + ' ' +
                         quotaConfiguration.getPeriodTimeUnit().name().toLowerCase(),
                 Maps.<String, Object>builder()
-                        .put("limit", quotaConfiguration.getLimit())
+                        .put("limit", actualLimit)
                         .put("period_time", quotaConfiguration.getPeriodTime())
                         .put("period_unit", quotaConfiguration.getPeriodTimeUnit())
                         .build());

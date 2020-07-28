@@ -26,10 +26,11 @@ public class QuotaConfiguration {
 
     private long limit;
 
+    private String templatableLimit;
+
     private long periodTime;
 
     private ChronoUnit periodTimeUnit;
-//    private TimeUnit periodTimeUnit;
 
     public long getLimit() {
         return limit;
@@ -38,6 +39,15 @@ public class QuotaConfiguration {
     public void setLimit(long limit) {
         this.limit = limit;
     }
+
+    public String getTemplatableLimit() {
+        return templatableLimit;
+    }
+
+    public void setTemplatableLimit(String templatableLimit) {
+        this.templatableLimit = templatableLimit;
+    }
+
 
     public long getPeriodTime() {
         return periodTime;
