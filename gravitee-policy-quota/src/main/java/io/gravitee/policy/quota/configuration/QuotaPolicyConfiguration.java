@@ -27,6 +27,8 @@ public class QuotaPolicyConfiguration implements PolicyConfiguration {
 
     private boolean addHeaders = true;
 
+    private String key;
+
     private QuotaConfiguration quota;
 
     public QuotaConfiguration getQuota() {
@@ -51,5 +53,13 @@ public class QuotaPolicyConfiguration implements PolicyConfiguration {
 
     public void setAddHeaders(boolean addHeaders) {
         this.addHeaders = addHeaders;
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
     }
 }

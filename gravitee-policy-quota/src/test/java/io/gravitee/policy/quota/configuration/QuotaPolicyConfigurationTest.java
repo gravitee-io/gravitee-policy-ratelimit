@@ -42,6 +42,7 @@ public class QuotaPolicyConfigurationTest {
 
         Assert.assertNotNull(configuration.getQuota());
         Assert.assertEquals(10, configuration.getQuota().getLimit());
+        Assert.assertEquals("10", configuration.getQuota().getTemplatableLimit());
         Assert.assertEquals(10, configuration.getQuota().getPeriodTime());
         Assert.assertEquals(ChronoUnit.MINUTES, configuration.getQuota().getPeriodTimeUnit());
     }
@@ -54,7 +55,9 @@ public class QuotaPolicyConfigurationTest {
         Assert.assertNotNull(configuration);
         Assert.assertFalse(configuration.isAddHeaders());
         Assert.assertTrue(configuration.isAsync());
-    }
+    }   
+    
+    // TODO test on old format (no templatableLimit)
 
     private <T> T load(String resource, Class<T> type) throws IOException {
         URL jsonFile = this.getClass().getResource(resource);

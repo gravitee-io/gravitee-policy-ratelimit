@@ -200,7 +200,7 @@ public class QuotaPolicyTest {
     }
 
     @Test
-    public void multipleRequests() throws InterruptedException {
+    public void multipleRequestsLegacy() throws InterruptedException {
         final HttpHeaders headers = new HttpHeaders();
         headers.setAll(new HashMap<String, String>() {
             {
@@ -212,7 +212,9 @@ public class QuotaPolicyTest {
         QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
         QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
 
-        rateLimitConfiguration.setLimit(10);
+        int limit = 10;
+
+        rateLimitConfiguration.setLimit(limit);
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(ChronoUnit.SECONDS);
         policyConfiguration.setQuota(rateLimitConfiguration);
@@ -223,7 +225,7 @@ public class QuotaPolicyTest {
         when(response.headers()).thenReturn(responseHttpHeaders);
 
         int calls = 15;
-        int exceedCalls = calls - (int) rateLimitConfiguration.getLimit();
+        int exceedCalls = calls - limit;
 
         final CountDownLatch latch = new CountDownLatch(calls);
 
@@ -256,6 +258,132 @@ public class QuotaPolicyTest {
         inOrder.verify(policyChain, times(exceedCalls)).failWith(any(PolicyResult.class));
 
         verify(responseHttpHeaders, times(calls)).set(QuotaPolicy.X_QUOTA_LIMIT, "10");
-        verify(responseHttpHeaders, times(6)).set(QuotaPolicy.X_QUOTA_REMAINING, "0");
+        verify(responseHttpHeaders, times(exceedCalls)).set(QuotaPolicy.X_QUOTA_REMAINING, "0");
+    }
+
+    @Test
+    public void multipleRequestsTemplatableLimitFixed() throws InterruptedException {
+        final HttpHeaders headers = new HttpHeaders();
+        headers.setAll(new HashMap<String, String>() {
+            {
+                put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
+                put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
+            }
+        });
+
+        QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
+        QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
+
+        int limit = 10;
+
+        rateLimitConfiguration.setLimit(15);
+        rateLimitConfiguration.setTemplatableLimit(Long.toString(limit));
+        rateLimitConfiguration.setPeriodTime(10);
+        rateLimitConfiguration.setPeriodTimeUnit(ChronoUnit.SECONDS);
+        policyConfiguration.setQuota(rateLimitConfiguration);
+
+        QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
+
+        when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
+        when(response.headers()).thenReturn(responseHttpHeaders);
+
+        int calls = 15;
+        int exceedCalls = calls - limit;
+
+        final CountDownLatch latch = new CountDownLatch(calls);
+
+        policyChain = spy(new PolicyChain() {
+            @Override
+            public void doNext(Request request, Response response) {
+                latch.countDown();
+            }
+
+            @Override
+            public void failWith(PolicyResult policyResult) {
+                latch.countDown();
+            }
+
+            @Override
+            public void streamFailWith(PolicyResult policyResult) {
+
+            }
+        });
+
+        InOrder inOrder = inOrder(policyChain);
+
+        for (int i = 0 ; i < calls ; i++) {
+            rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
+        }
+
+        Assert.assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
+
+        inOrder.verify(policyChain, times((int)rateLimitConfiguration.getLimit())).doNext(request, response);
+        inOrder.verify(policyChain, times(exceedCalls)).failWith(any(PolicyResult.class));
+
+        verify(responseHttpHeaders, times(calls)).set(QuotaPolicy.X_QUOTA_LIMIT, "10");
+        verify(responseHttpHeaders, times(exceedCalls)).set(QuotaPolicy.X_QUOTA_REMAINING, "0");
+    }
+
+    @Test
+    public void multipleRequestsTemplatableLimitExpression() throws InterruptedException {
+        final HttpHeaders headers = new HttpHeaders();
+        headers.setAll(new HashMap<String, String>() {
+            {
+                put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
+                put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
+            }
+        });
+
+        QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
+        QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
+
+        int limit = 10;
+
+        rateLimitConfiguration.setLimit(15);
+        rateLimitConfiguration.setTemplatableLimit("{(2*5)}");
+        rateLimitConfiguration.setPeriodTime(10);
+        rateLimitConfiguration.setPeriodTimeUnit(ChronoUnit.SECONDS);
+        policyConfiguration.setQuota(rateLimitConfiguration);
+
+        QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
+
+        when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
+        when(response.headers()).thenReturn(responseHttpHeaders);
+
+        int calls = 15;
+        int exceedCalls = calls - limit;
+
+        final CountDownLatch latch = new CountDownLatch(calls);
+
+        policyChain = spy(new PolicyChain() {
+            @Override
+            public void doNext(Request request, Response response) {
+                latch.countDown();
+            }
+
+            @Override
+            public void failWith(PolicyResult policyResult) {
+                latch.countDown();
+            }
+
+            @Override
+            public void streamFailWith(PolicyResult policyResult) {
+
+            }
+        });
+
+        InOrder inOrder = inOrder(policyChain);
+
+        for (int i = 0 ; i < calls ; i++) {
+            rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
+        }
+
+        Assert.assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
+
+        inOrder.verify(policyChain, times((int)rateLimitConfiguration.getLimit())).doNext(request, response);
+        inOrder.verify(policyChain, times(exceedCalls)).failWith(any(PolicyResult.class));
+
+        verify(responseHttpHeaders, times(calls)).set(QuotaPolicy.X_QUOTA_LIMIT, "10");
+        verify(responseHttpHeaders, times(exceedCalls)).set(QuotaPolicy.X_QUOTA_REMAINING, "0");
     }
 }
