@@ -159,14 +159,11 @@ public class QuotaPolicy {
     }
 
     private long evaluateActualLimit(ExecutionContext executionContext, QuotaConfiguration quotaConfiguration) {
-        if (quotaConfiguration.getTemplatableLimit() == null) {
+        // use legacy limit if the new limit that supports templates is not defined
+        if (quotaConfiguration.getTemplatableLimit() == null || quotaConfiguration.getTemplatableLimit().isEmpty()) {
             return quotaConfiguration.getLimit();
         } else {
-            try {
-                return Long.parseLong(quotaConfiguration.getTemplatableLimit());
-            } catch (NumberFormatException nfe) {
-                return executionContext.getTemplateEngine().getValue(quotaConfiguration.getTemplatableLimit(), Long.class);
-            }
+            return executionContext.getTemplateEngine().getValue(quotaConfiguration.getTemplatableLimit(), Long.class);
         }
     }
 
