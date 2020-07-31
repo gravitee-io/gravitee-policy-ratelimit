@@ -159,14 +159,11 @@ public class RateLimitPolicy {
     }
 
     private long evaluateActualLimit(ExecutionContext executionContext, RateLimitConfiguration rateLimitConfiguration) {
-        if (rateLimitConfiguration.getTemplatableLimit() == null) {
+        // use legacy limit if the new limit that supports templates is not defined
+        if (rateLimitConfiguration.getTemplatableLimit() == null || rateLimitConfiguration.getTemplatableLimit().isEmpty()) {
             return rateLimitConfiguration.getLimit();
         } else {
-            try {
-                return Long.parseLong(rateLimitConfiguration.getTemplatableLimit());
-            } catch (NumberFormatException nfe) {
-                return executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getTemplatableLimit(), Long.class);
-            }
+            return executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getTemplatableLimit(), Long.class);
         }
     }
 
