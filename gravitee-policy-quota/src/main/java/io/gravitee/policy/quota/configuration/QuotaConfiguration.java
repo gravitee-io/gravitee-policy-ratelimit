@@ -16,7 +16,6 @@
 package io.gravitee.policy.quota.configuration;
 
 import java.time.temporal.ChronoUnit;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)

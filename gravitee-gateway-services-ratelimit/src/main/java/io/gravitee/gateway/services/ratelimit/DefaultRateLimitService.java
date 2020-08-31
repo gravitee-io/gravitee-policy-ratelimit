@@ -19,7 +19,6 @@ import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import io.reactivex.Single;
-import io.reactivex.functions.Function;
 
 import java.util.function.Supplier;
 

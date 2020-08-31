@@ -22,7 +22,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.net.URL;
 import java.time.temporal.ChronoUnit;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -55,9 +54,7 @@ public class QuotaPolicyConfigurationTest {
         Assert.assertNotNull(configuration);
         Assert.assertFalse(configuration.isAddHeaders());
         Assert.assertTrue(configuration.isAsync());
-    }   
-    
-    // TODO test on old format (no templatableLimit)
+    }
 
     private <T> T load(String resource, Class<T> type) throws IOException {
         URL jsonFile = this.getClass().getResource(resource);

@@ -168,27 +168,33 @@ public class QuotaPolicy {
     }
 
     private String createRateLimitKey(Request request, ExecutionContext executionContext, QuotaPolicyConfiguration quotaPolicyConfiguration) {
-        // Rate limit key must contain :
-        // 1_ User-defined key, or (PLAN_ID, SUBSCRIPTION_ID) by default
-        // 2_ Rate Type (rate-limit / quota)
-        // 3_ RESOLVED_PATH (policy attached to a path rather than a plan)
+        // Rate limit key contains the following:
+        // 1_ (PLAN_ID, SUBSCRIPTION_ID) pair, note that for keyless plans this is evaluated to (1, CLIENT_IP)
+        // 2_ User-defined key, if it exists
+        // 3_ Rate Type (rate-limit / quota)
+        // 4_ RESOLVED_PATH (policy attached to a path rather than a plan)
         String resolvedPath = (String) executionContext.getAttribute(ExecutionContext.ATTR_RESOLVED_PATH);
 
         StringBuilder key = new StringBuilder();
 
-        if (quotaPolicyConfiguration.getKey() == null || quotaPolicyConfiguration.getKey().isEmpty()) {
-            key.append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
+        key
+            .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
+            .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+
+        if (quotaPolicyConfiguration.getKey() != null && !quotaPolicyConfiguration.getKey().isEmpty()) {
+            key
                 .append(KEY_SEPARATOR)
-                .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
-        } else {
-            key.append(executionContext.getTemplateEngine().getValue(quotaPolicyConfiguration.getKey(), String.class));
+                .append(executionContext.getTemplateEngine().getValue(quotaPolicyConfiguration.getKey(), String.class));
         }
 
-        key.append(KEY_SEPARATOR)
+        key
+            .append(KEY_SEPARATOR)
             .append(RATE_LIMIT_TYPE);
 
         if (resolvedPath != null) {
-            key.append(KEY_SEPARATOR).append(resolvedPath.hashCode());
+            key
+                .append(KEY_SEPARATOR)
+                .append(resolvedPath.hashCode());
         }
 
         return key.toString();
