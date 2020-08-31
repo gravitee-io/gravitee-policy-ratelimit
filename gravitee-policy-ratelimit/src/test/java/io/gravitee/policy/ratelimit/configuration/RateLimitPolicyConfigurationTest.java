@@ -56,8 +56,6 @@ public class RateLimitPolicyConfigurationTest {
         Assert.assertTrue(configuration.isAsync());
     }
 
-    // TODO test on old format (no templatableLimit)
-
     private <T> T load(String resource, Class<T> type) throws IOException {
         URL jsonFile = this.getClass().getResource(resource);
         return new ObjectMapper().readValue(jsonFile, type);
