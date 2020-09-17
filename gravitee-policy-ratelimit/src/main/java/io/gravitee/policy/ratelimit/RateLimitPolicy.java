@@ -50,6 +50,13 @@ import java.util.function.Supplier;
 @SuppressWarnings("unused")
 public class RateLimitPolicy {
 
+    // remember the evaluation method for limit value to improve performance
+    private enum LimitEvaluationMethod {
+        PARSE_LONG,
+        SPEL_TEMPLATE
+    }
+    private LimitEvaluationMethod limitEvaluationMethod = LimitEvaluationMethod.PARSE_LONG;
+
     /**
      * LOGGER
      */
@@ -88,15 +95,14 @@ public class RateLimitPolicy {
     @OnRequest
     public void onRequest(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
         RateLimitService rateLimitService = executionContext.getComponent(RateLimitService.class);
+        RateLimitConfiguration rateLimitConfiguration = rateLimitPolicyConfiguration.getRate();
 
         if (rateLimitService == null) {
             policyChain.failWith(PolicyResult.failure("No rate-limit service has been installed."));
             return;
         }
 
-        String key = createRateLimitKey(request, executionContext, rateLimitPolicyConfiguration);
-
-        RateLimitConfiguration rateLimitConfiguration = rateLimitPolicyConfiguration.getRate();
+        String key = createRateLimitKey(request, executionContext, rateLimitConfiguration);
         Long limit = evaluateActualLimit(executionContext, rateLimitConfiguration);
 
         Context context = Vertx.currentContext();
@@ -159,15 +165,20 @@ public class RateLimitPolicy {
     }
 
     private long evaluateActualLimit(ExecutionContext executionContext, RateLimitConfiguration rateLimitConfiguration) {
-        // use legacy limit if the new limit that supports templates is not defined
-        if (rateLimitConfiguration.getTemplatableLimit() == null || rateLimitConfiguration.getTemplatableLimit().isEmpty()) {
-            return rateLimitConfiguration.getLimit();
+        if (limitEvaluationMethod == LimitEvaluationMethod.PARSE_LONG) {
+            try {
+                return Long.parseLong(rateLimitConfiguration.getLimit());
+            } catch (NumberFormatException nfe) {
+                // store the limit evaluation method to avoid creating an exception stack every time
+                limitEvaluationMethod = LimitEvaluationMethod.SPEL_TEMPLATE;
+                return executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getLimit(), Long.class);
+            }
         } else {
-            return executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getTemplatableLimit(), Long.class);
+            return executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getLimit(), Long.class);
         }
     }
 
-    private String createRateLimitKey(Request request, ExecutionContext executionContext, RateLimitPolicyConfiguration rateLimitPolicyConfiguration) {
+    private String createRateLimitKey(Request request, ExecutionContext executionContext, RateLimitConfiguration rateLimitConfiguration) {
         // Rate limit key contains the following:
         // 1_ (PLAN_ID, SUBSCRIPTION_ID) pair, note that for keyless plans this is evaluated to (1, CLIENT_IP)
         // 2_ User-defined key, if it exists
@@ -181,10 +192,10 @@ public class RateLimitPolicy {
             .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
             .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
 
-        if (rateLimitPolicyConfiguration.getKey() != null && !rateLimitPolicyConfiguration.getKey().isEmpty()) {
+        if (rateLimitConfiguration.getKey() != null && !rateLimitConfiguration.getKey().isEmpty()) {
             key
                 .append(KEY_SEPARATOR)
-                .append(executionContext.getTemplateEngine().getValue(rateLimitPolicyConfiguration.getKey(), String.class));
+                .append(executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getKey(), String.class));
         }
 
         key

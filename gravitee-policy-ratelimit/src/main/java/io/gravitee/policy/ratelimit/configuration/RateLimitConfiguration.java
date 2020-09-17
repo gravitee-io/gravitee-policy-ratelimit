@@ -23,28 +23,20 @@ import java.util.concurrent.TimeUnit;
  */
 public class RateLimitConfiguration {
 
-    private long limit;
-
-    private String templatableLimit;
+    private String limit;
 
     private long periodTime;
 
     private TimeUnit periodTimeUnit;
 
-    public long getLimit() {
+    private String key;
+
+    public String getLimit() {
         return limit;
     }
 
-    public void setLimit(long limit) {
+    public void setLimit(String limit) {
         this.limit = limit;
-    }
-
-    public String getTemplatableLimit() {
-        return templatableLimit;
-    }
-
-    public void setTemplatableLimit(String templatableLimit) {
-        this.templatableLimit = templatableLimit;
     }
 
     public long getPeriodTime() {
@@ -61,5 +53,13 @@ public class RateLimitConfiguration {
 
     public void setPeriodTimeUnit(TimeUnit periodTimeUnit) {
         this.periodTimeUnit = periodTimeUnit;
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
     }
 }

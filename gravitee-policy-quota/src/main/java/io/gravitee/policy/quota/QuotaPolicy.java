@@ -50,6 +50,13 @@ import java.util.function.Supplier;
 @SuppressWarnings("unused")
 public class QuotaPolicy {
 
+    // remember the evaluation method for limit value to improve performance
+    private enum LimitEvaluationMethod {
+        PARSE_LONG,
+        SPEL_TEMPLATE
+    }
+    private LimitEvaluationMethod limitEvaluationMethod = LimitEvaluationMethod.PARSE_LONG;
+
     /**
      * LOGGER
      */
@@ -88,6 +95,7 @@ public class QuotaPolicy {
     @OnRequest
     public void onRequest(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
         RateLimitService rateLimitService = executionContext.getComponent(RateLimitService.class);
+        QuotaConfiguration quotaConfiguration = quotaPolicyConfiguration.getQuota();
 
         if (rateLimitService == null) {
             policyChain.failWith(PolicyResult.failure("No rate-limit service has been installed."));
@@ -95,9 +103,7 @@ public class QuotaPolicy {
             return;
         }
 
-        String key = createRateLimitKey(request, executionContext, quotaPolicyConfiguration);
-
-        QuotaConfiguration quotaConfiguration = quotaPolicyConfiguration.getQuota();
+        String key = createRateLimitKey(request, executionContext, quotaConfiguration);
         Long limit = evaluateActualLimit(executionContext, quotaConfiguration);
 
         Context context = Vertx.currentContext();
@@ -159,15 +165,20 @@ public class QuotaPolicy {
     }
 
     private long evaluateActualLimit(ExecutionContext executionContext, QuotaConfiguration quotaConfiguration) {
-        // use legacy limit if the new limit that supports templates is not defined
-        if (quotaConfiguration.getTemplatableLimit() == null || quotaConfiguration.getTemplatableLimit().isEmpty()) {
-            return quotaConfiguration.getLimit();
+        if (limitEvaluationMethod == LimitEvaluationMethod.PARSE_LONG) {
+            try {
+                return Long.parseLong(quotaConfiguration.getLimit());
+            } catch (NumberFormatException nfe) {
+                // store the limit evaluation method to avoid creating an exception stack every time
+                limitEvaluationMethod = LimitEvaluationMethod.SPEL_TEMPLATE;
+                return executionContext.getTemplateEngine().getValue(quotaConfiguration.getLimit(), Long.class);
+            }
         } else {
-            return executionContext.getTemplateEngine().getValue(quotaConfiguration.getTemplatableLimit(), Long.class);
+            return executionContext.getTemplateEngine().getValue(quotaConfiguration.getLimit(), Long.class);
         }
     }
 
-    private String createRateLimitKey(Request request, ExecutionContext executionContext, QuotaPolicyConfiguration quotaPolicyConfiguration) {
+    private String createRateLimitKey(Request request, ExecutionContext executionContext, QuotaConfiguration quotaConfiguration) {
         // Rate limit key contains the following:
         // 1_ (PLAN_ID, SUBSCRIPTION_ID) pair, note that for keyless plans this is evaluated to (1, CLIENT_IP)
         // 2_ User-defined key, if it exists
@@ -181,10 +192,10 @@ public class QuotaPolicy {
             .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
             .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
 
-        if (quotaPolicyConfiguration.getKey() != null && !quotaPolicyConfiguration.getKey().isEmpty()) {
+        if (quotaConfiguration.getKey() != null && !quotaConfiguration.getKey().isEmpty()) {
             key
                 .append(KEY_SEPARATOR)
-                .append(executionContext.getTemplateEngine().getValue(quotaPolicyConfiguration.getKey(), String.class));
+                .append(executionContext.getTemplateEngine().getValue(quotaConfiguration.getKey(), String.class));
         }
 
         key
