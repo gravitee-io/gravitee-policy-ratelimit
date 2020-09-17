@@ -14,26 +14,21 @@
       "title": "Add response headers",
       "description": "Add X-Quota-Limit, X-Quota-Remaining and X-Quota-Reset headers in HTTP response"
     },
-    "key": {
-      "type": "string",
-      "default": "",
-      "title": "Key",
-      "description": "Key to identify a consumer against which the rate-limiting will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports SpEL."
-    },
     "quota" : {
       "type" : "object",
       "title": "Apply quota",
       "id" : "urn:jsonschema:io:gravitee:policy:quota:configuration:QuotaConfiguration",
       "properties" : {
-        "limit": {
-          "type" : "integer",
-          "title": "(Legacy) Fixed max requests",
-          "description": "Fixed limit on the number of requests that can be sent."
+        "key": {
+          "type": "string",
+          "default": "",
+          "title": "Key",
+          "description": "Key to identify a consumer against whom the quota will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports SpEL."
         },
-        "templatableLimit" : {
+        "limit": {
           "type" : "string",
           "title": "Max requests",
-          "description": "Limit on the number of requests that can be sent. If defined, overrides Fixed max requests. Supports SpEL."
+          "description": "Limit on the number of requests that can be sent. Supports SpEL."
         },
         "periodTime" : {
           "type" : "integer",
