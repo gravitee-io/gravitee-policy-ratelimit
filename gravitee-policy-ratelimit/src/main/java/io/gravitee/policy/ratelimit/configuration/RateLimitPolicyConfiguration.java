@@ -27,8 +27,6 @@ public class RateLimitPolicyConfiguration implements PolicyConfiguration {
 
     private boolean addHeaders;
 
-    private String key;
-
     private RateLimitConfiguration rate;
 
     public RateLimitConfiguration getRate() {
@@ -53,14 +51,6 @@ public class RateLimitPolicyConfiguration implements PolicyConfiguration {
 
     public void setAddHeaders(boolean addHeaders) {
         this.addHeaders = addHeaders;
-    }
-
-    public String getKey() {
-        return key;
-    }
-
-    public void setKey(String key) {
-        this.key = key;
     }
 
 }

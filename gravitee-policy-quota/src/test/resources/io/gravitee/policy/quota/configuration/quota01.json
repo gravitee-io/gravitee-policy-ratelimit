@@ -1,7 +1,6 @@
 {
   "quota": {
-    "limit": 10,
-    "templatableLimit": "10",
+    "limit": "10",
     "periodTime": 10,
     "periodTimeUnit": "MINUTES"
   }

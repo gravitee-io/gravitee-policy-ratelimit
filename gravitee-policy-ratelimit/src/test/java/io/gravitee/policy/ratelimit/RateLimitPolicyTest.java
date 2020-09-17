@@ -83,7 +83,7 @@ public class RateLimitPolicyTest {
 
         policyChain = spy(PolicyChain.class);
 
-        rateLimitConfiguration.setLimit(1);
+        rateLimitConfiguration.setLimit("1");
         rateLimitConfiguration.setPeriodTime(1);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
         policyConfiguration.setRate(rateLimitConfiguration);
@@ -108,7 +108,7 @@ public class RateLimitPolicyTest {
         RateLimitPolicyConfiguration policyConfiguration = new RateLimitPolicyConfiguration();
         RateLimitConfiguration rateLimitConfiguration = new RateLimitConfiguration();
 
-        rateLimitConfiguration.setLimit(10);
+        rateLimitConfiguration.setLimit("10");
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
         policyConfiguration.setRate(rateLimitConfiguration);
@@ -156,7 +156,7 @@ public class RateLimitPolicyTest {
 
         int limit = 10;
 
-        rateLimitConfiguration.setLimit(limit);
+        rateLimitConfiguration.setLimit(Integer.toString(limit));
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
         policyConfiguration.setRate(rateLimitConfiguration);
@@ -198,67 +198,6 @@ public class RateLimitPolicyTest {
         inOrder.verify(policyChain, times(limit)).doNext(request, response);
         inOrder.verify(policyChain, times(exceedCalls)).failWith(any(PolicyResult.class));
     }
-
-    
-    @Test
-    public void multipleRequestsTemplatableLimitFixed() throws InterruptedException {
-        final HttpHeaders headers = new HttpHeaders();
-        headers.setAll(new HashMap<String, String>() {
-            {
-                put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
-                put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
-            }
-        });
-
-        RateLimitPolicyConfiguration policyConfiguration = new RateLimitPolicyConfiguration();
-        RateLimitConfiguration rateLimitConfiguration = new RateLimitConfiguration();
-
-        int limit = 10;
-
-        rateLimitConfiguration.setLimit(15);
-        rateLimitConfiguration.setTemplatableLimit(Long.toString(limit));
-        rateLimitConfiguration.setPeriodTime(10);
-        rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
-        policyConfiguration.setRate(rateLimitConfiguration);
-
-        RateLimitPolicy rateLimitPolicy = new RateLimitPolicy(policyConfiguration);
-
-        when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
-
-        int calls = 15;
-        int exceedCalls = calls - limit;
-
-        final CountDownLatch latch = new CountDownLatch(calls);
-
-        policyChain = spy(new PolicyChain() {
-            @Override
-            public void doNext(Request request, Response response) {
-                latch.countDown();
-            }
-
-            @Override
-            public void failWith(PolicyResult policyResult) {
-                latch.countDown();
-            }
-
-            @Override
-            public void streamFailWith(PolicyResult policyResult) {
-
-            }
-        });
-
-        InOrder inOrder = inOrder(policyChain);
-
-        for (int i = 0 ; i < calls ; i++) {
-            rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
-        }
-
-        Assert.assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
-
-        inOrder.verify(policyChain, times(limit)).doNext(request, response);
-        inOrder.verify(policyChain, times(exceedCalls)).failWith(any(PolicyResult.class));
-    }
-
 
     @Test
     public void multipleRequestsTemplatableLimitExpression() throws InterruptedException {
@@ -275,8 +214,7 @@ public class RateLimitPolicyTest {
 
         int limit = 10;
 
-        rateLimitConfiguration.setLimit(15);
-        rateLimitConfiguration.setTemplatableLimit("{(2*5)}");
+        rateLimitConfiguration.setLimit("{(2*5)}");
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
         policyConfiguration.setRate(rateLimitConfiguration);
