@@ -14,26 +14,21 @@
       "title": "Add response headers",
       "description": "Add X-Rate-Limit-Limit, X-Rate-Limit-Remaining and X-Rate-Limit-Reset headers in HTTP response"
     },
-    "key": {
-      "type": "string",
-      "default": "",
-      "title": "Key",
-      "description": "Key to identify a consumer against which the rate-limiting will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports SpEL."
-    },
     "rate" : {
       "type" : "object",
       "title": "Apply rate-limiting",
       "id" : "urn:jsonschema:io:gravitee:policy:ratelimit:configuration:RateLimitConfiguration",
       "properties" : {
-        "limit": {
-          "type" : "integer",
-          "title": "(Legacy) Fixed max requests",
-          "description": "Fixed limit on the number of requests that can be sent."
+        "key": {
+          "type": "string",
+          "default": "",
+          "title": "Key",
+          "description": "Key to identify a consumer against whom the rate-limiting will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports SpEL."
         },
-        "templatableLimit" : {
+        "limit" : {
           "type" : "string",
           "title": "Max requests",
-          "description": "Limit on the number of requests that can be sent. If defined, overrides Fixed max requests. Supports SpEL."
+          "description": "Limit on the number of requests that can be sent. Supports SpEL."
         },
         "periodTime" : {
           "type" : "integer",
