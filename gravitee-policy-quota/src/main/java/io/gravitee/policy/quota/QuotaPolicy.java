@@ -57,6 +57,7 @@ public class QuotaPolicy {
         PARSE_LONG,
         SPEL_TEMPLATE
     }
+
     private static Map<QuotaConfiguration, LimitEvaluationMethod> limitEvaluationMethods = new HashMap<>();
 
     /**
@@ -99,10 +100,6 @@ public class QuotaPolicy {
         RateLimitService rateLimitService = executionContext.getComponent(RateLimitService.class);
         QuotaConfiguration quotaConfiguration = quotaPolicyConfiguration.getQuota();
 
-        if (!limitEvaluationMethods.containsKey(quotaConfiguration)) {
-            limitEvaluationMethods.put(quotaConfiguration, LimitEvaluationMethod.PARSE_LONG);
-        }
-
         if (rateLimitService == null) {
             policyChain.failWith(PolicyResult.failure("No rate-limit service has been installed."));
 
@@ -110,7 +107,7 @@ public class QuotaPolicy {
         }
 
         String key = createRateLimitKey(request, executionContext, quotaConfiguration);
-        Long limit = evaluateActualLimit(executionContext, quotaConfiguration);
+        long limit = evaluateActualLimit(executionContext, quotaConfiguration);
 
         Context context = Vertx.currentContext();
 
@@ -171,7 +168,7 @@ public class QuotaPolicy {
     }
 
     private long evaluateActualLimit(ExecutionContext executionContext, QuotaConfiguration quotaConfiguration) {
-        if (limitEvaluationMethods.get(quotaConfiguration) == LimitEvaluationMethod.PARSE_LONG) {
+        if (limitEvaluationMethods.getOrDefault(quotaConfiguration, LimitEvaluationMethod.PARSE_LONG) == LimitEvaluationMethod.PARSE_LONG) {
             try {
                 return Long.parseLong(quotaConfiguration.getLimit());
             } catch (NumberFormatException nfe) {
