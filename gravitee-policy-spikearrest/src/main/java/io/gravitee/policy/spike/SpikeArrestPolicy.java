@@ -72,6 +72,8 @@ public class SpikeArrestPolicy {
      */
     public static final String X_SPIKE_ARREST_RESET = "X-Spike-Arrest-Reset";
 
+    public static final String ATTR_OAUTH_CLIENT_ID = "oauth.client_id";
+
     private static char KEY_SEPARATOR = ':';
 
     private static String RATE_LIMIT_TYPE = "sa";
@@ -171,8 +173,17 @@ public class SpikeArrestPolicy {
 
         StringBuilder key = new StringBuilder();
 
-        key.append(executionContext.getAttribute(ExecutionContext.ATTR_API))
-                .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN));
+        String plan = (String)executionContext.getAttribute(ExecutionContext.ATTR_PLAN);
+        if (plan != null) {
+            key
+                    .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
+                    .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+        } else if (executionContext.getAttributes().containsKey(ATTR_OAUTH_CLIENT_ID)) { // TODO manage also APIKey when managed by K8S plugins
+            key
+                    .append(executionContext.getAttribute(ATTR_OAUTH_CLIENT_ID));
+        } else {
+            key.append(executionContext.getAttribute(ExecutionContext.ATTR_API));
+        }
 
         if (spikeArrestConfiguration.getKey() != null && !spikeArrestConfiguration.getKey().isEmpty()) {
             key
