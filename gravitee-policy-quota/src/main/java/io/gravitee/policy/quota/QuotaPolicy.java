@@ -72,6 +72,8 @@ public class QuotaPolicy {
      */
     public static final String X_QUOTA_RESET = "X-Quota-Reset";
 
+    public static final String ATTR_OAUTH_CLIENT_ID = "oauth.client_id";
+
     private static char KEY_SEPARATOR = ':';
 
     private static char RATE_LIMIT_TYPE = 'q';
@@ -168,9 +170,17 @@ public class QuotaPolicy {
 
         StringBuilder key = new StringBuilder();
 
-        key
-            .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
-            .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+        String plan = (String)executionContext.getAttribute(ExecutionContext.ATTR_PLAN);
+        if (plan != null) {
+            key
+                .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
+                .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+        } else if (executionContext.getAttributes().containsKey(ATTR_OAUTH_CLIENT_ID)) { // TODO manage also APIKey when managed by K8S plugins
+            key
+                    .append(executionContext.getAttribute(ATTR_OAUTH_CLIENT_ID));
+        } else {
+            key.append(executionContext.getAttribute(ExecutionContext.ATTR_API));
+        }
 
         if (quotaConfiguration.getKey() != null && !quotaConfiguration.getKey().isEmpty()) {
             key
