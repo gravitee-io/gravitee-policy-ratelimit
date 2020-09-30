@@ -36,8 +36,6 @@ import io.vertx.reactivex.RxHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -51,14 +49,6 @@ import java.util.function.Supplier;
  */
 @SuppressWarnings("unused")
 public class RateLimitPolicy {
-
-    // remember the evaluation method for limit value to improve performance
-    private enum LimitEvaluationMethod {
-        PARSE_LONG,
-        SPEL_TEMPLATE
-    }
-
-    private static Map<RateLimitConfiguration, LimitEvaluationMethod> limitEvaluationMethods = new HashMap<>();
 
     /**
      * LOGGER
@@ -106,7 +96,8 @@ public class RateLimitPolicy {
         }
 
         String key = createRateLimitKey(request, executionContext, rateLimitConfiguration);
-        long limit = evaluateActualLimit(executionContext, rateLimitConfiguration);
+        long limit = (rateLimitConfiguration.getLimit() > 0) ? rateLimitConfiguration.getLimit() :
+            executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getDynamicLimit(), Long.class);
 
         Context context = Vertx.currentContext();
 
@@ -165,20 +156,6 @@ public class RateLimitPolicy {
                         policyChain.doNext(request, response);
                     }
                 });
-    }
-
-    private long evaluateActualLimit(ExecutionContext executionContext, RateLimitConfiguration rateLimitConfiguration) {
-        if (limitEvaluationMethods.getOrDefault(rateLimitConfiguration, LimitEvaluationMethod.PARSE_LONG) == LimitEvaluationMethod.PARSE_LONG) {
-            try {
-                return Long.parseLong(rateLimitConfiguration.getLimit());
-            } catch (NumberFormatException nfe) {
-                // store the limit evaluation method to avoid creating an exception stack every time
-                limitEvaluationMethods.put(rateLimitConfiguration, LimitEvaluationMethod.SPEL_TEMPLATE);
-                return executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getLimit(), Long.class);
-            }
-        } else {
-            return executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getLimit(), Long.class);
-        }
     }
 
     private String createRateLimitKey(Request request, ExecutionContext executionContext, RateLimitConfiguration rateLimitConfiguration) {

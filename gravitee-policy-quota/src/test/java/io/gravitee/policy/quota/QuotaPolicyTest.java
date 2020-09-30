@@ -89,7 +89,7 @@ public class QuotaPolicyTest {
 
         policyChain = spy(PolicyChain.class);
 
-        rateLimitConfiguration.setLimit("1");
+        rateLimitConfiguration.setLimit(1);
         rateLimitConfiguration.setPeriodTime(1);
         rateLimitConfiguration.setPeriodTimeUnit(ChronoUnit.SECONDS);
         policyConfiguration.setQuota(rateLimitConfiguration);
@@ -114,7 +114,7 @@ public class QuotaPolicyTest {
         QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
         QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
 
-        rateLimitConfiguration.setLimit("10");
+        rateLimitConfiguration.setLimit(10);
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(ChronoUnit.SECONDS);
         policyConfiguration.setQuota(rateLimitConfiguration);
@@ -163,7 +163,7 @@ public class QuotaPolicyTest {
         QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
         QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
 
-        rateLimitConfiguration.setLimit("10");
+        rateLimitConfiguration.setLimit(10);
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(ChronoUnit.SECONDS);
         policyConfiguration.setQuota(rateLimitConfiguration);
@@ -214,7 +214,7 @@ public class QuotaPolicyTest {
 
         int limit = 10;
 
-        rateLimitConfiguration.setLimit(Integer.toString(limit));
+        rateLimitConfiguration.setLimit(limit);
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(ChronoUnit.SECONDS);
         policyConfiguration.setQuota(rateLimitConfiguration);
@@ -276,7 +276,8 @@ public class QuotaPolicyTest {
 
         int limit = 10;
 
-        rateLimitConfiguration.setLimit("{(2*5)}");
+        rateLimitConfiguration.setLimit(0);
+        rateLimitConfiguration.setDynamicLimit("{(2*5)}");
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(ChronoUnit.SECONDS);
         policyConfiguration.setQuota(rateLimitConfiguration);

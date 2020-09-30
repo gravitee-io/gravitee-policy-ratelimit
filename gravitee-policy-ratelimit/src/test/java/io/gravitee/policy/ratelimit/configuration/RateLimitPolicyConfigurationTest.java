@@ -40,7 +40,8 @@ public class RateLimitPolicyConfigurationTest {
         Assert.assertFalse(configuration.isAsync());
 
         Assert.assertNotNull(configuration.getRate());
-        Assert.assertEquals("10", configuration.getRate().getLimit());
+        Assert.assertEquals(10, configuration.getRate().getLimit());
+        Assert.assertEquals("{(2*5)}", configuration.getRate().getDynamicLimit());
         Assert.assertEquals(10, configuration.getRate().getPeriodTime());
         Assert.assertEquals(TimeUnit.MINUTES, configuration.getRate().getPeriodTimeUnit());
     }

@@ -36,8 +36,6 @@ import io.vertx.reactivex.RxHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -51,14 +49,6 @@ import java.util.function.Supplier;
  */
 @SuppressWarnings("unused")
 public class QuotaPolicy {
-
-    // remember the evaluation method for limit value to improve performance
-    private enum LimitEvaluationMethod {
-        PARSE_LONG,
-        SPEL_TEMPLATE
-    }
-
-    private static Map<QuotaConfiguration, LimitEvaluationMethod> limitEvaluationMethods = new HashMap<>();
 
     /**
      * LOGGER
@@ -107,7 +97,8 @@ public class QuotaPolicy {
         }
 
         String key = createRateLimitKey(request, executionContext, quotaConfiguration);
-        long limit = evaluateActualLimit(executionContext, quotaConfiguration);
+        long limit = (quotaConfiguration.getLimit() > 0) ? quotaConfiguration.getLimit() :
+                executionContext.getTemplateEngine().getValue(quotaConfiguration.getDynamicLimit(), Long.class);
 
         Context context = Vertx.currentContext();
 
@@ -165,20 +156,6 @@ public class QuotaPolicy {
                         policyChain.doNext(request, response);
                     }
                 });
-    }
-
-    private long evaluateActualLimit(ExecutionContext executionContext, QuotaConfiguration quotaConfiguration) {
-        if (limitEvaluationMethods.getOrDefault(quotaConfiguration, LimitEvaluationMethod.PARSE_LONG) == LimitEvaluationMethod.PARSE_LONG) {
-            try {
-                return Long.parseLong(quotaConfiguration.getLimit());
-            } catch (NumberFormatException nfe) {
-                // store the limit evaluation method to avoid creating an exception stack every time
-                limitEvaluationMethods.put(quotaConfiguration, LimitEvaluationMethod.SPEL_TEMPLATE);
-                return executionContext.getTemplateEngine().getValue(quotaConfiguration.getLimit(), Long.class);
-            }
-        } else {
-            return executionContext.getTemplateEngine().getValue(quotaConfiguration.getLimit(), Long.class);
-        }
     }
 
     private String createRateLimitKey(Request request, ExecutionContext executionContext, QuotaConfiguration quotaConfiguration) {

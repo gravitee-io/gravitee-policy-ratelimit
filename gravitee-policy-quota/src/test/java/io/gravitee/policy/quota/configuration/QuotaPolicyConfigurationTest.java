@@ -40,7 +40,8 @@ public class QuotaPolicyConfigurationTest {
         Assert.assertFalse(configuration.isAsync());
 
         Assert.assertNotNull(configuration.getQuota());
-        Assert.assertEquals("10", configuration.getQuota().getLimit());
+        Assert.assertEquals(10, configuration.getQuota().getLimit());
+        Assert.assertEquals("{(2*5)}", configuration.getQuota().getDynamicLimit());
         Assert.assertEquals(10, configuration.getQuota().getPeriodTime());
         Assert.assertEquals(ChronoUnit.MINUTES, configuration.getQuota().getPeriodTimeUnit());
     }
