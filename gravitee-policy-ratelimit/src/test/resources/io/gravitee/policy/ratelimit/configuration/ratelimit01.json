@@ -1,6 +1,7 @@
 {
   "rate": {
-    "limit": "10",
+    "limit": 10,
+    "dynamicLimit": "{(2*5)}",
     "periodTime": 10,
     "periodTimeUnit": "MINUTES"
   }

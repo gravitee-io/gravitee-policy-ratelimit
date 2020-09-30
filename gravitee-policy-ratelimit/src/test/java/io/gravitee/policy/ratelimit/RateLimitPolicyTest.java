@@ -83,7 +83,7 @@ public class RateLimitPolicyTest {
 
         policyChain = spy(PolicyChain.class);
 
-        rateLimitConfiguration.setLimit("1");
+        rateLimitConfiguration.setLimit(1);
         rateLimitConfiguration.setPeriodTime(1);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
         policyConfiguration.setRate(rateLimitConfiguration);
@@ -108,7 +108,7 @@ public class RateLimitPolicyTest {
         RateLimitPolicyConfiguration policyConfiguration = new RateLimitPolicyConfiguration();
         RateLimitConfiguration rateLimitConfiguration = new RateLimitConfiguration();
 
-        rateLimitConfiguration.setLimit("10");
+        rateLimitConfiguration.setLimit(10);
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
         policyConfiguration.setRate(rateLimitConfiguration);
@@ -156,7 +156,7 @@ public class RateLimitPolicyTest {
 
         int limit = 10;
 
-        rateLimitConfiguration.setLimit(Integer.toString(limit));
+        rateLimitConfiguration.setLimit(10);
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
         policyConfiguration.setRate(rateLimitConfiguration);
@@ -214,7 +214,8 @@ public class RateLimitPolicyTest {
 
         int limit = 10;
 
-        rateLimitConfiguration.setLimit("{(2*5)}");
+        rateLimitConfiguration.setLimit(0);
+        rateLimitConfiguration.setDynamicLimit("{(2*5)}");
         rateLimitConfiguration.setPeriodTime(10);
         rateLimitConfiguration.setPeriodTimeUnit(TimeUnit.SECONDS);
         policyConfiguration.setRate(rateLimitConfiguration);

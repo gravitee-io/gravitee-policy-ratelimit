@@ -2,7 +2,7 @@
   "addHeaders": false,
   "async": true,
   "quota": {
-    "limit": "10",
+    "limit": 10,
     "periodTime": 10,
     "periodTimeUnit": "MINUTES"
   }
