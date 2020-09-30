@@ -23,13 +23,13 @@
           "type": "string",
           "default": "",
           "title": "Key",
-          "description": "Key to identify a consumer against whom the quota will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports SpEL."
+          "description": "Key to identify a consumer against whom the quota will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports EL."
         },
         "limit" : {
           "type" : "integer",
           "title": "Max requests (static)",
           "description": "Static limit on the number of requests that can be sent (this limit is used if the value > 0).",
-          "minimum": 1
+          "minimum": 0
         },
         "dynamicLimit" : {
           "type" : "string",
