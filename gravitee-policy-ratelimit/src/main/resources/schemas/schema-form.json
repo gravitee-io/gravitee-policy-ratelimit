@@ -26,9 +26,15 @@
           "description": "Key to identify a consumer against whom the rate-limiting will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports SpEL."
         },
         "limit" : {
+          "type" : "integer",
+          "title": "Max requests (static)",
+          "description": "Static limit on the number of requests that can be sent (this limit is used if the value > 0).",
+          "minimum": 1
+        },
+        "dynamicLimit" : {
           "type" : "string",
-          "title": "Max requests",
-          "description": "Limit on the number of requests that can be sent. Supports SpEL."
+          "title": "Max requests (dynamic)",
+          "description": "Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on EL expressions."
         },
         "periodTime" : {
           "type" : "integer",
@@ -43,7 +49,6 @@
         }
       },
       "required": [
-        "limit",
         "periodTime",
         "periodTimeUnit"
       ]

@@ -23,7 +23,9 @@ import java.time.temporal.ChronoUnit;
  */
 public class QuotaConfiguration {
 
-    private String limit;
+    private long limit;
+
+    private String dynamicLimit;
 
     private long periodTime;
 
@@ -31,12 +33,20 @@ public class QuotaConfiguration {
 
     private String key;
 
-    public String getLimit() {
+    public long getLimit() {
         return limit;
     }
 
-    public void setLimit(String limit) {
+    public void setLimit(long limit) {
         this.limit = limit;
+    }
+
+    public String getDynamicLimit() {
+        return dynamicLimit;
+    }
+
+    public void setDynamicLimit(String dynamicLimit) {
+        this.dynamicLimit = dynamicLimit;
     }
 
     public long getPeriodTime() {
