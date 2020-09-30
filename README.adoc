@@ -11,27 +11,60 @@ endif::[]
 |===
 |onRequest |onResponse
 
-|
+| X
 |
 
 |===
 
 == Description
 
-Todo
+There are three rate limit policies:
+
+* Quota: configure the number of requests allowed over a period of time (Hours, Days, Weeks, Months)
+* Rate-Limit: configure the number of requests allowed over a limited period of time ( Seconds, Minutes)
+* Spike-Arrest: throttle the number of requests processed and send to the backend to avoid spike
 
 == Configuration
 
 You can configure the policy with the following options :
 
+=== Quota
+
+Quota Policy configures the number of requests allow over an important period of time (from Hour to Month).
+This policy doesn't prevent from spike of request.
+
 |===
 |Property |Required |Description |Type |Default
 
-|Todo
-|Todo
-|Todo
-|Todo
-|_todo_
+|key
+|No
+|Key to identify a consumer against whom the quota will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports EL.
+|String
+|null
+
+|limit
+|No
+|Static limit on the number of requests that can be sent (this limit is used if the value > 0).
+|integer
+|0
+
+|dynamicLimit
+|No
+|Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on EL expressions.
+|string
+|null
+
+|periodTime
+|Yes
+|Time duration
+|Integer
+|1
+
+|periodTimeUnit
+|Yes
+|Time unit ("HOURS", "DAYS", "WEEKS", "MONTHS")
+|String
+|MONTHS
 
 |===
 
@@ -39,9 +72,117 @@ You can configure the policy with the following options :
 [source, json]
 .Sample
 ----
-"rate-limit": {
-  "todo": true
-}
+  "quota": {
+    "limit": "1000",
+    "periodTime": 1,
+    "periodTimeUnit": "MONTHS"
+  }
+----
+
+=== Rate-Limit
+
+Rate-Limit Policy configures the number of requests allow over a limited period of time (from Seconds to Minutes).
+This policy doesn't prevent from spike of request.
+
+|===
+|Property |Required |Description |Type |Default
+
+|key
+|No
+|Key to identify a consumer against whom the rate-limiting will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports EL.
+|String
+|null
+
+|limit
+|No
+|Static limit on the number of requests that can be sent (this limit is used if the value > 0).
+|integer
+|0
+
+|dynamicLimit
+|No
+|Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on EL expressions.
+|string
+|null
+
+|periodTime
+|Yes
+|Time duration
+|Integer
+|1
+
+|periodTimeUnit
+|Yes
+|Time unit ("SECONDS", "MINUTES" )
+|String
+|SECONDS
+
+|===
+
+
+[source, json]
+.Sample
+----
+  "rate": {
+    "limit": "10",
+    "periodTime": 10,
+    "periodTimeUnit": "MINUTES"
+  }
+----
+
+=== Spike Arrest
+
+Spike-Arrest Policy configures the number of requests allow over a limited period of time (from Seconds to Minutes).
+This policy prevents from spike of request by throttling incoming requests.
+For example, a SpikeArrest policy configured to 2000request/second will limit the execution of simultaneous requests to 200 requests per 100ms.
+
+By default, SpikeArrest policy is applied on a plan not on a consumer. To apply a spike arrest per consumer, please use the 'key' attribute which supports https://docs.gravitee.io/apim/3.x/apim_publisherguide_expression_language.html[Expression Language].
+
+|===
+|Property |Required |Description |Type |Default
+
+|key
+|No
+|Key to identify a consumer against whom the spike limit will be applied. Leave it empty to use the default behavior. Supports EL (example: `{#request.headers['x-consumer-id']}`)
+|String
+|null
+
+|limit
+|No
+|Static limit on the number of requests that can be sent (this limit is used if the value > 0).
+|integer
+|0
+
+|dynamicLimit
+|No
+|Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on EL expressions.
+|string
+|null
+
+|periodTime
+|Yes
+|Time duration
+|Integer
+|1
+
+|periodTimeUnit
+|Yes
+|Time unit ("SECONDS", "MINUTES" )
+|String
+|SECONDS
+
+|===
+
+
+[source, json]
+.Sample
+----
+  "spike": {
+    "limit": "10",
+    "periodTime": 10,
+    "periodTimeUnit": "MINUTES",
+    "global": true
+  }
 ----
 
 == Errors
@@ -61,5 +202,8 @@ Here are the error keys send by this policy:
 
 .^|QUOTA_TOO_MANY_REQUESTS
 ^.^|limit - period_time - period_unit
+
+.^|SPIKE_ARREST_TOO_MANY_REQUESTS
+^.^|limit - period_time - period_unit - slice_limit - slice_period_time - slice_limit_period_unit
 
 |===
