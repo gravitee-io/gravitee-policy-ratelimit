@@ -1,0 +1,9 @@
+{
+  "addHeaders": true,
+  "async": true,
+  "spike": {
+    "dynamicLimit": "10",
+    "periodTime": 10,
+    "periodTimeUnit": "MINUTES"
+  }
+}
