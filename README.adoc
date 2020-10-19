@@ -180,8 +180,7 @@ By default, SpikeArrest policy is applied on a plan not on a consumer. To apply 
   "spike": {
     "limit": "10",
     "periodTime": 10,
-    "periodTimeUnit": "MINUTES",
-    "global": true
+    "periodTimeUnit": "MINUTES"
   }
 ----
 
