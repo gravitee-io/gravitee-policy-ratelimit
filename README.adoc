@@ -1,4 +1,4 @@
-= RateLimit Policy
+= RateLimit policy
 
 
 ifdef::env-github[]
@@ -6,7 +6,7 @@ image:https://ci.gravitee.io/buildStatus/icon?job=gravitee-io/gravitee-policy-ra
 image:https://badges.gitter.im/Join Chat.svg["Gitter", link="https://gitter.im/gravitee-io/gravitee-io?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
 endif::[]
 
-== Scope
+== Phase
 
 |===
 |onRequest |onResponse
@@ -18,27 +18,27 @@ endif::[]
 
 == Description
 
-There are three rate limit policies:
+There are three `rate-limit` policies:
 
-* Quota: configure the number of requests allowed over a period of time (Hours, Days, Weeks, Months)
-* Rate-Limit: configure the number of requests allowed over a limited period of time ( Seconds, Minutes)
-* Spike-Arrest: throttle the number of requests processed and send to the backend to avoid spike
+* Quota: configures the number of requests allowed over a period of time (hours, days, weeks, months)
+* Rate-Limit: configures the number of requests allowed over a limited period of time (seconds, minutes)
+* Spike-Arrest: throttles the number of requests processed and sends them to the backend to avoid a spike
 
 == Configuration
 
-You can configure the policy with the following options :
+You can configure the policies with the following options:
 
 === Quota
 
-Quota Policy configures the number of requests allow over an important period of time (from Hour to Month).
-This policy doesn't prevent from spike of request.
+The Quota policy configures the number of requests allowed over a large period of time (from hours to months).
+This policy does not prevent request spikes.
 
 |===
 |Property |Required |Description |Type |Default
 
 |key
 |No
-|Key to identify a consumer against whom the quota will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports EL.
+|Key to identify a consumer to apply the quota against. Leave it empty to apply the default behavior (plan/subscription pair). Supports Expression Language.
 |String
 |null
 
@@ -50,7 +50,7 @@ This policy doesn't prevent from spike of request.
 
 |dynamicLimit
 |No
-|Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on EL expressions.
+|Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on Expression Language expressions.
 |string
 |null
 
@@ -62,15 +62,15 @@ This policy doesn't prevent from spike of request.
 
 |periodTimeUnit
 |Yes
-|Time unit ("HOURS", "DAYS", "WEEKS", "MONTHS")
+|Time unit (`HOURS`, `DAYS`, `WEEKS`, `MONTHS`)
 |String
 |MONTHS
 
 |===
 
+==== Configuration example
 
 [source, json]
-.Sample
 ----
   "quota": {
     "limit": "1000",
@@ -81,15 +81,15 @@ This policy doesn't prevent from spike of request.
 
 === Rate-Limit
 
-Rate-Limit Policy configures the number of requests allow over a limited period of time (from Seconds to Minutes).
-This policy doesn't prevent from spike of request.
+The Rate-Limit policy configures the number of requests allow over a limited period of time (from seconds to minutes).
+This policy does not prevent request spikes.
 
 |===
 |Property |Required |Description |Type |Default
 
 |key
 |No
-|Key to identify a consumer against whom the rate-limiting will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports EL.
+|Key to identify a consumer to apply rate-limiting against. Leave it empty to use the default behavior (plan/subscription pair). Supports Expression Language.
 |String
 |null
 
@@ -101,7 +101,7 @@ This policy doesn't prevent from spike of request.
 
 |dynamicLimit
 |No
-|Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on EL expressions.
+|Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on Expression Language expressions.
 |string
 |null
 
@@ -119,9 +119,9 @@ This policy doesn't prevent from spike of request.
 
 |===
 
+==== Configuration example
 
 [source, json]
-.Sample
 ----
   "rate": {
     "limit": "10",
@@ -132,18 +132,18 @@ This policy doesn't prevent from spike of request.
 
 === Spike Arrest
 
-Spike-Arrest Policy configures the number of requests allow over a limited period of time (from Seconds to Minutes).
-This policy prevents from spike of request by throttling incoming requests.
-For example, a SpikeArrest policy configured to 2000request/second will limit the execution of simultaneous requests to 200 requests per 100ms.
+The Spike-Arrest policy configures the number of requests allow over a limited period of time (from seconds to minutes).
+This policy prevents request spikes by throttling incoming requests.
+For example, a SpikeArrest policy configured to 2000 requests/second will limit the execution of simultaneous requests to 200 requests per 100ms.
 
-By default, SpikeArrest policy is applied on a plan not on a consumer. To apply a spike arrest per consumer, please use the 'key' attribute which supports https://docs.gravitee.io/apim/3.x/apim_publisherguide_expression_language.html[Expression Language].
+By default, the SpikeArrest policy is applied to a plan, not a consumer. To apply a spike arrest to a consumer, you need to use the `key` attribute, which supports Expression Language.
 
 |===
 |Property |Required |Description |Type |Default
 
 |key
 |No
-|Key to identify a consumer against whom the spike limit will be applied. Leave it empty to use the default behavior. Supports EL (example: `{#request.headers['x-consumer-id']}`)
+|Key to identify a consumer to apply spike arresting against. Leave it empty to use the default behavior. Supports Expression Language (example: `{#request.headers['x-consumer-id']}`).
 |String
 |null
 
@@ -155,7 +155,7 @@ By default, SpikeArrest policy is applied on a plan not on a consumer. To apply 
 
 |dynamicLimit
 |No
-|Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on EL expressions.
+|Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on Expression Language expressions.
 |string
 |null
 
@@ -167,15 +167,15 @@ By default, SpikeArrest policy is applied on a plan not on a consumer. To apply 
 
 |periodTimeUnit
 |Yes
-|Time unit ("SECONDS", "MINUTES" )
+|Time unit (`SECONDS`, `MINUTES`)
 |String
 |SECONDS
 
 |===
 
+==== Configuration example
 
 [source, json]
-.Sample
 ----
   "spike": {
     "limit": "10",
@@ -185,11 +185,15 @@ By default, SpikeArrest policy is applied on a plan not on a consumer. To apply 
 ----
 
 == Errors
-If you're looking to override the default response provided by the policy, you can do it
-thanks to the response templates feature. These templates must be define at the API level (see `Response Templates`
-from the `Proxy` menu).
 
-Here are the error keys send by this policy:
+=== Default response override
+
+You can use the response template feature to override the default response provided by the policies. These templates must be defined at the API level (see the API Console *Response Templates*
+option in the API *Proxy* menu).
+
+=== Error keys
+
+The error keys sent by these policies are as follows:
 
 [cols="2*", options="header"]
 |===
