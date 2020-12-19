@@ -23,7 +23,10 @@
           "type": "string",
           "default": "",
           "title": "Key",
-          "description": "Key to identify a consumer against whom the rate-limiting will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports EL."
+          "description": "Key to identify a consumer against whom the rate-limiting will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports EL.",
+          "x-schema-form": {
+            "expression-language": true
+          }
         },
         "limit" : {
           "type" : "integer",
@@ -34,7 +37,10 @@
         "dynamicLimit" : {
           "type" : "string",
           "title": "Max requests (dynamic)",
-          "description": "Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on EL expressions."
+          "description": "Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on EL expressions.",
+          "x-schema-form": {
+            "expression-language": true
+          }
         },
         "periodTime" : {
           "type" : "integer",
