@@ -19,8 +19,6 @@ import io.gravitee.gateway.services.ratelimit.rx.TrampolineSchedulerProvider;
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import io.reactivex.schedulers.TestScheduler;
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
 import org.junit.Before;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -43,10 +41,6 @@ public class AsyncRateLimitRepositoryTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-
-        Cache cache = CacheManager.newInstance(AsyncRateLimitRepositoryTest.class.getResource("/ehcache.xml")).getCache("ratelimit");
-        // Ensure that the cache does not contain any values between tests.
-        cache.removeAll();
 
         localRateLimitRepository = spy(new LocalRateLimitRepository());
         testScheduler = new TestScheduler();
