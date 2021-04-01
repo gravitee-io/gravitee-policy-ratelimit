@@ -20,11 +20,8 @@ import io.gravitee.gateway.services.ratelimit.rx.SchedulerProvider;
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
-import net.sf.ehcache.Cache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -39,10 +36,6 @@ public class AsyncRateLimitService extends AbstractService {
 
     @Value("${services.ratelimit.enabled:true}")
     private boolean enabled;
-
-    @Autowired
-    @Qualifier("local")
-    private Cache localCache;
 
     @Override
     protected void doStart() throws Exception {
