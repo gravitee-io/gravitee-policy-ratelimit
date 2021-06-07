@@ -31,10 +31,11 @@
     <parent>
         <groupId>io.gravitee</groupId>
         <artifactId>gravitee-parent</artifactId>
-        <version>17.2</version>
+        <version>20.0</version>
     </parent>
 
     <properties>
+        <gravitee-bom.version>1.1</gravitee-bom.version>
         <gravitee-gateway-api.version>1.20.1</gravitee-gateway-api.version>
         <gravitee-policy-api.version>1.6.0</gravitee-policy-api.version>
         <gravitee-repository-api.version>1.30.9</gravitee-repository-api.version>
@@ -51,6 +52,15 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Import bom to properly inherit all dependencies -->
+            <dependency>
+                <groupId>io.gravitee</groupId>
+                <artifactId>gravitee-bom</artifactId>
+                <version>${gravitee-bom.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+
             <!-- Provided scope -->
             <dependency>
                 <groupId>io.gravitee.gateway</groupId>

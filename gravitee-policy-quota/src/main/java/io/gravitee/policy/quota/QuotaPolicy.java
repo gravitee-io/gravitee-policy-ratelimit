@@ -30,9 +30,9 @@ import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import io.reactivex.SingleObserver;
 import io.reactivex.disposables.Disposable;
-import io.vertx.core.Context;
-import io.vertx.core.Vertx;
-import io.vertx.reactivex.RxHelper;
+import io.vertx.reactivex.core.Context;
+import io.vertx.reactivex.core.RxHelper;
+import io.vertx.reactivex.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
