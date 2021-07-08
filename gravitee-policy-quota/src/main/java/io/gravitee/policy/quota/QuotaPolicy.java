@@ -92,7 +92,6 @@ public class QuotaPolicy {
 
         if (rateLimitService == null) {
             policyChain.failWith(PolicyResult.failure("No rate-limit service has been installed."));
-
             return;
         }
 
@@ -129,11 +128,17 @@ public class QuotaPolicy {
                     @Override
                     public void onSuccess(RateLimit rateLimit) {
                         // Set Rate Limit headers on response
+                        long remaining = Math.max(0, limit - rateLimit.getCounter());
                         if (quotaPolicyConfiguration.isAddHeaders()) {
                             response.headers().set(X_QUOTA_LIMIT, Long.toString(limit));
-                            response.headers().set(X_QUOTA_REMAINING, Long.toString(Math.max(0, limit - rateLimit.getCounter())));
+                            response.headers().set(X_QUOTA_REMAINING, Long.toString(remaining));
                             response.headers().set(X_QUOTA_RESET, Long.toString(rateLimit.getResetTime()));
                         }
+
+                        executionContext.setAttribute(ExecutionContext.ATTR_QUOTA_COUNT, rateLimit.getCounter());
+                        executionContext.setAttribute(ExecutionContext.ATTR_QUOTA_REMAINING, remaining);
+                        executionContext.setAttribute(ExecutionContext.ATTR_QUOTA_LIMIT, quotaConfiguration.getLimit());
+                        executionContext.setAttribute(ExecutionContext.ATTR_QUOTA_RESET_TIME, rateLimit.getResetTime());
 
                         if (rateLimit.getCounter() <= limit) {
                             policyChain.doNext(request, response);
@@ -151,6 +156,9 @@ public class QuotaPolicy {
                             response.headers().set(X_QUOTA_REMAINING, Long.toString(limit));
                             response.headers().set(X_QUOTA_RESET, Long.toString(-1));
                         }
+
+                        executionContext.setAttribute(ExecutionContext.ATTR_QUOTA_REMAINING, limit);
+                        executionContext.setAttribute(ExecutionContext.ATTR_QUOTA_LIMIT, limit);
 
                         // If an errors occurs at the repository level, we accept the call
                         policyChain.doNext(request, response);
