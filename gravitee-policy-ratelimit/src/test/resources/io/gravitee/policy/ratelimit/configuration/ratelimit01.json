@@ -1,5 +1,6 @@
 {
   "rate": {
+    "subscriptionLimit": true,
     "limit": 10,
     "dynamicLimit": "{(2*5)}",
     "periodTime": 10,

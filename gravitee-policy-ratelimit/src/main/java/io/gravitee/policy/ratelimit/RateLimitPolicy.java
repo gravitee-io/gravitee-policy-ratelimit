@@ -162,40 +162,33 @@ public class RateLimitPolicy {
 
     private String createRateLimitKey(Request request, ExecutionContext executionContext, RateLimitConfiguration rateLimitConfiguration) {
         // Rate limit key contains the following:
-        // 1_ (PLAN_ID, SUBSCRIPTION_ID) pair, note that for keyless plans this is evaluated to (1, CLIENT_IP)
+        // 1_ If active option subscriptionLimit:
+        // (PLAN_ID, SUBSCRIPTION_ID) pair, note that for keyless plans this is evaluated to (1, CLIENT_IP),
+        // else (API_ID, PLAN_ID) pair, note that for keyless plans this is evaluated to (API_ID, 1)
         // 2_ User-defined key, if it exists
         // 3_ Rate Type (rate-limit / quota)
         // 4_ RESOLVED_PATH (policy attached to a path rather than a plan)
         String resolvedPath = (String) executionContext.getAttribute(ExecutionContext.ATTR_RESOLVED_PATH);
 
         StringBuilder key = new StringBuilder();
-
-        String plan = (String)executionContext.getAttribute(ExecutionContext.ATTR_PLAN);
-        if (plan != null) {
-            key
-                    .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
+        if (rateLimitConfiguration.isSubscriptionLimit()) {
+            key.append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
                     .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
-        } else if (executionContext.getAttributes().containsKey(ATTR_OAUTH_CLIENT_ID)) { // TODO manage also APIKey when managed by K8S plugins
-            key
-                    .append(executionContext.getAttribute(ATTR_OAUTH_CLIENT_ID));
         } else {
-            key.append(executionContext.getAttribute(ExecutionContext.ATTR_API));
+            key.append(executionContext.getAttribute(ExecutionContext.ATTR_API))
+                    .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN));
         }
 
         if (rateLimitConfiguration.getKey() != null && !rateLimitConfiguration.getKey().isEmpty()) {
-            key
-                .append(KEY_SEPARATOR)
-                .append(executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getKey(), String.class));
+            key.append(KEY_SEPARATOR)
+                    .append(executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getKey(), String.class));
         }
 
-        key
-            .append(KEY_SEPARATOR)
-            .append(RATE_LIMIT_TYPE);
+        key.append(KEY_SEPARATOR).append(RATE_LIMIT_TYPE);
 
         if (resolvedPath != null) {
-            key
-                .append(KEY_SEPARATOR)
-                .append(resolvedPath.hashCode());
+            key.append(KEY_SEPARATOR)
+                    .append(resolvedPath.hashCode());
         }
 
         return key.toString();

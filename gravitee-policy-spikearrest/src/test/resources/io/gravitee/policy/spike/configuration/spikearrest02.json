@@ -2,6 +2,7 @@
   "addHeaders": true,
   "async": true,
   "spike": {
+    "subscriptionLimit": true,
     "dynamicLimit": "10",
     "periodTime": 10,
     "periodTimeUnit": "MINUTES"

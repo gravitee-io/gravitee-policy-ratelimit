@@ -23,6 +23,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class SpikeArrestConfiguration {
 
+    private boolean subscriptionLimit;
+
     private long limit;
 
     private String dynamicLimit;
@@ -32,6 +34,14 @@ public class SpikeArrestConfiguration {
     private TimeUnit periodTimeUnit;
 
     private String key;
+
+    public boolean isSubscriptionLimit() {
+        return subscriptionLimit;
+    }
+
+    public void setSubscriptionLimit(boolean subscriptionLimit) {
+        this.subscriptionLimit = subscriptionLimit;
+    }
 
     public String getKey() {
         return key;
