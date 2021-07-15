@@ -28,6 +28,12 @@
             "expression-language": true
           }
         },
+        "subscriptionLimit": {
+          "type": "boolean",
+          "default": true,
+          "title": "limit on subscription",
+          "description": "By activating this option, rate-limiting is applied to every separate subscription, else is applied to all plan subscriptions for this API."
+        },
         "limit" : {
           "type" : "integer",
           "title": "Max requests (static)",

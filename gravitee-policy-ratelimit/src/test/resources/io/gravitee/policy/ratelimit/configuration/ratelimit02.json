@@ -2,6 +2,7 @@
   "addHeaders": true,
   "async": true,
   "rate": {
+    "subscriptionLimit": true,
     "limit": 10,
     "periodTime": 10,
     "periodTimeUnit": "MINUTES"

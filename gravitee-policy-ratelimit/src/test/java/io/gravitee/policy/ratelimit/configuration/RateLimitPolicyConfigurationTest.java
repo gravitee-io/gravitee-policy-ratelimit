@@ -40,6 +40,7 @@ public class RateLimitPolicyConfigurationTest {
         Assert.assertFalse(configuration.isAsync());
 
         Assert.assertNotNull(configuration.getRate());
+        Assert.assertTrue(configuration.getRate().isSubscriptionLimit());
         Assert.assertEquals(10, configuration.getRate().getLimit());
         Assert.assertEquals("{(2*5)}", configuration.getRate().getDynamicLimit());
         Assert.assertEquals(10, configuration.getRate().getPeriodTime());

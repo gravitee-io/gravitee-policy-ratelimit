@@ -40,6 +40,7 @@ public class SpikeArrestPolicyConfigurationTest {
         Assert.assertFalse(configuration.isAsync());
 
         Assert.assertNotNull(configuration.getSpike());
+        Assert.assertTrue(configuration.getSpike().isSubscriptionLimit());
         Assert.assertEquals(10, configuration.getSpike().getLimit());
         Assert.assertEquals(10, configuration.getSpike().getPeriodTime());
         Assert.assertEquals(TimeUnit.MINUTES, configuration.getSpike().getPeriodTimeUnit());
