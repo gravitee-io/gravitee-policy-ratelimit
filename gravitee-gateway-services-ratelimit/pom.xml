@@ -30,6 +30,9 @@
     <artifactId>gravitee-gateway-services-ratelimit</artifactId>
     <name>Gravitee.io APIM - Gateway - Services - Rate Limit proxy</name>
 
+    <properties>
+        <ehcache.version>2.10.9.2</ehcache.version>
+    </properties>
     <dependencies>
         <!-- Gravitee.io dependencies -->
         <dependency>
@@ -51,7 +54,7 @@
         <dependency>
             <groupId>net.sf.ehcache</groupId>
             <artifactId>ehcache</artifactId>
-            <version>2.10.6</version>
+            <version>${ehcache.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
