@@ -15,10 +15,10 @@
  */
 package io.gravitee.policy.quota;
 
-import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
+import io.gravitee.gateway.api.http.HttpHeaders;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.quota.configuration.QuotaConfiguration;
@@ -36,12 +36,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static io.gravitee.common.http.GraviteeHttpHeader.X_GRAVITEE_API_KEY;
-import static io.gravitee.common.http.GraviteeHttpHeader.X_GRAVITEE_API_NAME;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -52,9 +49,6 @@ import static org.mockito.Mockito.*;
 @Ignore
 @RunWith(MockitoJUnitRunner.class)
 public class QuotaPolicyTest {
-
-    private static final String API_KEY_HEADER_VALUE = "fbc40d50-5746-40af-b283-d7e99c1775c7";
-    private static final String API_NAME_HEADER_VALUE = "my-api";
 
     private RateLimitService rateLimitService;
 
@@ -103,14 +97,6 @@ public class QuotaPolicyTest {
 
     @Test
     public void singleRequest_withQuotaHeaders() throws InterruptedException {
-        final HttpHeaders headers = new HttpHeaders();
-        headers.setAll(new HashMap<String, String>() {
-            {
-                put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
-                put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
-            }
-        });
-
         QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
         QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
 
@@ -152,14 +138,6 @@ public class QuotaPolicyTest {
 
     @Test
     public void singleRequest_withoutQuotaHeaders() throws InterruptedException {
-        final HttpHeaders headers = new HttpHeaders();
-        headers.setAll(new HashMap<String, String>() {
-            {
-                put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
-                put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
-            }
-        });
-
         QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
         QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
 
@@ -201,14 +179,6 @@ public class QuotaPolicyTest {
 
     @Test
     public void multipleRequestsLegacy() throws InterruptedException {
-        final HttpHeaders headers = new HttpHeaders();
-        headers.setAll(new HashMap<String, String>() {
-            {
-                put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
-                put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
-            }
-        });
-
         QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
         QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
 
@@ -263,14 +233,6 @@ public class QuotaPolicyTest {
 
     @Test
     public void multipleRequestsTemplatableLimitExpression() throws InterruptedException {
-        final HttpHeaders headers = new HttpHeaders();
-        headers.setAll(new HashMap<String, String>() {
-            {
-                put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
-                put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
-            }
-        });
-
         QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
         QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
 
