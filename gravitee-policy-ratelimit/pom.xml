@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.gravitee.policy</groupId>
         <artifactId>gravitee-ratelimit-parent</artifactId>
-        <version>1.15.0-SNAPSHOT</version>
+        <version>1.15.0</version>
     </parent>
 
     <artifactId>gravitee-policy-ratelimit</artifactId>
@@ -34,6 +34,8 @@
         <json-schema-generator-maven-plugin.version>1.3.0</json-schema-generator-maven-plugin.version>
         <json-schema-generator-maven-plugin.outputDirectory>${project.build.directory}/schemas</json-schema-generator-maven-plugin.outputDirectory>
         <maven-assembly-plugin.version>2.5.5</maven-assembly-plugin.version>
+        <!-- Property used by the publication job in CI-->
+        <publish-folder-path>graviteeio-apim/plugins/policies</publish-folder-path>
     </properties>
 
     <dependencies>
