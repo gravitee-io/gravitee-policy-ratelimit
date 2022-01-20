@@ -1,9 +1,9 @@
 = RateLimit policy
 
-
 ifdef::env-github[]
-image:https://ci.gravitee.io/buildStatus/icon?job=gravitee-io/gravitee-policy-ratelimit/master["Build status", link="https://ci.gravitee.io/job/gravitee-io/job/gravitee-policy-ratelimit/"]
-image:https://badges.gitter.im/Join Chat.svg["Gitter", link="https://gitter.im/gravitee-io/gravitee-io?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
+image:https://img.shields.io/badge/License-Apache%202.0-blue.svg["License", link="https://github.com/gravitee-io/gravitee-policy-ratelimit/blob/master/LICENSE.txt"]
+image:https://img.shields.io/badge/semantic--release-conventional%20commits-e10079?logo=semantic-release["Releases", link="https://github.com/gravitee-io/gravitee-policy-ratelimit/releases"]
+image:https://circleci.com/gh/gravitee-io/gravitee-policy-ratelimit.svg?style=svg["CircleCI", link="https://circleci.com/gh/gravitee-io/gravitee-policy-ratelimit"]
 endif::[]
 
 == Phase
@@ -21,8 +21,13 @@ endif::[]
 There are three `rate-limit` policies:
 
 * Quota: configures the number of requests allowed over a period of time (hours, days, weeks, months)
+image:https://img.shields.io/static/v1?label=Available%20at&message=Gravitee.io&color=1EC9D2["Gravitee.io", link="https://download.gravitee.io/#graviteeio-apim/plugins/policies/gravitee-policy-quota/"]
+
 * Rate-Limit: configures the number of requests allowed over a limited period of time (seconds, minutes)
+image:https://img.shields.io/static/v1?label=Available%20at&message=Gravitee.io&color=1EC9D2["Gravitee.io", link="https://download.gravitee.io/#graviteeio-apim/plugins/policies/gravitee-policy-ratelimit/"]
+
 * Spike-Arrest: throttles the number of requests processed and sends them to the backend to avoid a spike
+image:https://img.shields.io/static/v1?label=Available%20at&message=Gravitee.io&color=1EC9D2["Gravitee.io", link="https://download.gravitee.io/#graviteeio-apim/plugins/policies/gravitee-policy-spikearrest/"]
 
 == Configuration
 
