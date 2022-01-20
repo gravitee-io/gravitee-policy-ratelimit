@@ -33,10 +33,9 @@ import io.reactivex.disposables.Disposable;
 import io.vertx.reactivex.core.Context;
 import io.vertx.reactivex.core.RxHelper;
 import io.vertx.reactivex.core.Vertx;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.function.Supplier;
 
 /**
  * The rate limit policy, also known as throttling insure that a user (given its api key or IP address) is allowed
@@ -98,20 +97,25 @@ public class RateLimitPolicy {
         }
 
         String key = createRateLimitKey(request, executionContext, rateLimitConfiguration);
-        long limit = (rateLimitConfiguration.getLimit() > 0) ? rateLimitConfiguration.getLimit() :
-            executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getDynamicLimit(), Long.class);
+        long limit = (rateLimitConfiguration.getLimit() > 0)
+            ? rateLimitConfiguration.getLimit()
+            : executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getDynamicLimit(), Long.class);
 
         Context context = Vertx.currentContext();
 
         rateLimitService
-                .incrementAndGet(key, rateLimitPolicyConfiguration.isAsync(), new Supplier<RateLimit>() {
+            .incrementAndGet(
+                key,
+                rateLimitPolicyConfiguration.isAsync(),
+                new Supplier<RateLimit>() {
                     @Override
                     public RateLimit get() {
                         // Set the time at which the current rate limit window resets in UTC epoch seconds.
                         long resetTimeMillis = DateUtils.getEndOfPeriod(
-                                request.timestamp(),
-                                rateLimitConfiguration.getPeriodTime(),
-                                rateLimitConfiguration.getPeriodTimeUnit());
+                            request.timestamp(),
+                            rateLimitConfiguration.getPeriodTime(),
+                            rateLimitConfiguration.getPeriodTimeUnit()
+                        );
 
                         RateLimit rate = new RateLimit(key);
                         rate.setCounter(0);
@@ -120,13 +124,13 @@ public class RateLimitPolicy {
                         rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
                         return rate;
                     }
-                })
-                .observeOn(RxHelper.scheduler(context))
-                .subscribe(new SingleObserver<RateLimit>() {
+                }
+            )
+            .observeOn(RxHelper.scheduler(context))
+            .subscribe(
+                new SingleObserver<RateLimit>() {
                     @Override
-                    public void onSubscribe(Disposable d) {
-
-                    }
+                    public void onSubscribe(Disposable d) {}
 
                     @Override
                     public void onSuccess(RateLimit rateLimit) {
@@ -157,7 +161,8 @@ public class RateLimitPolicy {
                         // If an errors occurs at the repository level, we accept the call
                         policyChain.doNext(request, response);
                     }
-                });
+                }
+            );
     }
 
     private String createRateLimitKey(Request request, ExecutionContext executionContext, RateLimitConfiguration rateLimitConfiguration) {
@@ -170,32 +175,25 @@ public class RateLimitPolicy {
 
         StringBuilder key = new StringBuilder();
 
-        String plan = (String)executionContext.getAttribute(ExecutionContext.ATTR_PLAN);
+        String plan = (String) executionContext.getAttribute(ExecutionContext.ATTR_PLAN);
         if (plan != null) {
             key
-                    .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
-                    .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+                .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
+                .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
         } else if (executionContext.getAttributes().containsKey(ATTR_OAUTH_CLIENT_ID)) { // TODO manage also APIKey when managed by K8S plugins
-            key
-                    .append(executionContext.getAttribute(ATTR_OAUTH_CLIENT_ID));
+            key.append(executionContext.getAttribute(ATTR_OAUTH_CLIENT_ID));
         } else {
             key.append(executionContext.getAttribute(ExecutionContext.ATTR_API));
         }
 
         if (rateLimitConfiguration.getKey() != null && !rateLimitConfiguration.getKey().isEmpty()) {
-            key
-                .append(KEY_SEPARATOR)
-                .append(executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getKey(), String.class));
+            key.append(KEY_SEPARATOR).append(executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getKey(), String.class));
         }
 
-        key
-            .append(KEY_SEPARATOR)
-            .append(RATE_LIMIT_TYPE);
+        key.append(KEY_SEPARATOR).append(RATE_LIMIT_TYPE);
 
         if (resolvedPath != null) {
-            key
-                .append(KEY_SEPARATOR)
-                .append(resolvedPath.hashCode());
+            key.append(KEY_SEPARATOR).append(resolvedPath.hashCode());
         }
 
         return key.toString();
@@ -203,15 +201,20 @@ public class RateLimitPolicy {
 
     private PolicyResult createLimitExceeded(RateLimitConfiguration rateLimitConfiguration, long actualLimit) {
         return PolicyResult.failure(
-                RATE_LIMIT_TOO_MANY_REQUESTS,
-                HttpStatusCode.TOO_MANY_REQUESTS_429,
-                "Rate limit exceeded ! You reach the limit of " + actualLimit +
-                        " requests per " + rateLimitConfiguration.getPeriodTime() + ' ' +
-                        rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase(),
-                Maps.<String, Object>builder()
-                        .put("limit", actualLimit)
-                        .put("period_time", rateLimitConfiguration.getPeriodTime())
-                        .put("period_unit", rateLimitConfiguration.getPeriodTimeUnit())
-                        .build());
+            RATE_LIMIT_TOO_MANY_REQUESTS,
+            HttpStatusCode.TOO_MANY_REQUESTS_429,
+            "Rate limit exceeded ! You reach the limit of " +
+            actualLimit +
+            " requests per " +
+            rateLimitConfiguration.getPeriodTime() +
+            ' ' +
+            rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase(),
+            Maps
+                .<String, Object>builder()
+                .put("limit", actualLimit)
+                .put("period_time", rateLimitConfiguration.getPeriodTime())
+                .put("period_unit", rateLimitConfiguration.getPeriodTimeUnit())
+                .build()
+        );
     }
 }

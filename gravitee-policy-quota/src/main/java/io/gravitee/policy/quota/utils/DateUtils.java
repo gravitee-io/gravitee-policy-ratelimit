@@ -28,9 +28,9 @@ public final class DateUtils {
 
     public static long getEndOfPeriod(long startingTime, long periodTime, ChronoUnit periodTimeUnit) {
         return ZonedDateTime
-                .ofInstant(Instant.ofEpochMilli(startingTime), ZoneId.systemDefault())
-                .plus(periodTime, periodTimeUnit)
-                .toInstant()
-                .toEpochMilli();
+            .ofInstant(Instant.ofEpochMilli(startingTime), ZoneId.systemDefault())
+            .plus(periodTime, periodTimeUnit)
+            .toInstant()
+            .toEpochMilli();
     }
 }

@@ -15,6 +15,11 @@
  */
 package io.gravitee.policy.ratelimit;
 
+import static io.gravitee.common.http.GraviteeHttpHeader.X_GRAVITEE_API_KEY;
+import static io.gravitee.common.http.GraviteeHttpHeader.X_GRAVITEE_API_NAME;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
+
 import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
@@ -25,6 +30,9 @@ import io.gravitee.policy.ratelimit.configuration.RateLimitConfiguration;
 import io.gravitee.policy.ratelimit.configuration.RateLimitPolicyConfiguration;
 import io.gravitee.policy.ratelimit.local.LocalCacheRateLimitProvider;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
+import java.util.HashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -33,15 +41,6 @@ import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.util.HashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-import static io.gravitee.common.http.GraviteeHttpHeader.X_GRAVITEE_API_KEY;
-import static io.gravitee.common.http.GraviteeHttpHeader.X_GRAVITEE_API_NAME;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -70,7 +69,7 @@ public class RateLimitPolicyTest {
     @Before
     public void init() {
         rateLimitService = new LocalCacheRateLimitProvider();
-        ((LocalCacheRateLimitProvider)rateLimitService).clean();
+        ((LocalCacheRateLimitProvider) rateLimitService).clean();
 
         when(executionContext.getAttribute(ExecutionContext.ATTR_PLAN)).thenReturn("my-plan");
         when(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID)).thenReturn("my-subscription");
@@ -98,12 +97,14 @@ public class RateLimitPolicyTest {
     @Test
     public void singleRequest() throws InterruptedException {
         final HttpHeaders headers = new HttpHeaders();
-        headers.setAll(new HashMap<String, String>() {
-            {
-                put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
-                put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
+        headers.setAll(
+            new HashMap<String, String>() {
+                {
+                    put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
+                    put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
+                }
             }
-        });
+        );
 
         RateLimitPolicyConfiguration policyConfiguration = new RateLimitPolicyConfiguration();
         RateLimitConfiguration rateLimitConfiguration = new RateLimitConfiguration();
@@ -119,22 +120,28 @@ public class RateLimitPolicyTest {
 
         final CountDownLatch latch = new CountDownLatch(1);
 
-        rateLimitPolicy.onRequest(request, response, executionContext, policyChain = spy(new PolicyChain() {
-            @Override
-            public void doNext(Request request, Response response) {
-                latch.countDown();
-            }
+        rateLimitPolicy.onRequest(
+            request,
+            response,
+            executionContext,
+            policyChain =
+                spy(
+                    new PolicyChain() {
+                        @Override
+                        public void doNext(Request request, Response response) {
+                            latch.countDown();
+                        }
 
-            @Override
-            public void failWith(PolicyResult policyResult) {
-                latch.countDown();
-            }
+                        @Override
+                        public void failWith(PolicyResult policyResult) {
+                            latch.countDown();
+                        }
 
-            @Override
-            public void streamFailWith(PolicyResult policyResult) {
-
-            }
-        }));
+                        @Override
+                        public void streamFailWith(PolicyResult policyResult) {}
+                    }
+                )
+        );
 
         Assert.assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
 
@@ -144,12 +151,14 @@ public class RateLimitPolicyTest {
     @Test
     public void multipleRequestsLegacy() throws InterruptedException {
         final HttpHeaders headers = new HttpHeaders();
-        headers.setAll(new HashMap<String, String>() {
-            {
-                put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
-                put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
+        headers.setAll(
+            new HashMap<String, String>() {
+                {
+                    put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
+                    put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
+                }
             }
-        });
+        );
 
         RateLimitPolicyConfiguration policyConfiguration = new RateLimitPolicyConfiguration();
         RateLimitConfiguration rateLimitConfiguration = new RateLimitConfiguration();
@@ -170,26 +179,27 @@ public class RateLimitPolicyTest {
 
         final CountDownLatch latch = new CountDownLatch(calls);
 
-        policyChain = spy(new PolicyChain() {
-            @Override
-            public void doNext(Request request, Response response) {
-                latch.countDown();
-            }
+        policyChain =
+            spy(
+                new PolicyChain() {
+                    @Override
+                    public void doNext(Request request, Response response) {
+                        latch.countDown();
+                    }
 
-            @Override
-            public void failWith(PolicyResult policyResult) {
-                latch.countDown();
-            }
+                    @Override
+                    public void failWith(PolicyResult policyResult) {
+                        latch.countDown();
+                    }
 
-            @Override
-            public void streamFailWith(PolicyResult policyResult) {
-
-            }
-        });
+                    @Override
+                    public void streamFailWith(PolicyResult policyResult) {}
+                }
+            );
 
         InOrder inOrder = inOrder(policyChain);
 
-        for (int i = 0 ; i < calls ; i++) {
+        for (int i = 0; i < calls; i++) {
             rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
         }
 
@@ -202,12 +212,14 @@ public class RateLimitPolicyTest {
     @Test
     public void multipleRequestsTemplatableLimitExpression() throws InterruptedException {
         final HttpHeaders headers = new HttpHeaders();
-        headers.setAll(new HashMap<String, String>() {
-            {
-                put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
-                put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
+        headers.setAll(
+            new HashMap<String, String>() {
+                {
+                    put(X_GRAVITEE_API_KEY, API_KEY_HEADER_VALUE);
+                    put(X_GRAVITEE_API_NAME, API_NAME_HEADER_VALUE);
+                }
             }
-        });
+        );
 
         RateLimitPolicyConfiguration policyConfiguration = new RateLimitPolicyConfiguration();
         RateLimitConfiguration rateLimitConfiguration = new RateLimitConfiguration();
@@ -229,26 +241,27 @@ public class RateLimitPolicyTest {
 
         final CountDownLatch latch = new CountDownLatch(calls);
 
-        policyChain = spy(new PolicyChain() {
-            @Override
-            public void doNext(Request request, Response response) {
-                latch.countDown();
-            }
+        policyChain =
+            spy(
+                new PolicyChain() {
+                    @Override
+                    public void doNext(Request request, Response response) {
+                        latch.countDown();
+                    }
 
-            @Override
-            public void failWith(PolicyResult policyResult) {
-                latch.countDown();
-            }
+                    @Override
+                    public void failWith(PolicyResult policyResult) {
+                        latch.countDown();
+                    }
 
-            @Override
-            public void streamFailWith(PolicyResult policyResult) {
-
-            }
-        });
+                    @Override
+                    public void streamFailWith(PolicyResult policyResult) {}
+                }
+            );
 
         InOrder inOrder = inOrder(policyChain);
 
-        for (int i = 0 ; i < calls ; i++) {
+        for (int i = 0; i < calls; i++) {
             rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
         }
 
@@ -257,5 +270,4 @@ public class RateLimitPolicyTest {
         inOrder.verify(policyChain, times(limit)).doNext(request, response);
         inOrder.verify(policyChain, times(exceedCalls)).failWith(any(PolicyResult.class));
     }
-
 }

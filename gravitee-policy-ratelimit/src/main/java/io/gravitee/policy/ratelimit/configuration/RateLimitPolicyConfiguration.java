@@ -52,5 +52,4 @@ public class RateLimitPolicyConfiguration implements PolicyConfiguration {
     public void setAddHeaders(boolean addHeaders) {
         this.addHeaders = addHeaders;
     }
-
 }

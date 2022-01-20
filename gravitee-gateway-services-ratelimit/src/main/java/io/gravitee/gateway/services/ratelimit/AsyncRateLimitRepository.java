@@ -24,9 +24,6 @@ import io.reactivex.SingleSource;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,6 +31,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -58,64 +57,78 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
     }
 
     public void initialize() {
-        Disposable subscribe = Observable
-                .timer(5000, TimeUnit.MILLISECONDS)
-                .repeat()
-                .subscribe(tick -> merge());
-
+        Disposable subscribe = Observable.timer(5000, TimeUnit.MILLISECONDS).repeat().subscribe(tick -> merge());
         //TODO: dispose subscribe when service is stopped
     }
 
     @Override
     public Single<RateLimit> incrementAndGet(String key, long weight, Supplier<RateLimit> supplier) {
-        return
-                isLocked(key)
-                        .subscribeOn(schedulerProvider.computation())
-                        .andThen(
-                                Single.defer(() -> localCacheRateLimitRepository
-                                        .incrementAndGet(key, weight, () -> new LocalRateLimit(supplier.get()))
-                                        .map(localRateLimit -> {
-                                            keys.add(localRateLimit.getKey());
-                                            return localRateLimit;
-                                        }))
-                        );
+        return isLocked(key)
+            .subscribeOn(schedulerProvider.computation())
+            .andThen(
+                Single.defer(() ->
+                    localCacheRateLimitRepository
+                        .incrementAndGet(key, weight, () -> new LocalRateLimit(supplier.get()))
+                        .map(localRateLimit -> {
+                            keys.add(localRateLimit.getKey());
+                            return localRateLimit;
+                        })
+                )
+            );
     }
 
     void merge() {
         if (!keys.isEmpty()) {
-            keys.forEach(new java.util.function.Consumer<String>() {
-                @Override
-                public void accept(String key) {
-                    lock(key)
+            keys.forEach(
+                new java.util.function.Consumer<String>() {
+                    @Override
+                    public void accept(String key) {
+                        lock(key)
                             // By default, delay signal are done through the computation scheduler
                             //        .observeOn(Schedulers.computation())
-                            .andThen(localCacheRateLimitRepository.get(key)
+                            .andThen(
+                                localCacheRateLimitRepository
+                                    .get(key)
                                     // Remote rate is incremented by the local counter value
                                     // If the remote does not contains existing value, use the local counter
-                                    .flatMapSingle((Function<LocalRateLimit, SingleSource<RateLimit>>) localRateLimit ->
-                                            remoteCacheRateLimitRepository.incrementAndGet(key, localRateLimit.getLocal(), () -> localRateLimit))
+                                    .flatMapSingle(
+                                        (Function<LocalRateLimit, SingleSource<RateLimit>>) localRateLimit ->
+                                            remoteCacheRateLimitRepository.incrementAndGet(
+                                                key,
+                                                localRateLimit.getLocal(),
+                                                () -> localRateLimit
+                                            )
+                                    )
                                     .zipWith(
-                                            localCacheRateLimitRepository.get(key).toSingle(),
-                                            new BiFunction<RateLimit, LocalRateLimit, LocalRateLimit>() {
-                                                @Override
-                                                public LocalRateLimit apply(RateLimit rateLimit, LocalRateLimit localRateLimit) throws Exception {
-                                                    // Set the counter with the latest value from the repository
-                                                    localRateLimit.setCounter(rateLimit.getCounter());
+                                        localCacheRateLimitRepository.get(key).toSingle(),
+                                        new BiFunction<RateLimit, LocalRateLimit, LocalRateLimit>() {
+                                            @Override
+                                            public LocalRateLimit apply(RateLimit rateLimit, LocalRateLimit localRateLimit)
+                                                throws Exception {
+                                                // Set the counter with the latest value from the repository
+                                                localRateLimit.setCounter(rateLimit.getCounter());
 
-                                                    // Re-init the local counter
-                                                    localRateLimit.setLocal(0L);
+                                                // Re-init the local counter
+                                                localRateLimit.setLocal(0L);
 
-                                                    return localRateLimit;
-                                                }
-                                            })
+                                                return localRateLimit;
+                                            }
+                                        }
+                                    )
                                     // And save the new counter value into the local cache
-                                    .flatMap((Function<LocalRateLimit, SingleSource<LocalRateLimit>>) rateLimit ->
-                                            localCacheRateLimitRepository.save(rateLimit))
+                                    .flatMap(
+                                        (Function<LocalRateLimit, SingleSource<LocalRateLimit>>) rateLimit ->
+                                            localCacheRateLimitRepository.save(rateLimit)
+                                    )
                                     .doAfterTerminate(() -> unlock(key))
-                                    .doOnError(throwable -> logger.error("An unexpected error occurs while refreshing asynchronous rate-limit", throwable)))
+                                    .doOnError(throwable ->
+                                        logger.error("An unexpected error occurs while refreshing asynchronous rate-limit", throwable)
+                                    )
+                            )
                             .subscribe();
+                    }
                 }
-            });
+            );
 
             // Clear keys
             keys.clear();
@@ -131,7 +144,7 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
             } else {
                 // Wait until unlocked
                 boolean acquired = false;
-                while(!acquired) {
+                while (!acquired) {
                     acquired = sem.tryAcquire();
                 }
 
@@ -148,7 +161,7 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
             Semaphore sem = locks.computeIfAbsent(key, key1 -> new Semaphore(1));
 
             boolean acquired = false;
-            while(!acquired) {
+            while (!acquired) {
                 acquired = sem.tryAcquire();
             }
 

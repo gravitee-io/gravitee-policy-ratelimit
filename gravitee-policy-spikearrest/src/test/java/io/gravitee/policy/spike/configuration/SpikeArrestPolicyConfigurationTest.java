@@ -16,12 +16,11 @@
 package io.gravitee.policy.spike.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * @author Eric LELEU (eric.leleu at graviteesource.com)
@@ -31,8 +30,10 @@ public class SpikeArrestPolicyConfigurationTest {
 
     @Test
     public void test_spikeArrest01() throws IOException {
-        SpikeArrestPolicyConfiguration configuration =
-                load("/io/gravitee/policy/spike/configuration/spikearrest01.json", SpikeArrestPolicyConfiguration.class);
+        SpikeArrestPolicyConfiguration configuration = load(
+            "/io/gravitee/policy/spike/configuration/spikearrest01.json",
+            SpikeArrestPolicyConfiguration.class
+        );
 
         Assert.assertNotNull(configuration);
 
@@ -47,8 +48,10 @@ public class SpikeArrestPolicyConfigurationTest {
 
     @Test
     public void test_spikeArrest02() throws IOException {
-        SpikeArrestPolicyConfiguration configuration =
-                load("/io/gravitee/policy/spike/configuration/spikearrest02.json", SpikeArrestPolicyConfiguration.class);
+        SpikeArrestPolicyConfiguration configuration = load(
+            "/io/gravitee/policy/spike/configuration/spikearrest02.json",
+            SpikeArrestPolicyConfiguration.class
+        );
 
         Assert.assertNotNull(configuration);
         Assert.assertEquals("10", configuration.getSpike().getDynamicLimit());

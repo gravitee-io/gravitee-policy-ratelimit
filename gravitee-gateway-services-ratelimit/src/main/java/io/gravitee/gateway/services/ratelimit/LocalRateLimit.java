@@ -27,7 +27,6 @@ class LocalRateLimit extends RateLimit {
 
     LocalRateLimit(RateLimit rateLimit) {
         this(rateLimit.getKey());
-
         setLimit(rateLimit.getLimit());
         setCounter(rateLimit.getCounter());
         setResetTime(rateLimit.getResetTime());

@@ -18,7 +18,6 @@ package io.gravitee.gateway.services.ratelimit;
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
@@ -27,26 +26,30 @@ public class LocalRateLimitRepository implements RateLimitRepository<LocalRateLi
 
     private ConcurrentMap<String, LocalRateLimit> rateLimits = new ConcurrentHashMap<>();
 
-    LocalRateLimitRepository() {
-    }
+    LocalRateLimitRepository() {}
 
     @Override
     public Single<LocalRateLimit> incrementAndGet(String key, long weight, Supplier<LocalRateLimit> supplier) {
-        return Single.create(emitter -> emitter.onSuccess(
-                rateLimits.compute(key, (key1, rateLimit) -> {
-                    // No local counter or existing one is expired
-                    if (rateLimit == null || rateLimit.getResetTime() <= System.currentTimeMillis()) {
-                        rateLimit = supplier.get();
+        return Single.create(emitter ->
+            emitter.onSuccess(
+                rateLimits.compute(
+                    key,
+                    (key1, rateLimit) -> {
+                        // No local counter or existing one is expired
+                        if (rateLimit == null || rateLimit.getResetTime() <= System.currentTimeMillis()) {
+                            rateLimit = supplier.get();
+                        }
+
+                        // Increment local counter
+                        rateLimit.setLocal(rateLimit.getLocal() + weight);
+
+                        // We have to update the counter because the policy is based on this one
+                        rateLimit.setCounter(rateLimit.getCounter() + weight);
+                        return rateLimit;
                     }
-
-                    // Increment local counter
-                    rateLimit.setLocal(rateLimit.getLocal() + weight);
-
-                    // We have to update the counter because the policy is based on this one
-                    rateLimit.setCounter(rateLimit.getCounter() + weight);
-                    return rateLimit;
-                })
-        ));
+                )
+            )
+        );
     }
 
     Maybe<LocalRateLimit> get(String key) {

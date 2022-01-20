@@ -41,8 +41,12 @@ public class AsyncRateLimitService extends AbstractService {
     protected void doStart() throws Exception {
         super.doStart();
 
-        DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) ((ConfigurableApplicationContext) applicationContext).getBeanFactory();
-        DefaultListableBeanFactory parentBeanFactory = (DefaultListableBeanFactory) ((ConfigurableApplicationContext) applicationContext.getParent()).getBeanFactory();
+        DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) (
+            (ConfigurableApplicationContext) applicationContext
+        ).getBeanFactory();
+        DefaultListableBeanFactory parentBeanFactory = (DefaultListableBeanFactory) (
+            (ConfigurableApplicationContext) applicationContext.getParent()
+        ).getBeanFactory();
 
         // Retrieve the current rate-limit repository implementation
         RateLimitRepository<RateLimit> rateLimitRepository = parentBeanFactory.getBean(RateLimitRepository.class);
@@ -52,8 +56,7 @@ public class AsyncRateLimitService extends AbstractService {
             // Prepare local cache
             LocalRateLimitRepository localCacheRateLimitRepository = new LocalRateLimitRepository();
 
-            LOGGER.debug("Register rate-limit repository asynchronous implementation {}",
-                    AsyncRateLimitRepository.class.getName());
+            LOGGER.debug("Register rate-limit repository asynchronous implementation {}", AsyncRateLimitRepository.class.getName());
             AsyncRateLimitRepository asyncRateLimitRepository = new AsyncRateLimitRepository(new SchedulerProvider());
             beanFactory.autowireBean(asyncRateLimitRepository);
             asyncRateLimitRepository.setLocalCacheRateLimitRepository(localCacheRateLimitRepository);

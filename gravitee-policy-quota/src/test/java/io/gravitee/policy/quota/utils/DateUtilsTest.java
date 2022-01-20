@@ -15,11 +15,10 @@
  */
 package io.gravitee.policy.quota.utils;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.time.*;
 import java.time.temporal.ChronoUnit;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -29,8 +28,7 @@ public class DateUtilsTest {
 
     @Test
     public void add_one_month() {
-        long start = LocalTime.now().atDate(LocalDate.of(2017, Month.AUGUST, 1)).
-                atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long start = LocalTime.now().atDate(LocalDate.of(2017, Month.AUGUST, 1)).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
         long end = DateUtils.getEndOfPeriod(start, 1, ChronoUnit.MONTHS);
 
         Assert.assertTrue((end - start) == 2_678_400_000L);
@@ -39,8 +37,7 @@ public class DateUtilsTest {
     @Test
     public void add_two_months() {
         // From 01/08/2017 to 01/10/2017
-        long start = LocalTime.now().atDate(LocalDate.of(2017, Month.AUGUST, 1)).
-                atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        long start = LocalTime.now().atDate(LocalDate.of(2017, Month.AUGUST, 1)).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
         long end = DateUtils.getEndOfPeriod(start, 2, ChronoUnit.MONTHS);
 
         Assert.assertTrue((end - start) == 2_678_400_000L + 2592_000_000L);
