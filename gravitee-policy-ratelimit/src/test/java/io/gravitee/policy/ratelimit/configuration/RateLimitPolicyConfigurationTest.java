@@ -16,12 +16,11 @@
 package io.gravitee.policy.ratelimit.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -31,8 +30,10 @@ public class RateLimitPolicyConfigurationTest {
 
     @Test
     public void test_quota01() throws IOException {
-        RateLimitPolicyConfiguration configuration =
-                load("/io/gravitee/policy/ratelimit/configuration/ratelimit01.json", RateLimitPolicyConfiguration.class);
+        RateLimitPolicyConfiguration configuration = load(
+            "/io/gravitee/policy/ratelimit/configuration/ratelimit01.json",
+            RateLimitPolicyConfiguration.class
+        );
 
         Assert.assertNotNull(configuration);
 
@@ -48,8 +49,10 @@ public class RateLimitPolicyConfigurationTest {
 
     @Test
     public void test_quota02() throws IOException {
-        RateLimitPolicyConfiguration configuration =
-                load("/io/gravitee/policy/ratelimit/configuration/ratelimit02.json", RateLimitPolicyConfiguration.class);
+        RateLimitPolicyConfiguration configuration = load(
+            "/io/gravitee/policy/ratelimit/configuration/ratelimit02.json",
+            RateLimitPolicyConfiguration.class
+        );
 
         Assert.assertNotNull(configuration);
         Assert.assertTrue(configuration.isAddHeaders());

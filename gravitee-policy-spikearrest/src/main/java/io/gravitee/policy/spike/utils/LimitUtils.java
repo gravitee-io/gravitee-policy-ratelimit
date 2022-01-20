@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
  * @author GraviteeSource Team
  */
 public final class LimitUtils {
+
     // slice a second in a minimum of 100ms to allow counter updates
     // otherwise there are too many false negative
     private static final int MIN_SLICE_PERIOD = 100;
@@ -43,13 +44,14 @@ public final class LimitUtils {
             // aggregate few of them to reach around the minimum slice period
             final float computedSlicePerMinSlicePeriod = MIN_SLICE_PERIOD / slicePeriod;
             long nbOfSlice = Math.round(computedSlicePerMinSlicePeriod);
-            return new SliceLimit((long)(slicePeriod * nbOfSlice), nbOfSlice);
+            return new SliceLimit((long) (slicePeriod * nbOfSlice), nbOfSlice);
         } else {
-            return new SliceLimit((long)slicePeriod, 1);
+            return new SliceLimit((long) slicePeriod, 1);
         }
     }
 
     public static class SliceLimit {
+
         private long period;
         private long limit;
 

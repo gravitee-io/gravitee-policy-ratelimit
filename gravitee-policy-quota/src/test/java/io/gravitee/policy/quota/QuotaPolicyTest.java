@@ -15,6 +15,9 @@
  */
 package io.gravitee.policy.quota;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
+
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
@@ -26,6 +29,9 @@ import io.gravitee.policy.quota.configuration.QuotaPolicyConfiguration;
 import io.gravitee.policy.quota.local.LocalCacheQuotaProvider;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.vertx.core.Vertx;
+import java.time.temporal.ChronoUnit;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -34,13 +40,6 @@ import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.time.temporal.ChronoUnit;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -69,7 +68,7 @@ public class QuotaPolicyTest {
     @Before
     public void init() {
         rateLimitService = new LocalCacheQuotaProvider();
-        ((LocalCacheQuotaProvider)rateLimitService).clean();
+        ((LocalCacheQuotaProvider) rateLimitService).clean();
 
         when(executionContext.getComponent(Vertx.class)).thenReturn(Vertx.vertx());
         when(executionContext.getAttribute(ExecutionContext.ATTR_PLAN)).thenReturn("my-plan");
@@ -112,22 +111,28 @@ public class QuotaPolicyTest {
 
         final CountDownLatch latch = new CountDownLatch(1);
 
-        rateLimitPolicy.onRequest(request, response, executionContext, policyChain = spy(new PolicyChain() {
-            @Override
-            public void doNext(Request request, Response response) {
-                latch.countDown();
-            }
+        rateLimitPolicy.onRequest(
+            request,
+            response,
+            executionContext,
+            policyChain =
+                spy(
+                    new PolicyChain() {
+                        @Override
+                        public void doNext(Request request, Response response) {
+                            latch.countDown();
+                        }
 
-            @Override
-            public void failWith(PolicyResult policyResult) {
-                latch.countDown();
-            }
+                        @Override
+                        public void failWith(PolicyResult policyResult) {
+                            latch.countDown();
+                        }
 
-            @Override
-            public void streamFailWith(PolicyResult policyResult) {
-
-            }
-        }));
+                        @Override
+                        public void streamFailWith(PolicyResult policyResult) {}
+                    }
+                )
+        );
 
         Assert.assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
 
@@ -153,22 +158,28 @@ public class QuotaPolicyTest {
 
         final CountDownLatch latch = new CountDownLatch(1);
 
-        rateLimitPolicy.onRequest(request, response, executionContext, policyChain = spy(new PolicyChain() {
-            @Override
-            public void doNext(Request request, Response response) {
-                latch.countDown();
-            }
+        rateLimitPolicy.onRequest(
+            request,
+            response,
+            executionContext,
+            policyChain =
+                spy(
+                    new PolicyChain() {
+                        @Override
+                        public void doNext(Request request, Response response) {
+                            latch.countDown();
+                        }
 
-            @Override
-            public void failWith(PolicyResult policyResult) {
-                latch.countDown();
-            }
+                        @Override
+                        public void failWith(PolicyResult policyResult) {
+                            latch.countDown();
+                        }
 
-            @Override
-            public void streamFailWith(PolicyResult policyResult) {
-
-            }
-        }));
+                        @Override
+                        public void streamFailWith(PolicyResult policyResult) {}
+                    }
+                )
+        );
 
         Assert.assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
 
@@ -199,26 +210,27 @@ public class QuotaPolicyTest {
 
         final CountDownLatch latch = new CountDownLatch(calls);
 
-        policyChain = spy(new PolicyChain() {
-            @Override
-            public void doNext(Request request, Response response) {
-                latch.countDown();
-            }
+        policyChain =
+            spy(
+                new PolicyChain() {
+                    @Override
+                    public void doNext(Request request, Response response) {
+                        latch.countDown();
+                    }
 
-            @Override
-            public void failWith(PolicyResult policyResult) {
-                latch.countDown();
-            }
+                    @Override
+                    public void failWith(PolicyResult policyResult) {
+                        latch.countDown();
+                    }
 
-            @Override
-            public void streamFailWith(PolicyResult policyResult) {
-
-            }
-        });
+                    @Override
+                    public void streamFailWith(PolicyResult policyResult) {}
+                }
+            );
 
         InOrder inOrder = inOrder(policyChain);
 
-        for (int i = 0 ; i < calls ; i++) {
+        for (int i = 0; i < calls; i++) {
             rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
         }
 
@@ -254,26 +266,27 @@ public class QuotaPolicyTest {
 
         final CountDownLatch latch = new CountDownLatch(calls);
 
-        policyChain = spy(new PolicyChain() {
-            @Override
-            public void doNext(Request request, Response response) {
-                latch.countDown();
-            }
+        policyChain =
+            spy(
+                new PolicyChain() {
+                    @Override
+                    public void doNext(Request request, Response response) {
+                        latch.countDown();
+                    }
 
-            @Override
-            public void failWith(PolicyResult policyResult) {
-                latch.countDown();
-            }
+                    @Override
+                    public void failWith(PolicyResult policyResult) {
+                        latch.countDown();
+                    }
 
-            @Override
-            public void streamFailWith(PolicyResult policyResult) {
-
-            }
-        });
+                    @Override
+                    public void streamFailWith(PolicyResult policyResult) {}
+                }
+            );
 
         InOrder inOrder = inOrder(policyChain);
 
-        for (int i = 0 ; i < calls ; i++) {
+        for (int i = 0; i < calls; i++) {
             rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
         }
 

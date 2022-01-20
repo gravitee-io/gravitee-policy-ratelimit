@@ -15,6 +15,8 @@
  */
 package io.gravitee.policy.spike;
 
+import static io.gravitee.policy.spike.utils.LimitUtils.*;
+
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.util.Maps;
 import io.gravitee.gateway.api.ExecutionContext;
@@ -32,13 +34,10 @@ import io.reactivex.disposables.Disposable;
 import io.vertx.reactivex.core.Context;
 import io.vertx.reactivex.core.RxHelper;
 import io.vertx.reactivex.core.Vertx;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
-import static io.gravitee.policy.spike.utils.LimitUtils.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The spike arrest policy insures that the amount of requests is limited and smoothed to x requests per y time period.
@@ -98,24 +97,23 @@ public class SpikeArrestPolicy {
         }
 
         String key = createRateLimitKey(request, executionContext, spikeArrestConfiguration);
-        final long limit = (spikeArrestConfiguration.getLimit() > 0) ? spikeArrestConfiguration.getLimit() :
-                executionContext.getTemplateEngine().getValue(spikeArrestConfiguration.getDynamicLimit(), Long.class);
+        final long limit = (spikeArrestConfiguration.getLimit() > 0)
+            ? spikeArrestConfiguration.getLimit()
+            : executionContext.getTemplateEngine().getValue(spikeArrestConfiguration.getDynamicLimit(), Long.class);
 
-        SliceLimit slice = computeSliceLimit(limit,
-                spikeArrestConfiguration.getPeriodTime(),
-                spikeArrestConfiguration.getPeriodTimeUnit());
+        SliceLimit slice = computeSliceLimit(limit, spikeArrestConfiguration.getPeriodTime(), spikeArrestConfiguration.getPeriodTimeUnit());
 
         Context context = Vertx.currentContext();
 
         rateLimitService
-                .incrementAndGet(key, spikeArrestPolicyConfiguration.isAsync(), new Supplier<RateLimit>() {
+            .incrementAndGet(
+                key,
+                spikeArrestPolicyConfiguration.isAsync(),
+                new Supplier<RateLimit>() {
                     @Override
                     public RateLimit get() {
                         // Set the time at which the current rate limit window resets in UTC epoch seconds.
-                        long resetTimeMillis = getEndOfPeriod(
-                                request.timestamp(),
-                                slice.getPeriod(),
-                                TimeUnit.MILLISECONDS);
+                        long resetTimeMillis = getEndOfPeriod(request.timestamp(), slice.getPeriod(), TimeUnit.MILLISECONDS);
 
                         RateLimit rate = new RateLimit(key);
                         rate.setCounter(0);
@@ -124,13 +122,13 @@ public class SpikeArrestPolicy {
                         rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
                         return rate;
                     }
-                })
-                .observeOn(RxHelper.scheduler(context))
-                .subscribe(new SingleObserver<RateLimit>() {
+                }
+            )
+            .observeOn(RxHelper.scheduler(context))
+            .subscribe(
+                new SingleObserver<RateLimit>() {
                     @Override
-                    public void onSubscribe(Disposable d) {
-
-                    }
+                    public void onSubscribe(Disposable d) {}
 
                     @Override
                     public void onSuccess(RateLimit rateLimit) {
@@ -160,10 +158,15 @@ public class SpikeArrestPolicy {
                         // If an errors occurs at the repository level, we accept the call
                         policyChain.doNext(request, response);
                     }
-                });
+                }
+            );
     }
 
-    private String createRateLimitKey(Request request, ExecutionContext executionContext, SpikeArrestConfiguration spikeArrestConfiguration) {
+    private String createRateLimitKey(
+        Request request,
+        ExecutionContext executionContext,
+        SpikeArrestConfiguration spikeArrestConfiguration
+    ) {
         // Rate limit key contains the following:
         // 1_ (API_ID, PLAN_ID) pair, note that for keyless plans this is evaluated to (API_ID, 1)
         // 2_ User-defined key, if it exists
@@ -173,14 +176,13 @@ public class SpikeArrestPolicy {
 
         StringBuilder key = new StringBuilder();
 
-        String plan = (String)executionContext.getAttribute(ExecutionContext.ATTR_PLAN);
+        String plan = (String) executionContext.getAttribute(ExecutionContext.ATTR_PLAN);
         if (plan != null) {
             key
-                    .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
-                    .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+                .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
+                .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
         } else if (executionContext.getAttributes().containsKey(ATTR_OAUTH_CLIENT_ID)) { // TODO manage also APIKey when managed by K8S plugins
-            key
-                    .append(executionContext.getAttribute(ATTR_OAUTH_CLIENT_ID));
+            key.append(executionContext.getAttribute(ATTR_OAUTH_CLIENT_ID));
         } else {
             key.append(executionContext.getAttribute(ExecutionContext.ATTR_API));
         }
@@ -194,9 +196,7 @@ public class SpikeArrestPolicy {
         key.append(KEY_SEPARATOR).append(RATE_LIMIT_TYPE);
 
         if (resolvedPath != null) {
-            key
-                .append(KEY_SEPARATOR)
-                .append(resolvedPath.hashCode());
+            key.append(KEY_SEPARATOR).append(resolvedPath.hashCode());
         }
 
         return key.toString();
@@ -204,17 +204,18 @@ public class SpikeArrestPolicy {
 
     private PolicyResult createLimitExceeded(SpikeArrestConfiguration spikeArrestConfiguration, SliceLimit actualLimit, long limit) {
         return PolicyResult.failure(
-                SPIKE_ARREST_TOO_MANY_REQUESTS,
-                HttpStatusCode.TOO_MANY_REQUESTS_429,
-                "Spike limit exceeded ! You reach the limit of " + actualLimit.getLimit() +
-                        " requests per " + actualLimit.getPeriod() + " ms.",
-                Maps.<String, Object>builder()
-                        .put("slice_limit", actualLimit.getLimit())
-                        .put("slice_period_time", actualLimit.getPeriod())
-                        .put("slice_period_unit", TimeUnit.MILLISECONDS)
-                        .put("limit", limit)
-                        .put("period_time", spikeArrestConfiguration.getPeriodTime())
-                        .put("period_unit", spikeArrestConfiguration.getPeriodTimeUnit())
-                        .build());
+            SPIKE_ARREST_TOO_MANY_REQUESTS,
+            HttpStatusCode.TOO_MANY_REQUESTS_429,
+            "Spike limit exceeded ! You reach the limit of " + actualLimit.getLimit() + " requests per " + actualLimit.getPeriod() + " ms.",
+            Maps
+                .<String, Object>builder()
+                .put("slice_limit", actualLimit.getLimit())
+                .put("slice_period_time", actualLimit.getPeriod())
+                .put("slice_period_unit", TimeUnit.MILLISECONDS)
+                .put("limit", limit)
+                .put("period_time", spikeArrestConfiguration.getPeriodTime())
+                .put("period_unit", spikeArrestConfiguration.getPeriodTimeUnit())
+                .build()
+        );
     }
 }

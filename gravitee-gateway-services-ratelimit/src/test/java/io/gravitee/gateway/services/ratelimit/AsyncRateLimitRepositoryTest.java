@@ -15,6 +15,8 @@
  */
 package io.gravitee.gateway.services.ratelimit;
 
+import static org.mockito.Mockito.spy;
+
 import io.gravitee.gateway.services.ratelimit.rx.TrampolineSchedulerProvider;
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.model.RateLimit;
@@ -23,11 +25,9 @@ import org.junit.Before;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.Mockito.spy;
-
 public class AsyncRateLimitRepositoryTest {
 
-    private final static String RATE_LIMIT_KEY = "test-key";
+    private static final String RATE_LIMIT_KEY = "test-key";
 
     private AsyncRateLimitRepository rateLimitRepository;
 
@@ -48,7 +48,6 @@ public class AsyncRateLimitRepositoryTest {
         rateLimitRepository.setLocalCacheRateLimitRepository(localRateLimitRepository);
         rateLimitRepository.setRemoteCacheRateLimitRepository(remoteRateLimitRepository);
     }
-
     /*
     @Test
     public void shouldMakeSingleCall_emptyRemoteRate() {

@@ -15,15 +15,14 @@
  */
 package io.gravitee.policy.spike.utils;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  * @author Eric LELEU (eric.leleu at graviteesource.com)
@@ -31,20 +30,23 @@ import static org.junit.Assert.assertEquals;
  */
 @RunWith(Parameterized.class)
 public class LimitUtilsTest {
-  @Parameterized.Parameters
+
+    @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-                { 30, 1, TimeUnit.MINUTES, new LimitUtils.SliceLimit(2000, 1)}, // 1 req / 2s
+        return Arrays.asList(
+            new Object[][] {
+                { 30, 1, TimeUnit.MINUTES, new LimitUtils.SliceLimit(2000, 1) }, // 1 req / 2s
                 { 30, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 3) }, // 3 req / 100ms
-                { 1000, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 100)},
-                { 2000, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 200)},
-                { 10, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 1)},
-                { 9, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(111, 1)},
-                { 11, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(90, 1)},
-                { 16, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(125, 2)},
-                { 20, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 2)},
-                { 368500, 1, TimeUnit.MINUTES, new LimitUtils.SliceLimit(99, 614)},
-        });
+                { 1000, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 100) },
+                { 2000, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 200) },
+                { 10, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 1) },
+                { 9, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(111, 1) },
+                { 11, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(90, 1) },
+                { 16, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(125, 2) },
+                { 20, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 2) },
+                { 368500, 1, TimeUnit.MINUTES, new LimitUtils.SliceLimit(99, 614) },
+            }
+        );
     }
 
     private long limit;

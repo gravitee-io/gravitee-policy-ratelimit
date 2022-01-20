@@ -16,12 +16,11 @@
 package io.gravitee.policy.quota.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.net.URL;
 import java.time.temporal.ChronoUnit;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -31,8 +30,10 @@ public class QuotaPolicyConfigurationTest {
 
     @Test
     public void test_quota01() throws IOException {
-        QuotaPolicyConfiguration configuration =
-                load("/io/gravitee/policy/quota/configuration/quota01.json", QuotaPolicyConfiguration.class);
+        QuotaPolicyConfiguration configuration = load(
+            "/io/gravitee/policy/quota/configuration/quota01.json",
+            QuotaPolicyConfiguration.class
+        );
 
         Assert.assertNotNull(configuration);
 
@@ -48,8 +49,10 @@ public class QuotaPolicyConfigurationTest {
 
     @Test
     public void test_quota02() throws IOException {
-        QuotaPolicyConfiguration configuration =
-                load("/io/gravitee/policy/quota/configuration/quota02.json", QuotaPolicyConfiguration.class);
+        QuotaPolicyConfiguration configuration = load(
+            "/io/gravitee/policy/quota/configuration/quota02.json",
+            QuotaPolicyConfiguration.class
+        );
 
         Assert.assertNotNull(configuration);
         Assert.assertFalse(configuration.isAddHeaders());

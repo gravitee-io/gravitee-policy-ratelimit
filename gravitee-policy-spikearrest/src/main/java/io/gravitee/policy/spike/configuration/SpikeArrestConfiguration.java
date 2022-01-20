@@ -72,5 +72,4 @@ public class SpikeArrestConfiguration {
     public void setPeriodTimeUnit(TimeUnit periodTimeUnit) {
         this.periodTimeUnit = periodTimeUnit;
     }
-
 }
