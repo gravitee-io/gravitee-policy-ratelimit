@@ -20,7 +20,7 @@ import static org.mockito.Mockito.spy;
 import io.gravitee.gateway.services.ratelimit.rx.TrampolineSchedulerProvider;
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.model.RateLimit;
-import io.reactivex.schedulers.TestScheduler;
+import io.reactivex.rxjava3.schedulers.TestScheduler;
 import org.junit.Before;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;

@@ -17,13 +17,13 @@ package io.gravitee.gateway.services.ratelimit;
 
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.model.RateLimit;
-import io.reactivex.Completable;
-import io.reactivex.Observable;
-import io.reactivex.Single;
-import io.reactivex.SingleSource;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.BiFunction;
-import io.reactivex.functions.Function;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.core.SingleSource;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.functions.BiFunction;
+import io.reactivex.rxjava3.functions.Function;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -100,7 +100,7 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
                                             )
                                     )
                                     .zipWith(
-                                        localCacheRateLimitRepository.get(key).toSingle(),
+                                        localCacheRateLimitRepository.get(key),
                                         new BiFunction<RateLimit, LocalRateLimit, LocalRateLimit>() {
                                             @Override
                                             public LocalRateLimit apply(RateLimit rateLimit, LocalRateLimit localRateLimit)
@@ -116,7 +116,7 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
                                         }
                                     )
                                     // And save the new counter value into the local cache
-                                    .flatMap(
+                                    .flatMapSingle(
                                         (Function<LocalRateLimit, SingleSource<LocalRateLimit>>) rateLimit ->
                                             localCacheRateLimitRepository.save(rateLimit)
                                     )

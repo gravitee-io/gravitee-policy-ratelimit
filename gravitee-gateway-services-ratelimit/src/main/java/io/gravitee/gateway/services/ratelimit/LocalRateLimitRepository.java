@@ -16,8 +16,8 @@
 package io.gravitee.gateway.services.ratelimit;
 
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
-import io.reactivex.Maybe;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Single;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
