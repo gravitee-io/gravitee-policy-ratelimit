@@ -15,7 +15,7 @@
  */
 package io.gravitee.gateway.services.ratelimit;
 
-import io.reactivex.Scheduler;
+import io.reactivex.rxjava3.core.Scheduler;
 
 public interface BaseSchedulerProvider {
     Scheduler io();
