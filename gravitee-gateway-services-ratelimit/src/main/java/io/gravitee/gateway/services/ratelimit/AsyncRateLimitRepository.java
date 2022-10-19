@@ -17,13 +17,13 @@ package io.gravitee.gateway.services.ratelimit;
 
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.model.RateLimit;
-import io.reactivex.Completable;
-import io.reactivex.Observable;
-import io.reactivex.Single;
-import io.reactivex.SingleSource;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.BiFunction;
-import io.reactivex.functions.Function;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.core.SingleSource;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.functions.BiFunction;
+import io.reactivex.rxjava3.functions.Function;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -100,21 +100,18 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
                                             )
                                     )
                                     .zipWith(
-                                        localCacheRateLimitRepository.get(key).toSingle(),
-                                        new BiFunction<RateLimit, LocalRateLimit, LocalRateLimit>() {
-                                            @Override
-                                            public LocalRateLimit apply(RateLimit rateLimit, LocalRateLimit localRateLimit)
-                                                throws Exception {
-                                                // Set the counter with the latest value from the repository
-                                                localRateLimit.setCounter(rateLimit.getCounter());
+                                        localCacheRateLimitRepository.get(key),
+                                        (rateLimit, localRateLimit) -> {
+                                            // Set the counter with the latest value from the repository
+                                            localRateLimit.setCounter(rateLimit.getCounter());
 
-                                                // Re-init the local counter
-                                                localRateLimit.setLocal(0L);
+                                            // Re-init the local counter
+                                            localRateLimit.setLocal(0L);
 
-                                                return localRateLimit;
-                                            }
+                                            return localRateLimit;
                                         }
                                     )
+                                    .toSingle()
                                     // And save the new counter value into the local cache
                                     .flatMap(
                                         (Function<LocalRateLimit, SingleSource<LocalRateLimit>>) rateLimit ->
