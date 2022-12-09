@@ -1,3 +1,15 @@
+# [2.0.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/1.15.0...2.0.0) (2022-12-09)
+
+
+### chore
+
+* bump to rxJava3 ([0641730](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/064173010225c118982d2805e0a7377a6f46ca13))
+
+
+### BREAKING CHANGES
+
+* rxJava3 required
+
 # [2.0.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/1.15.0...2.0.0-alpha.1) (2022-10-19)
 
 
