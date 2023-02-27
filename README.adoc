@@ -135,6 +135,11 @@ This policy does not prevent request spikes.
   }
 ----
 
+==== Policy configuration
+
+The following property can be set to configure the policy `services.ratelimit.timeout`.
+The "timeout" value refers to the default time (in milliseconds) that the system will wait for a response when attempting to access data from the data source. If the data source does not respond within the allotted time, the system will stop waiting and assume that the data source is not available.
+
 === Spike Arrest
 
 The Spike-Arrest policy configures the number of requests allow over a limited period of time (from seconds to minutes).
