@@ -19,6 +19,7 @@ import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import io.reactivex.rxjava3.core.Single;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
@@ -29,6 +30,17 @@ public class DefaultRateLimitService implements RateLimitService {
 
     private RateLimitRepository<RateLimit> rateLimitRepository;
     private RateLimitRepository<RateLimit> asyncRateLimitRepository;
+    private long timeout;
+
+    public DefaultRateLimitService(
+        RateLimitRepository<RateLimit> rateLimitRepository,
+        RateLimitRepository<RateLimit> asyncRateLimitRepository,
+        long timeout
+    ) {
+        this.rateLimitRepository = rateLimitRepository;
+        this.asyncRateLimitRepository = asyncRateLimitRepository;
+        this.timeout = timeout;
+    }
 
     private RateLimitRepository<RateLimit> getRateLimitRepository(boolean async) {
         return (async) ? asyncRateLimitRepository : rateLimitRepository;
@@ -38,22 +50,17 @@ public class DefaultRateLimitService implements RateLimitService {
         return asyncRateLimitRepository;
     }
 
-    public void setAsyncRateLimitRepository(RateLimitRepository<RateLimit> asyncRateLimitRepository) {
-        this.asyncRateLimitRepository = asyncRateLimitRepository;
-    }
-
     public RateLimitRepository getRateLimitRepository() {
         return rateLimitRepository;
-    }
-
-    public void setRateLimitRepository(RateLimitRepository<RateLimit> rateLimitRepository) {
-        this.rateLimitRepository = rateLimitRepository;
     }
 
     @Override
     public Single<RateLimit> incrementAndGet(String key, long weight, boolean async, Supplier<RateLimit> supplier) {
         try {
-            return getRateLimitRepository(async).incrementAndGet(key, weight, supplier).map(rateLimit -> rateLimit);
+            return getRateLimitRepository(async)
+                .incrementAndGet(key, weight, supplier)
+                .timeout(timeout, TimeUnit.MILLISECONDS)
+                .map(rateLimit -> rateLimit);
         } catch (Exception ex) {
             return Single.error(ex);
         }
