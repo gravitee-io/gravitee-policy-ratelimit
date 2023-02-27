@@ -37,6 +37,9 @@ public class AsyncRateLimitService extends AbstractService {
     @Value("${services.ratelimit.enabled:true}")
     private boolean enabled;
 
+    @Value("${services.ratelimit.timeout:100}")
+    private long timeout;
+
     @Override
     protected void doStart() throws Exception {
         super.doStart();
@@ -64,16 +67,12 @@ public class AsyncRateLimitService extends AbstractService {
             asyncRateLimitRepository.initialize();
 
             LOGGER.info("Register the rate-limit service bridge for synchronous and asynchronous mode");
-            DefaultRateLimitService rateLimitService = new DefaultRateLimitService();
-            rateLimitService.setRateLimitRepository(rateLimitRepository);
-            rateLimitService.setAsyncRateLimitRepository(asyncRateLimitRepository);
+            DefaultRateLimitService rateLimitService = new DefaultRateLimitService(rateLimitRepository, asyncRateLimitRepository, timeout);
             parentBeanFactory.registerSingleton(RateLimitService.class.getName(), rateLimitService);
         } else {
             // By disabling async and cached rate limiting, only the strict mode is allowed
             LOGGER.info("Register the rate-limit service bridge for strict mode only");
-            DefaultRateLimitService rateLimitService = new DefaultRateLimitService();
-            rateLimitService.setRateLimitRepository(rateLimitRepository);
-            rateLimitService.setAsyncRateLimitRepository(rateLimitRepository);
+            DefaultRateLimitService rateLimitService = new DefaultRateLimitService(rateLimitRepository, rateLimitRepository, timeout);
             parentBeanFactory.registerSingleton(RateLimitService.class.getName(), rateLimitService);
         }
     }

@@ -79,55 +79,42 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
 
     void merge() {
         if (!keys.isEmpty()) {
-            keys.forEach(
-                new java.util.function.Consumer<String>() {
-                    @Override
-                    public void accept(String key) {
-                        lock(key)
-                            // By default, delay signal are done through the computation scheduler
-                            //        .observeOn(Schedulers.computation())
-                            .andThen(
-                                localCacheRateLimitRepository
-                                    .get(key)
-                                    // Remote rate is incremented by the local counter value
-                                    // If the remote does not contains existing value, use the local counter
-                                    .flatMapSingle(
-                                        (Function<LocalRateLimit, SingleSource<RateLimit>>) localRateLimit ->
-                                            remoteCacheRateLimitRepository.incrementAndGet(
-                                                key,
-                                                localRateLimit.getLocal(),
-                                                () -> localRateLimit
-                                            )
-                                    )
-                                    .zipWith(
-                                        localCacheRateLimitRepository.get(key).toSingle(),
-                                        new BiFunction<RateLimit, LocalRateLimit, LocalRateLimit>() {
-                                            @Override
-                                            public LocalRateLimit apply(RateLimit rateLimit, LocalRateLimit localRateLimit)
-                                                throws Exception {
-                                                // Set the counter with the latest value from the repository
-                                                localRateLimit.setCounter(rateLimit.getCounter());
-
-                                                // Re-init the local counter
-                                                localRateLimit.setLocal(0L);
-
-                                                return localRateLimit;
-                                            }
-                                        }
-                                    )
-                                    // And save the new counter value into the local cache
-                                    .flatMap(
-                                        (Function<LocalRateLimit, SingleSource<LocalRateLimit>>) rateLimit ->
-                                            localCacheRateLimitRepository.save(rateLimit)
-                                    )
-                                    .doAfterTerminate(() -> unlock(key))
-                                    .doOnError(throwable ->
-                                        logger.error("An unexpected error occurs while refreshing asynchronous rate-limit", throwable)
-                                    )
+            keys.forEach(key ->
+                lock(key)
+                    // By default, delay signal are done through the computation scheduler
+                    //        .observeOn(Schedulers.computation())
+                    .andThen(
+                        localCacheRateLimitRepository
+                            .get(key)
+                            // Remote rate is incremented by the local counter value
+                            // If the remote does not contains existing value, use the local counter
+                            .flatMapSingle(
+                                (Function<LocalRateLimit, SingleSource<RateLimit>>) localRateLimit ->
+                                    remoteCacheRateLimitRepository.incrementAndGet(key, localRateLimit.getLocal(), () -> localRateLimit)
                             )
-                            .subscribe();
-                    }
-                }
+                            .zipWith(
+                                localCacheRateLimitRepository.get(key).toSingle(),
+                                (rateLimit, localRateLimit) -> {
+                                    // Set the counter with the latest value from the repository
+                                    localRateLimit.setCounter(rateLimit.getCounter());
+
+                                    // Re-init the local counter
+                                    localRateLimit.setLocal(0L);
+
+                                    return localRateLimit;
+                                }
+                            )
+                            // And save the new counter value into the local cache
+                            .flatMap(
+                                (Function<LocalRateLimit, SingleSource<LocalRateLimit>>) rateLimit ->
+                                    localCacheRateLimitRepository.save(rateLimit)
+                            )
+                            .doAfterTerminate(() -> unlock(key))
+                            .doOnError(throwable ->
+                                logger.error("An unexpected error occurs while refreshing asynchronous rate-limit", throwable)
+                            )
+                    )
+                    .subscribe()
             );
 
             // Clear keys
