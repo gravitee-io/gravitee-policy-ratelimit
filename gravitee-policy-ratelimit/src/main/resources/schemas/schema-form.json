@@ -1,66 +1,60 @@
 {
-  "type" : "object",
-  "id" : "urn:jsonschema:io:gravitee:policy:ratelimit:configuration:RateLimitPolicyConfiguration",
-  "properties" : {
-    "async": {
-      "type": "boolean",
-      "default": false,
-      "title": "Non-strict mode (async)",
-      "description": "By activating this option, rate-limiting is applied in an asynchronous way meaning that the distributed counter value is not strict."
-    },
-    "addHeaders": {
-      "type": "boolean",
-      "default": false,
-      "title": "Add response headers",
-      "description": "Add X-Rate-Limit-Limit, X-Rate-Limit-Remaining and X-Rate-Limit-Reset headers in HTTP response"
-    },
-    "rate" : {
-      "type" : "object",
-      "title": "Apply rate-limiting",
-      "id" : "urn:jsonschema:io:gravitee:policy:ratelimit:configuration:RateLimitConfiguration",
-      "properties" : {
-        "key": {
-          "type": "string",
-          "default": "",
-          "title": "Key",
-          "description": "Key to identify a consumer against whom the rate-limiting will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports EL.",
-          "x-schema-form": {
-            "expression-language": true
-          }
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "async": {
+            "type": "boolean",
+            "default": false,
+            "title": "Non-strict mode (async)",
+            "description": "By activating this option, rate-limiting is applied in an asynchronous way meaning that the distributed counter value is not strict."
         },
-        "limit" : {
-          "type" : "integer",
-          "title": "Max requests (static)",
-          "description": "Static limit on the number of requests that can be sent (this limit is used if the value > 0).",
-          "minimum": 0
+        "addHeaders": {
+            "type": "boolean",
+            "default": false,
+            "title": "Add response headers",
+            "description": "Add X-Rate-Limit-Limit, X-Rate-Limit-Remaining and X-Rate-Limit-Reset headers in HTTP response"
         },
-        "dynamicLimit" : {
-          "type" : "string",
-          "title": "Max requests (dynamic)",
-          "description": "Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on EL expressions.",
-          "x-schema-form": {
-            "expression-language": true
-          }
-        },
-        "periodTime" : {
-          "type" : "integer",
-          "title": "Time duration",
-          "default": 1
-        },
-        "periodTimeUnit" : {
-          "type" : "string",
-          "title": "Time unit",
-          "default": "SECONDS",
-          "enum" : [ "SECONDS", "MINUTES" ]
+        "rate": {
+            "type": "object",
+            "title": "Apply rate-limiting",
+            "properties": {
+                "key": {
+                    "type": "string",
+                    "default": "",
+                    "title": "Key",
+                    "description": "Key to identify a consumer against whom the rate-limiting will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports EL.",
+                    "x-schema-form": {
+                        "expression-language": true
+                    }
+                },
+                "limit": {
+                    "type": "integer",
+                    "title": "Max requests (static)",
+                    "description": "Static limit on the number of requests that can be sent (this limit is used if the value > 0).",
+                    "minimum": 0
+                },
+                "dynamicLimit": {
+                    "type": "string",
+                    "title": "Max requests (dynamic)",
+                    "description": "Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on EL expressions.",
+                    "x-schema-form": {
+                        "expression-language": true
+                    }
+                },
+                "periodTime": {
+                    "type": "integer",
+                    "title": "Time duration",
+                    "default": 1
+                },
+                "periodTimeUnit": {
+                    "type": "string",
+                    "title": "Time unit",
+                    "default": "SECONDS",
+                    "enum": ["SECONDS", "MINUTES"]
+                }
+            },
+            "required": ["periodTime", "periodTimeUnit"]
         }
-      },
-      "required": [
-        "periodTime",
-        "periodTimeUnit"
-      ]
-    }
-  },
-  "required": [
-    "rate"
-  ]
+    },
+    "required": ["rate"]
 }

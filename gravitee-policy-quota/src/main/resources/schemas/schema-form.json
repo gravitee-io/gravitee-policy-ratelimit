@@ -1,66 +1,60 @@
 {
-  "type" : "object",
-  "id" : "urn:jsonschema:io:gravitee:policy:quota:configuration:QuotaPolicyConfiguration",
-  "properties" : {
-    "async": {
-      "type": "boolean",
-      "default": false,
-      "title": "Non-strict mode (async)",
-      "description": "By activating this option, quota is applied in an asynchronous way meaning that the distributed counter value is not strict."
-    },
-    "addHeaders": {
-      "type": "boolean",
-      "default": true,
-      "title": "Add response headers",
-      "description": "Add X-Quota-Limit, X-Quota-Remaining and X-Quota-Reset headers in HTTP response"
-    },
-    "quota" : {
-      "type" : "object",
-      "title": "Apply quota",
-      "id" : "urn:jsonschema:io:gravitee:policy:quota:configuration:QuotaConfiguration",
-      "properties" : {
-        "key": {
-          "type": "string",
-          "default": "",
-          "title": "Key",
-          "description": "Key to identify a consumer against whom the quota will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports EL.",
-          "x-schema-form": {
-            "expression-language": true
-          }
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "async": {
+            "type": "boolean",
+            "default": false,
+            "title": "Non-strict mode (async)",
+            "description": "By activating this option, quota is applied in an asynchronous way meaning that the distributed counter value is not strict."
         },
-        "limit" : {
-          "type" : "integer",
-          "title": "Max requests (static)",
-          "description": "Static limit on the number of requests that can be sent (this limit is used if the value > 0).",
-          "minimum": 0
+        "addHeaders": {
+            "type": "boolean",
+            "default": true,
+            "title": "Add response headers",
+            "description": "Add X-Quota-Limit, X-Quota-Remaining and X-Quota-Reset headers in HTTP response"
         },
-        "dynamicLimit" : {
-          "type" : "string",
-          "title": "Max requests (dynamic)",
-          "description": "Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on EL expressions.",
-          "x-schema-form": {
-            "expression-language": true
-          }
-        },
-        "periodTime" : {
-          "type" : "integer",
-          "title": "Time duration",
-          "default": 1
-        },
-        "periodTimeUnit" : {
-          "type" : "string",
-          "title": "Time unit",
-          "default": "MONTHS",
-          "enum" : [ "HOURS", "DAYS", "WEEKS", "MONTHS" ]
+        "quota": {
+            "type": "object",
+            "title": "Apply quota",
+            "properties": {
+                "key": {
+                    "type": "string",
+                    "default": "",
+                    "title": "Key",
+                    "description": "Key to identify a consumer against whom the quota will be applied. Leave it empty to use the default behavior (plan/subscription pair). Supports EL.",
+                    "x-schema-form": {
+                        "expression-language": true
+                    }
+                },
+                "limit": {
+                    "type": "integer",
+                    "title": "Max requests (static)",
+                    "description": "Static limit on the number of requests that can be sent (this limit is used if the value > 0).",
+                    "minimum": 0
+                },
+                "dynamicLimit": {
+                    "type": "string",
+                    "title": "Max requests (dynamic)",
+                    "description": "Dynamic limit on the number of requests that can be sent (this limit is used if static limit = 0). The dynamic value is based on EL expressions.",
+                    "x-schema-form": {
+                        "expression-language": true
+                    }
+                },
+                "periodTime": {
+                    "type": "integer",
+                    "title": "Time duration",
+                    "default": 1
+                },
+                "periodTimeUnit": {
+                    "type": "string",
+                    "title": "Time unit",
+                    "default": "MONTHS",
+                    "enum": ["HOURS", "DAYS", "WEEKS", "MONTHS"]
+                }
+            },
+            "required": ["periodTime", "periodTimeUnit"]
         }
-      },
-      "required": [
-        "periodTime",
-        "periodTimeUnit"
-      ]
-    }
-  },
-  "required": [
-    "quota"
-  ]
+    },
+    "required": ["quota"]
 }
