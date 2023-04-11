@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.0.0...2.0.1) (2023-04-11)
+
+
+### Bug Fixes
+
+* clean schema-form to make them compatible with gio-form-json-schema component ([3e1ae23](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/3e1ae23b5f70f2f663259e6cee4d5b033761a71c))
+
 # [2.0.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/1.15.0...2.0.0) (2022-12-09)
 
 
