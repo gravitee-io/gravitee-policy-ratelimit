@@ -24,6 +24,7 @@ import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequest;
 import io.gravitee.policy.quota.configuration.QuotaConfiguration;
+import io.gravitee.policy.quota.configuration.QuotaMode;
 import io.gravitee.policy.quota.configuration.QuotaPolicyConfiguration;
 import io.gravitee.policy.quota.utils.DateUtils;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
@@ -36,6 +37,7 @@ import io.vertx.rxjava3.core.Vertx;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
 
 /**
  * The quota policy, also known as throttling insure that a user (given its api key or IP address) is allowed
@@ -82,6 +84,9 @@ public class QuotaPolicy {
      */
     private final QuotaPolicyConfiguration quotaPolicyConfiguration;
 
+    static final String QUOTA_MODE_PROPERTY = "policy.quota.mode";
+    private QuotaMode quotaMode;
+
     public QuotaPolicy(QuotaPolicyConfiguration quotaPolicyConfiguration) {
         this.quotaPolicyConfiguration = quotaPolicyConfiguration;
     }
@@ -101,7 +106,7 @@ public class QuotaPolicy {
             ? quotaConfiguration.getLimit()
             : executionContext.getTemplateEngine().getValue(quotaConfiguration.getDynamicLimit(), Long.class);
 
-        Context context = Vertx.currentContext();
+        Context context = Vertx.vertx().getOrCreateContext();
 
         rateLimitService
             .incrementAndGet(
@@ -110,12 +115,26 @@ public class QuotaPolicy {
                 new Supplier<RateLimit>() {
                     @Override
                     public RateLimit get() {
-                        // Set the time at which the current rate limit window resets in UTC epoch seconds.
-                        long resetTimeMillis = DateUtils.getEndOfPeriod(
-                            request.timestamp(),
-                            quotaConfiguration.getPeriodTime(),
-                            quotaConfiguration.getPeriodTimeUnit()
-                        );
+                        QuotaMode mode = getMode(executionContext);
+                        long resetTimeMillis = -1;
+
+                        if (mode == QuotaMode.STRICT) {
+                            // Set the time at which the current rate limit window resets in UTC epoch seconds.
+                            resetTimeMillis =
+                                DateUtils.getEndOfPeriodForStrict(
+                                    request.timestamp(),
+                                    quotaConfiguration.getPeriodTime(),
+                                    quotaConfiguration.getPeriodTimeUnit()
+                                );
+                        } else if (mode == QuotaMode.ROUND) {
+                            resetTimeMillis =
+                                DateUtils.getEndOfPeriodForRound(
+                                    request.timestamp(),
+                                    quotaConfiguration.getPeriodTime(),
+                                    quotaConfiguration.getPeriodTimeUnit(),
+                                    null
+                                );
+                        }
 
                         RateLimit rate = new RateLimit(key);
                         rate.setCounter(0);
@@ -225,5 +244,14 @@ public class QuotaPolicy {
                 .put("period_unit", quotaConfiguration.getPeriodTimeUnit())
                 .build()
         );
+    }
+
+    private QuotaMode getMode(ExecutionContext executionContext) {
+        if (quotaMode == null) {
+            Environment environment = executionContext.getComponent(Environment.class);
+            quotaMode = QuotaMode.get(environment.getProperty(QUOTA_MODE_PROPERTY, QuotaMode.STRICT.toString()));
+        }
+
+        return quotaMode;
     }
 }

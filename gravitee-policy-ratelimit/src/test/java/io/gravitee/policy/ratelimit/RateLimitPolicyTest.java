@@ -17,7 +17,6 @@ package io.gravitee.policy.ratelimit;
 
 import static io.gravitee.common.http.GraviteeHttpHeader.X_GRAVITEE_API_KEY;
 import static io.gravitee.common.http.GraviteeHttpHeader.X_GRAVITEE_API_NAME;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 import io.gravitee.common.http.HttpHeaders;

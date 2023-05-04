@@ -84,6 +84,26 @@ This policy does not prevent request spikes.
   }
 ----
 
+==== Gateway configuration (gravitee.yml)
+[source, yaml]
+----
+  policy:
+    quota:
+      mode: strict # Or round
+----
+
+If the mode is `strict` then the end of the period for a new quota counter will be based on the request timestamp.
+Example:
+
+ "08/03/2019 22:01:54" will be converted to "08/04/2019 22:01:54" for 1 DAY
+ "08/03/2019 01:14:33" will be converted to "08/03/2019 02:14:33" for 1 HOUR
+
+If the mode is `round` then the end of the period for a new quota counter will be based on the next minute / hour / day (depending on the `periodTimeUnit`).
+Example:
+
+ "08/02/2019 04:01:54" will be converted to "08/03/2019 00:00:00" for 1 DAY
+ "08/03/2019 01:14:33" will be converted to "08/03/2019 02:00:00" for 1 HOUR
+
 === Rate-Limit
 
 The Rate-Limit policy configures the number of requests allow over a limited period of time (from seconds to minutes).

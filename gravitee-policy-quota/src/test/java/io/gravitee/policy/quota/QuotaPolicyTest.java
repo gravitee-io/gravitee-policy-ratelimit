@@ -15,9 +15,9 @@
  */
 package io.gravitee.policy.quota;
 
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
+import io.gravitee.el.TemplateEngine;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
@@ -25,27 +25,26 @@ import io.gravitee.gateway.api.http.HttpHeaders;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.quota.configuration.QuotaConfiguration;
+import io.gravitee.policy.quota.configuration.QuotaMode;
 import io.gravitee.policy.quota.configuration.QuotaPolicyConfiguration;
 import io.gravitee.policy.quota.local.LocalCacheQuotaProvider;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
-import io.vertx.core.Vertx;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.core.env.Environment;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
-@Ignore
 @RunWith(MockitoJUnitRunner.class)
 public class QuotaPolicyTest {
 
@@ -63,6 +62,9 @@ public class QuotaPolicyTest {
     protected ExecutionContext executionContext;
 
     @Mock
+    private Environment environment;
+
+    @Mock
     private HttpHeaders responseHttpHeaders;
 
     @Before
@@ -70,9 +72,12 @@ public class QuotaPolicyTest {
         rateLimitService = new LocalCacheQuotaProvider();
         ((LocalCacheQuotaProvider) rateLimitService).clean();
 
-        when(executionContext.getComponent(Vertx.class)).thenReturn(Vertx.vertx());
+        when(request.timestamp()).thenReturn(System.currentTimeMillis());
         when(executionContext.getAttribute(ExecutionContext.ATTR_PLAN)).thenReturn("my-plan");
         when(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID)).thenReturn("my-subscription");
+
+        when(executionContext.getComponent(Environment.class)).thenReturn(environment);
+        when(executionContext.getTemplateEngine()).thenReturn(TemplateEngine.templateEngine());
     }
 
     @Test
@@ -106,6 +111,7 @@ public class QuotaPolicyTest {
 
         QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
 
+        lenient().when(environment.getProperty(eq(QuotaPolicy.QUOTA_MODE_PROPERTY), anyString())).thenReturn(QuotaMode.STRICT.name());
         when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
         when(response.headers()).thenReturn(responseHttpHeaders);
 
@@ -154,6 +160,55 @@ public class QuotaPolicyTest {
 
         QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
 
+        lenient().when(environment.getProperty(eq(QuotaPolicy.QUOTA_MODE_PROPERTY), anyString())).thenReturn(QuotaMode.STRICT.name());
+        when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        rateLimitPolicy.onRequest(
+            request,
+            response,
+            executionContext,
+            policyChain =
+                spy(
+                    new PolicyChain() {
+                        @Override
+                        public void doNext(Request request, Response response) {
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public void failWith(PolicyResult policyResult) {
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public void streamFailWith(PolicyResult policyResult) {}
+                    }
+                )
+        );
+
+        Assert.assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
+
+        verify(responseHttpHeaders, never()).set(QuotaPolicy.X_QUOTA_LIMIT, "10");
+        verify(responseHttpHeaders, never()).set(QuotaPolicy.X_QUOTA_REMAINING, "9");
+        verify(policyChain).doNext(request, response);
+    }
+
+    @Test
+    public void singleRequest_withRoundMode() throws InterruptedException {
+        QuotaPolicyConfiguration policyConfiguration = new QuotaPolicyConfiguration();
+        QuotaConfiguration rateLimitConfiguration = new QuotaConfiguration();
+
+        rateLimitConfiguration.setLimit(10);
+        rateLimitConfiguration.setPeriodTime(10);
+        rateLimitConfiguration.setPeriodTimeUnit(ChronoUnit.SECONDS);
+        policyConfiguration.setQuota(rateLimitConfiguration);
+        policyConfiguration.setAddHeaders(false);
+
+        QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
+
+        lenient().when(environment.getProperty(eq(QuotaPolicy.QUOTA_MODE_PROPERTY), anyString())).thenReturn(QuotaMode.ROUND.name());
         when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
 
         final CountDownLatch latch = new CountDownLatch(1);
@@ -202,6 +257,7 @@ public class QuotaPolicyTest {
 
         QuotaPolicy rateLimitPolicy = new QuotaPolicy(policyConfiguration);
 
+        when(environment.getProperty(eq(QuotaPolicy.QUOTA_MODE_PROPERTY), anyString())).thenReturn(QuotaMode.STRICT.name());
         when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
         when(response.headers()).thenReturn(responseHttpHeaders);
 
@@ -240,7 +296,7 @@ public class QuotaPolicyTest {
         inOrder.verify(policyChain, times(exceedCalls)).failWith(any(PolicyResult.class));
 
         verify(responseHttpHeaders, times(calls)).set(QuotaPolicy.X_QUOTA_LIMIT, "10");
-        verify(responseHttpHeaders, times(exceedCalls)).set(QuotaPolicy.X_QUOTA_REMAINING, "0");
+        verify(responseHttpHeaders, times(exceedCalls + 1)).set(QuotaPolicy.X_QUOTA_REMAINING, "0");
     }
 
     @Test
@@ -296,6 +352,6 @@ public class QuotaPolicyTest {
         inOrder.verify(policyChain, times(exceedCalls)).failWith(any(PolicyResult.class));
 
         verify(responseHttpHeaders, times(calls)).set(QuotaPolicy.X_QUOTA_LIMIT, "10");
-        verify(responseHttpHeaders, times(exceedCalls)).set(QuotaPolicy.X_QUOTA_REMAINING, "0");
+        verify(responseHttpHeaders, times(exceedCalls + 1)).set(QuotaPolicy.X_QUOTA_REMAINING, "0");
     }
 }
