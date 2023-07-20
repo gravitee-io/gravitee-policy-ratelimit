@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.0.1...2.0.2) (2023-07-20)
+
+
+### Bug Fixes
+
+* update policy description ([52855b9](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/52855b9e978192eaef5e98e374775390832874fb))
+
 ## [2.0.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.0.0...2.0.1) (2023-04-11)
 
 
