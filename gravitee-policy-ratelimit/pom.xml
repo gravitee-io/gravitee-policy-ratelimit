@@ -28,7 +28,7 @@
 
     <artifactId>gravitee-policy-ratelimit</artifactId>
     <name>Gravitee.io APIM - Policy - Rate Limit</name>
-    <description>Description of the Rate Limit Gravitee Policy</description>
+    <description>Configures the number of requests allowed over a limited period of time (seconds, minutes)</description>
 
     <properties>
         <json-schema-generator-maven-plugin.version>1.3.0</json-schema-generator-maven-plugin.version>
