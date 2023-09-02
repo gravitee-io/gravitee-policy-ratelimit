@@ -39,7 +39,7 @@
         <gravitee-gateway-api.version>2.0.0</gravitee-gateway-api.version>
         <gravitee-policy-api.version>1.6.0</gravitee-policy-api.version>
         <gravitee-apim-repository-api.version>3.20.0-alpha.2-SNAPSHOT</gravitee-apim-repository-api.version>
-        <gravitee-common.version>2.0.0</gravitee-common.version>
+        <gravitee-common.version>2.3.0</gravitee-common.version>
         <gravitee-node.version>2.0.1</gravitee-node.version>
     </properties>
 
