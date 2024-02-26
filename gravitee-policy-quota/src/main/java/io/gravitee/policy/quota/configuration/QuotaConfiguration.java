@@ -16,11 +16,19 @@
 package io.gravitee.policy.quota.configuration;
 
 import java.time.temporal.ChronoUnit;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
+@Builder
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class QuotaConfiguration {
 
     private long limit;
@@ -32,44 +40,4 @@ public class QuotaConfiguration {
     private ChronoUnit periodTimeUnit;
 
     private String key;
-
-    public long getLimit() {
-        return limit;
-    }
-
-    public void setLimit(long limit) {
-        this.limit = limit;
-    }
-
-    public String getDynamicLimit() {
-        return dynamicLimit;
-    }
-
-    public void setDynamicLimit(String dynamicLimit) {
-        this.dynamicLimit = dynamicLimit;
-    }
-
-    public long getPeriodTime() {
-        return periodTime;
-    }
-
-    public void setPeriodTime(long periodTime) {
-        this.periodTime = periodTime;
-    }
-
-    public ChronoUnit getPeriodTimeUnit() {
-        return periodTimeUnit;
-    }
-
-    public void setPeriodTimeUnit(ChronoUnit periodTimeUnit) {
-        this.periodTimeUnit = periodTimeUnit;
-    }
-
-    public String getKey() {
-        return key;
-    }
-
-    public void setKey(String key) {
-        this.key = key;
-    }
 }

@@ -16,11 +16,19 @@
 package io.gravitee.policy.ratelimit.configuration;
 
 import io.gravitee.policy.api.PolicyConfiguration;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
+@Builder
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class RateLimitPolicyConfiguration implements PolicyConfiguration {
 
     private boolean async;
@@ -28,28 +36,4 @@ public class RateLimitPolicyConfiguration implements PolicyConfiguration {
     private boolean addHeaders;
 
     private RateLimitConfiguration rate;
-
-    public RateLimitConfiguration getRate() {
-        return rate;
-    }
-
-    public void setRate(RateLimitConfiguration rate) {
-        this.rate = rate;
-    }
-
-    public boolean isAsync() {
-        return async;
-    }
-
-    public void setAsync(boolean async) {
-        this.async = async;
-    }
-
-    public boolean isAddHeaders() {
-        return addHeaders;
-    }
-
-    public void setAddHeaders(boolean addHeaders) {
-        this.addHeaders = addHeaders;
-    }
 }

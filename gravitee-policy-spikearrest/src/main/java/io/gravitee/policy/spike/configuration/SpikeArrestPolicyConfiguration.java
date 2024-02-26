@@ -16,11 +16,19 @@
 package io.gravitee.policy.spike.configuration;
 
 import io.gravitee.policy.api.PolicyConfiguration;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @author Eric LELEU (eric.leleu at graviteesource.com)
  * @author GraviteeSource Team
  */
+@Builder
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class SpikeArrestPolicyConfiguration implements PolicyConfiguration {
 
     private boolean async;
@@ -28,28 +36,4 @@ public class SpikeArrestPolicyConfiguration implements PolicyConfiguration {
     private boolean addHeaders;
 
     private SpikeArrestConfiguration spike;
-
-    public boolean isAsync() {
-        return async;
-    }
-
-    public void setAsync(boolean async) {
-        this.async = async;
-    }
-
-    public boolean isAddHeaders() {
-        return addHeaders;
-    }
-
-    public void setAddHeaders(boolean addHeaders) {
-        this.addHeaders = addHeaders;
-    }
-
-    public SpikeArrestConfiguration getSpike() {
-        return spike;
-    }
-
-    public void setSpike(SpikeArrestConfiguration spike) {
-        this.spike = spike;
-    }
 }

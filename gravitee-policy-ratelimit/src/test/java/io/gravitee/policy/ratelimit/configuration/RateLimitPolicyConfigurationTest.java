@@ -19,8 +19,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
-import org.junit.Assert;
-import org.junit.Test;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -35,16 +35,22 @@ public class RateLimitPolicyConfigurationTest {
             RateLimitPolicyConfiguration.class
         );
 
-        Assert.assertNotNull(configuration);
-
-        Assert.assertFalse(configuration.isAddHeaders());
-        Assert.assertFalse(configuration.isAsync());
-
-        Assert.assertNotNull(configuration.getRate());
-        Assert.assertEquals(10, configuration.getRate().getLimit());
-        Assert.assertEquals("{(2*5)}", configuration.getRate().getDynamicLimit());
-        Assert.assertEquals(10, configuration.getRate().getPeriodTime());
-        Assert.assertEquals(TimeUnit.MINUTES, configuration.getRate().getPeriodTimeUnit());
+        Assertions
+            .assertThat(configuration)
+            .isEqualTo(
+                RateLimitPolicyConfiguration
+                    .builder()
+                    .rate(
+                        RateLimitConfiguration
+                            .builder()
+                            .limit(10)
+                            .dynamicLimit("{(2*5)}")
+                            .periodTime(10)
+                            .periodTimeUnit(TimeUnit.MINUTES)
+                            .build()
+                    )
+                    .build()
+            );
     }
 
     @Test
@@ -54,9 +60,16 @@ public class RateLimitPolicyConfigurationTest {
             RateLimitPolicyConfiguration.class
         );
 
-        Assert.assertNotNull(configuration);
-        Assert.assertTrue(configuration.isAddHeaders());
-        Assert.assertTrue(configuration.isAsync());
+        Assertions
+            .assertThat(configuration)
+            .isEqualTo(
+                RateLimitPolicyConfiguration
+                    .builder()
+                    .async(true)
+                    .addHeaders(true)
+                    .rate(RateLimitConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.MINUTES).build())
+                    .build()
+            );
     }
 
     private <T> T load(String resource, Class<T> type) throws IOException {

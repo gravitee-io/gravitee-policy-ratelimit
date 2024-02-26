@@ -21,10 +21,13 @@ import io.gravitee.gateway.services.ratelimit.rx.TrampolineSchedulerProvider;
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import io.reactivex.rxjava3.schedulers.TestScheduler;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class AsyncRateLimitRepositoryTest {
 
     private static final String RATE_LIMIT_KEY = "test-key";
@@ -38,7 +41,7 @@ public class AsyncRateLimitRepositoryTest {
 
     private TestScheduler testScheduler;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
 

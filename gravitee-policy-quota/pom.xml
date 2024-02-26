@@ -70,17 +70,6 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
-        <!-- Test scope -->
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-        </dependency>
-
         <!-- Vert.x dependencies -->
         <dependency>
             <groupId>io.vertx</groupId>

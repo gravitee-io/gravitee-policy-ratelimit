@@ -15,56 +15,39 @@
  */
 package io.gravitee.policy.spike.utils;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.concurrent.TimeUnit;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import java.util.stream.Stream;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * @author Eric LELEU (eric.leleu at graviteesource.com)
  * @author GraviteeSource Team
  */
-@RunWith(Parameterized.class)
 public class LimitUtilsTest {
 
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(
-            new Object[][] {
-                { 30, 1, TimeUnit.MINUTES, new LimitUtils.SliceLimit(2000, 1) }, // 1 req / 2s
-                { 30, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 3) }, // 3 req / 100ms
-                { 1000, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 100) },
-                { 2000, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 200) },
-                { 10, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 1) },
-                { 9, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(111, 1) },
-                { 11, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(90, 1) },
-                { 16, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(125, 2) },
-                { 20, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 2) },
-                { 368500, 1, TimeUnit.MINUTES, new LimitUtils.SliceLimit(99, 614) },
-            }
-        );
-    }
-
-    private long limit;
-    private long period;
-    private TimeUnit periodUnit;
-    private LimitUtils.SliceLimit expectedSlice;
-
-    public LimitUtilsTest(long limit, long period, TimeUnit periodUnit, LimitUtils.SliceLimit expectedSlice) {
-        this.limit = limit;
-        this.period = period;
-        this.periodUnit = periodUnit;
-        this.expectedSlice = expectedSlice;
-    }
-
-    @Test
-    public void testComputeSliceLimit() {
+    @ParameterizedTest
+    @MethodSource("data")
+    public void testComputeSliceLimit(long limit, long period, TimeUnit periodUnit, LimitUtils.SliceLimit expectedSlice) {
         LimitUtils.SliceLimit result = LimitUtils.computeSliceLimit(limit, period, periodUnit);
-        assertEquals("Slice Limit is different", expectedSlice.getLimit(), result.getLimit());
-        assertEquals("Slice period is different", expectedSlice.getPeriod(), result.getPeriod());
+        Assertions.assertThat(result.getLimit()).describedAs("Slice Limit is different").isEqualTo(expectedSlice.getLimit());
+        Assertions.assertThat(result.getPeriod()).describedAs("Slice period is different").isEqualTo(expectedSlice.getPeriod());
+    }
+
+    private static Stream<Arguments> data() {
+        return Stream.of(
+            Arguments.of(30, 1, TimeUnit.MINUTES, new LimitUtils.SliceLimit(2000, 1)), // 1 req / 2s
+            Arguments.of(30, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 3)), // 3 req / 100ms
+            Arguments.of(1000, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 100)),
+            Arguments.of(2000, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 200)),
+            Arguments.of(10, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 1)),
+            Arguments.of(9, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(111, 1)),
+            Arguments.of(11, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(90, 1)),
+            Arguments.of(16, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(125, 2)),
+            Arguments.of(20, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 2)),
+            Arguments.of(368500, 1, TimeUnit.MINUTES, new LimitUtils.SliceLimit(99, 614))
+        );
     }
 }

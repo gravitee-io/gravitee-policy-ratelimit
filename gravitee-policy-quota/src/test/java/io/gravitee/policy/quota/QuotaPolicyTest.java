@@ -15,8 +15,14 @@
  */
 package io.gravitee.policy.quota;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
@@ -29,24 +35,23 @@ import io.gravitee.policy.quota.configuration.QuotaPolicyConfiguration;
 import io.gravitee.policy.quota.local.LocalCacheQuotaProvider;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.vertx.core.Vertx;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.InOrder;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
-@Ignore
-@RunWith(MockitoJUnitRunner.class)
+@Disabled
+@ExtendWith(MockitoExtension.class)
 public class QuotaPolicyTest {
 
     private RateLimitService rateLimitService;
@@ -65,7 +70,7 @@ public class QuotaPolicyTest {
     @Mock
     private HttpHeaders responseHttpHeaders;
 
-    @Before
+    @BeforeEach
     public void init() {
         rateLimitService = new LocalCacheQuotaProvider();
         ((LocalCacheQuotaProvider) rateLimitService).clean();
@@ -134,7 +139,7 @@ public class QuotaPolicyTest {
                 )
         );
 
-        Assert.assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
 
         verify(responseHttpHeaders).set(QuotaPolicy.X_QUOTA_LIMIT, "10");
         verify(responseHttpHeaders).set(QuotaPolicy.X_QUOTA_REMAINING, "9");
@@ -181,7 +186,7 @@ public class QuotaPolicyTest {
                 )
         );
 
-        Assert.assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
 
         verify(responseHttpHeaders, never()).set(QuotaPolicy.X_QUOTA_LIMIT, "10");
         verify(responseHttpHeaders, never()).set(QuotaPolicy.X_QUOTA_REMAINING, "9");
@@ -234,7 +239,7 @@ public class QuotaPolicyTest {
             rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
         }
 
-        Assert.assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
 
         inOrder.verify(policyChain, times(limit)).doNext(request, response);
         inOrder.verify(policyChain, times(exceedCalls)).failWith(any(PolicyResult.class));
@@ -290,7 +295,7 @@ public class QuotaPolicyTest {
             rateLimitPolicy.onRequest(request, response, executionContext, policyChain);
         }
 
-        Assert.assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
 
         inOrder.verify(policyChain, times(limit)).doNext(request, response);
         inOrder.verify(policyChain, times(exceedCalls)).failWith(any(PolicyResult.class));
