@@ -15,12 +15,13 @@
  */
 package io.gravitee.policy.quota.configuration;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URL;
 import java.time.temporal.ChronoUnit;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -35,16 +36,23 @@ public class QuotaPolicyConfigurationTest {
             QuotaPolicyConfiguration.class
         );
 
-        Assert.assertNotNull(configuration);
-
-        Assert.assertTrue(configuration.isAddHeaders());
-        Assert.assertFalse(configuration.isAsync());
-
-        Assert.assertNotNull(configuration.getQuota());
-        Assert.assertEquals(10, configuration.getQuota().getLimit());
-        Assert.assertEquals("{(2*5)}", configuration.getQuota().getDynamicLimit());
-        Assert.assertEquals(10, configuration.getQuota().getPeriodTime());
-        Assert.assertEquals(ChronoUnit.MINUTES, configuration.getQuota().getPeriodTimeUnit());
+        assertThat(configuration)
+            .isEqualTo(
+                QuotaPolicyConfiguration
+                    .builder()
+                    .addHeaders(true)
+                    .async(false)
+                    .quota(
+                        QuotaConfiguration
+                            .builder()
+                            .limit(10)
+                            .dynamicLimit("{(2*5)}")
+                            .periodTime(10)
+                            .periodTimeUnit(ChronoUnit.MINUTES)
+                            .build()
+                    )
+                    .build()
+            );
     }
 
     @Test
@@ -54,9 +62,15 @@ public class QuotaPolicyConfigurationTest {
             QuotaPolicyConfiguration.class
         );
 
-        Assert.assertNotNull(configuration);
-        Assert.assertFalse(configuration.isAddHeaders());
-        Assert.assertTrue(configuration.isAsync());
+        assertThat(configuration)
+            .isEqualTo(
+                QuotaPolicyConfiguration
+                    .builder()
+                    .addHeaders(false)
+                    .async(true)
+                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.MINUTES).build())
+                    .build()
+            );
     }
 
     private <T> T load(String resource, Class<T> type) throws IOException {

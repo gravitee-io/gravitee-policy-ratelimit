@@ -16,40 +16,25 @@
 package io.gravitee.policy.quota.configuration;
 
 import io.gravitee.policy.api.PolicyConfiguration;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class QuotaPolicyConfiguration implements PolicyConfiguration {
 
     private boolean async;
 
+    @Builder.Default
     private boolean addHeaders = true;
 
     private QuotaConfiguration quota;
-
-    public QuotaConfiguration getQuota() {
-        return quota;
-    }
-
-    public void setQuota(QuotaConfiguration quota) {
-        this.quota = quota;
-    }
-
-    public boolean isAsync() {
-        return async;
-    }
-
-    public void setAsync(boolean async) {
-        this.async = async;
-    }
-
-    public boolean isAddHeaders() {
-        return addHeaders;
-    }
-
-    public void setAddHeaders(boolean addHeaders) {
-        this.addHeaders = addHeaders;
-    }
 }

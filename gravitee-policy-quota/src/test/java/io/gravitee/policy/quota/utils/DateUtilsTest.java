@@ -15,10 +15,11 @@
  */
 package io.gravitee.policy.quota.utils;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.time.*;
 import java.time.temporal.ChronoUnit;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -31,7 +32,7 @@ public class DateUtilsTest {
         long start = LocalTime.now().atDate(LocalDate.of(2017, Month.AUGUST, 1)).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
         long end = DateUtils.getEndOfPeriod(start, 1, ChronoUnit.MONTHS);
 
-        Assert.assertTrue((end - start) == 2_678_400_000L);
+        assertThat((end - start)).isEqualTo(2_678_400_000L);
     }
 
     @Test
@@ -40,7 +41,7 @@ public class DateUtilsTest {
         long start = LocalTime.now().atDate(LocalDate.of(2017, Month.AUGUST, 1)).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
         long end = DateUtils.getEndOfPeriod(start, 2, ChronoUnit.MONTHS);
 
-        Assert.assertTrue((end - start) == 2_678_400_000L + 2592_000_000L);
+        assertThat((end - start)).isEqualTo(2_678_400_000L + 2592_000_000L);
     }
 
     @Test
@@ -48,7 +49,7 @@ public class DateUtilsTest {
         long now = System.currentTimeMillis();
         long end = DateUtils.getEndOfPeriod(now, 1, ChronoUnit.DAYS);
 
-        Assert.assertTrue((end - now) == 86_400_000);
+        assertThat((end - now)).isEqualTo(86_400_000);
     }
 
     @Test
@@ -56,6 +57,6 @@ public class DateUtilsTest {
         long now = System.currentTimeMillis();
         long end = DateUtils.getEndOfPeriod(now, 2, ChronoUnit.DAYS);
 
-        Assert.assertTrue((end - now) == 86_400_000 * 2);
+        assertThat((end - now)).isEqualTo(86_400_000 * 2);
     }
 }

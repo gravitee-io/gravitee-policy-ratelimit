@@ -19,8 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Eric LELEU (eric.leleu at graviteesource.com)
@@ -35,15 +34,16 @@ public class SpikeArrestPolicyConfigurationTest {
             SpikeArrestPolicyConfiguration.class
         );
 
-        Assert.assertNotNull(configuration);
-
-        Assert.assertFalse(configuration.isAddHeaders());
-        Assert.assertFalse(configuration.isAsync());
-
-        Assert.assertNotNull(configuration.getSpike());
-        Assert.assertEquals(10, configuration.getSpike().getLimit());
-        Assert.assertEquals(10, configuration.getSpike().getPeriodTime());
-        Assert.assertEquals(TimeUnit.MINUTES, configuration.getSpike().getPeriodTimeUnit());
+        org.assertj.core.api.Assertions
+            .assertThat(configuration)
+            .isEqualTo(
+                SpikeArrestPolicyConfiguration
+                    .builder()
+                    .addHeaders(false)
+                    .async(false)
+                    .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.MINUTES).build())
+                    .build()
+            );
     }
 
     @Test
@@ -53,10 +53,24 @@ public class SpikeArrestPolicyConfigurationTest {
             SpikeArrestPolicyConfiguration.class
         );
 
-        Assert.assertNotNull(configuration);
-        Assert.assertEquals("10", configuration.getSpike().getDynamicLimit());
-        Assert.assertTrue(configuration.isAddHeaders());
-        Assert.assertTrue(configuration.isAsync());
+        org.assertj.core.api.Assertions
+            .assertThat(configuration)
+            .isEqualTo(
+                SpikeArrestPolicyConfiguration
+                    .builder()
+                    .addHeaders(true)
+                    .async(true)
+                    .spike(
+                        SpikeArrestConfiguration
+                            .builder()
+                            .limit(0)
+                            .dynamicLimit("10")
+                            .periodTime(10)
+                            .periodTimeUnit(TimeUnit.MINUTES)
+                            .build()
+                    )
+                    .build()
+            );
     }
 
     private <T> T load(String resource, Class<T> type) throws IOException {
