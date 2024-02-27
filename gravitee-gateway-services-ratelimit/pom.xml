@@ -28,7 +28,8 @@
     </parent>
 
     <artifactId>gravitee-gateway-services-ratelimit</artifactId>
-    <name>Throttles the number of requests processed and sends them to the backend to avoid a spike</name>
+    <name>Gravitee.io APIM - Policy - Rate Limit Service</name>
+    <description>Throttles the number of requests processed and sends them to the backend to avoid a spike</description>
 
     <properties>
         <!-- Property used by the publication job in CI-->
