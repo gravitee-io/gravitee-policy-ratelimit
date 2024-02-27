@@ -15,7 +15,9 @@
  */
 package io.gravitee.policy.spike;
 
-import static io.gravitee.policy.spike.utils.LimitUtils.*;
+import static io.gravitee.policy.spike.utils.LimitUtils.SliceLimit;
+import static io.gravitee.policy.spike.utils.LimitUtils.computeSliceLimit;
+import static io.gravitee.policy.spike.utils.LimitUtils.getEndOfPeriod;
 
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.util.Maps;
@@ -73,10 +75,6 @@ public class SpikeArrestPolicy {
 
     public static final String ATTR_OAUTH_CLIENT_ID = "oauth.client_id";
 
-    private static char KEY_SEPARATOR = ':';
-
-    private static String RATE_LIMIT_TYPE = "sa";
-
     /**
      * Spike arrest policy configuration
      */
@@ -96,7 +94,7 @@ public class SpikeArrestPolicy {
             return;
         }
 
-        String key = createRateLimitKey(request, executionContext, spikeArrestConfiguration);
+        String key = RateLimitKeyFactory.createRateLimitKey(executionContext, spikeArrestConfiguration);
         final long limit = (spikeArrestConfiguration.getLimit() > 0)
             ? spikeArrestConfiguration.getLimit()
             : executionContext.getTemplateEngine().getValue(spikeArrestConfiguration.getDynamicLimit(), Long.class);
@@ -160,46 +158,6 @@ public class SpikeArrestPolicy {
                     }
                 }
             );
-    }
-
-    private String createRateLimitKey(
-        Request request,
-        ExecutionContext executionContext,
-        SpikeArrestConfiguration spikeArrestConfiguration
-    ) {
-        // Rate limit key contains the following:
-        // 1_ (API_ID, PLAN_ID) pair, note that for keyless plans this is evaluated to (API_ID, 1)
-        // 2_ User-defined key, if it exists
-        // 3_ Rate Type set to spike-arrest
-        // 4_ RESOLVED_PATH (policy attached to a path rather than a plan)
-        String resolvedPath = (String) executionContext.getAttribute(ExecutionContext.ATTR_RESOLVED_PATH);
-
-        StringBuilder key = new StringBuilder();
-
-        String plan = (String) executionContext.getAttribute(ExecutionContext.ATTR_PLAN);
-        if (plan != null) {
-            key
-                .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
-                .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
-        } else if (executionContext.getAttributes().containsKey(ATTR_OAUTH_CLIENT_ID)) { // TODO manage also APIKey when managed by K8S plugins
-            key.append(executionContext.getAttribute(ATTR_OAUTH_CLIENT_ID));
-        } else {
-            key.append(executionContext.getAttribute(ExecutionContext.ATTR_API));
-        }
-
-        if (spikeArrestConfiguration.getKey() != null && !spikeArrestConfiguration.getKey().isEmpty()) {
-            key
-                .append(KEY_SEPARATOR)
-                .append(executionContext.getTemplateEngine().getValue(spikeArrestConfiguration.getKey(), String.class));
-        }
-
-        key.append(KEY_SEPARATOR).append(RATE_LIMIT_TYPE);
-
-        if (resolvedPath != null) {
-            key.append(KEY_SEPARATOR).append(resolvedPath.hashCode());
-        }
-
-        return key.toString();
     }
 
     private PolicyResult createLimitExceeded(SpikeArrestConfiguration spikeArrestConfiguration, SliceLimit actualLimit, long limit) {

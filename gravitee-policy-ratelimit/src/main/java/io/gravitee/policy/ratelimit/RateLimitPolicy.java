@@ -33,7 +33,6 @@ import io.reactivex.rxjava3.disposables.Disposable;
 import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
-import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,12 +70,6 @@ public class RateLimitPolicy {
      */
     public static final String X_RATE_LIMIT_RESET = "X-Rate-Limit-Reset";
 
-    public static final String ATTR_OAUTH_CLIENT_ID = "oauth.client_id";
-
-    private static char KEY_SEPARATOR = ':';
-
-    private static String RATE_LIMIT_TYPE = "rl";
-
     /**
      * Rate limit policy configuration
      */
@@ -96,7 +89,7 @@ public class RateLimitPolicy {
             return;
         }
 
-        String key = createRateLimitKey(request, executionContext, rateLimitConfiguration);
+        String key = RateLimitKeyFactory.createRateLimitKey(executionContext, rateLimitConfiguration);
         long limit = (rateLimitConfiguration.getLimit() > 0)
             ? rateLimitConfiguration.getLimit()
             : executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getDynamicLimit(), Long.class);
@@ -160,40 +153,6 @@ public class RateLimitPolicy {
                     }
                 }
             );
-    }
-
-    private String createRateLimitKey(Request request, ExecutionContext executionContext, RateLimitConfiguration rateLimitConfiguration) {
-        // Rate limit key contains the following:
-        // 1_ (PLAN_ID, SUBSCRIPTION_ID) pair, note that for keyless plans this is evaluated to (1, CLIENT_IP)
-        // 2_ User-defined key, if it exists
-        // 3_ Rate Type (rate-limit / quota)
-        // 4_ RESOLVED_PATH (policy attached to a path rather than a plan)
-        String resolvedPath = (String) executionContext.getAttribute(ExecutionContext.ATTR_RESOLVED_PATH);
-
-        StringBuilder key = new StringBuilder();
-
-        String plan = (String) executionContext.getAttribute(ExecutionContext.ATTR_PLAN);
-        if (plan != null) {
-            key
-                .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
-                .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
-        } else if (executionContext.getAttributes().containsKey(ATTR_OAUTH_CLIENT_ID)) { // TODO manage also APIKey when managed by K8S plugins
-            key.append(executionContext.getAttribute(ATTR_OAUTH_CLIENT_ID));
-        } else {
-            key.append(executionContext.getAttribute(ExecutionContext.ATTR_API));
-        }
-
-        if (rateLimitConfiguration.getKey() != null && !rateLimitConfiguration.getKey().isEmpty()) {
-            key.append(KEY_SEPARATOR).append(executionContext.getTemplateEngine().getValue(rateLimitConfiguration.getKey(), String.class));
-        }
-
-        key.append(KEY_SEPARATOR).append(RATE_LIMIT_TYPE);
-
-        if (resolvedPath != null) {
-            key.append(KEY_SEPARATOR).append(resolvedPath.hashCode());
-        }
-
-        return key.toString();
     }
 
     private PolicyResult createLimitExceeded(RateLimitConfiguration rateLimitConfiguration, long actualLimit) {
