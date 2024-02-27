@@ -27,6 +27,12 @@
                         "expression-language": true
                     }
                 },
+                "useKeyOnly": {
+                    "type": "boolean",
+                    "default": false,
+                    "title": "Use key only",
+                    "description": "Only uses the custom key to identify the consumer, regardless of the subscription and plan."
+                },
                 "limit": {
                     "type": "integer",
                     "title": "Max requests (static)",

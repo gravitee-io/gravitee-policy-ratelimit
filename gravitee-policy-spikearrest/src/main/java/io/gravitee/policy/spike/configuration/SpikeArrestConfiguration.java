@@ -40,4 +40,6 @@ public class SpikeArrestConfiguration {
     private TimeUnit periodTimeUnit;
 
     private String key;
+
+    private boolean useKeyOnly;
 }
