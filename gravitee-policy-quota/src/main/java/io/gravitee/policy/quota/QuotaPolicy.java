@@ -33,7 +33,6 @@ import io.reactivex.rxjava3.disposables.Disposable;
 import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
-import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,12 +70,6 @@ public class QuotaPolicy {
      */
     public static final String X_QUOTA_RESET = "X-Quota-Reset";
 
-    public static final String ATTR_OAUTH_CLIENT_ID = "oauth.client_id";
-
-    private static char KEY_SEPARATOR = ':';
-
-    private static char RATE_LIMIT_TYPE = 'q';
-
     /**
      * Rate limit policy configuration
      */
@@ -96,7 +89,7 @@ public class QuotaPolicy {
             return;
         }
 
-        String key = createRateLimitKey(request, executionContext, quotaConfiguration);
+        String key = RateLimitKeyFactory.createRateLimitKey(executionContext, quotaConfiguration);
         long limit = (quotaConfiguration.getLimit() > 0)
             ? quotaConfiguration.getLimit()
             : executionContext.getTemplateEngine().getValue(quotaConfiguration.getDynamicLimit(), Long.class);
@@ -169,40 +162,6 @@ public class QuotaPolicy {
                     }
                 }
             );
-    }
-
-    private String createRateLimitKey(Request request, ExecutionContext executionContext, QuotaConfiguration quotaConfiguration) {
-        // Rate limit key contains the following:
-        // 1_ (PLAN_ID, SUBSCRIPTION_ID) pair, note that for keyless plans this is evaluated to (1, CLIENT_IP)
-        // 2_ User-defined key, if it exists
-        // 3_ Rate Type (rate-limit / quota)
-        // 4_ RESOLVED_PATH (policy attached to a path rather than a plan)
-        String resolvedPath = (String) executionContext.getAttribute(ExecutionContext.ATTR_RESOLVED_PATH);
-
-        StringBuilder key = new StringBuilder();
-
-        String plan = (String) executionContext.getAttribute(ExecutionContext.ATTR_PLAN);
-        if (plan != null) {
-            key
-                .append(executionContext.getAttribute(ExecutionContext.ATTR_PLAN))
-                .append(executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
-        } else if (executionContext.getAttributes().containsKey(ATTR_OAUTH_CLIENT_ID)) { // TODO manage also APIKey when managed by K8S plugins
-            key.append(executionContext.getAttribute(ATTR_OAUTH_CLIENT_ID));
-        } else {
-            key.append(executionContext.getAttribute(ExecutionContext.ATTR_API));
-        }
-
-        if (quotaConfiguration.getKey() != null && !quotaConfiguration.getKey().isEmpty()) {
-            key.append(KEY_SEPARATOR).append(executionContext.getTemplateEngine().getValue(quotaConfiguration.getKey(), String.class));
-        }
-
-        key.append(KEY_SEPARATOR).append(RATE_LIMIT_TYPE);
-
-        if (resolvedPath != null) {
-            key.append(KEY_SEPARATOR).append(resolvedPath.hashCode());
-        }
-
-        return key.toString();
     }
 
     private PolicyResult createLimitExceeded(QuotaConfiguration quotaConfiguration, long actualLimit) {
