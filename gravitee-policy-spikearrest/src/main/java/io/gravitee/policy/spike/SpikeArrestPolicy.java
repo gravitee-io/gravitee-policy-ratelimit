@@ -37,7 +37,6 @@ import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,24 +106,21 @@ public class SpikeArrestPolicy {
             .incrementAndGet(
                 key,
                 spikeArrestPolicyConfiguration.isAsync(),
-                new Supplier<RateLimit>() {
-                    @Override
-                    public RateLimit get() {
-                        // Set the time at which the current rate limit window resets in UTC epoch seconds.
-                        long resetTimeMillis = getEndOfPeriod(request.timestamp(), slice.getPeriod(), TimeUnit.MILLISECONDS);
+                () -> {
+                    // Set the time at which the current rate limit window resets in UTC epoch seconds.
+                    long resetTimeMillis = getEndOfPeriod(request.timestamp(), slice.getPeriod(), TimeUnit.MILLISECONDS);
 
-                        RateLimit rate = new RateLimit(key);
-                        rate.setCounter(0);
-                        rate.setLimit(slice.getLimit());
-                        rate.setResetTime(resetTimeMillis);
-                        rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
-                        return rate;
-                    }
+                    RateLimit rate = new RateLimit(key);
+                    rate.setCounter(0);
+                    rate.setLimit(slice.getLimit());
+                    rate.setResetTime(resetTimeMillis);
+                    rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+                    return rate;
                 }
             )
             .observeOn(RxHelper.scheduler(context))
             .subscribe(
-                new SingleObserver<RateLimit>() {
+                new SingleObserver<>() {
                     @Override
                     public void onSubscribe(Disposable d) {}
 
