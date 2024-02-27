@@ -110,4 +110,17 @@ class RateLimitKeyFactoryTest {
         // Then
         Assertions.assertThat(key).isEqualTo("plansubscription:rl:148210906");
     }
+
+    @Test
+    void should_use_only_the_key_defined_when_enabled() {
+        // Given
+        context.setAttribute(ExecutionContext.ATTR_PLAN, "plan");
+        context.setAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID, "subscription");
+
+        // When
+        String key = RateLimitKeyFactory.createRateLimitKey(context, RateLimitConfiguration.builder().key("key").useKeyOnly(true).build());
+
+        // Then
+        Assertions.assertThat(key).isEqualTo("key:rl");
+    }
 }

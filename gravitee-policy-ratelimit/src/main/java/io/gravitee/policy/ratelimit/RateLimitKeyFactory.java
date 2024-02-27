@@ -48,6 +48,14 @@ public class RateLimitKeyFactory {
 
         StringBuilder key = new StringBuilder();
 
+        if (configuration.isUseKeyOnly() && configuration.getKey() != null && !configuration.getKey().isEmpty()) {
+            return key
+                .append(executionContext.getTemplateEngine().getValue(configuration.getKey(), String.class))
+                .append(KEY_SEPARATOR)
+                .append(RATE_LIMIT_TYPE)
+                .toString();
+        }
+
         String plan = (String) executionContext.getAttribute(ExecutionContext.ATTR_PLAN);
         if (plan != null) {
             key

@@ -25,8 +25,8 @@ import lombok.NoArgsConstructor;
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
-@Builder
 @Data
+@Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
 public class QuotaConfiguration {
@@ -40,4 +40,6 @@ public class QuotaConfiguration {
     private ChronoUnit periodTimeUnit;
 
     private String key;
+
+    private boolean useKeyOnly;
 }
