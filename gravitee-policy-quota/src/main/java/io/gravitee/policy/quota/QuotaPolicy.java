@@ -107,28 +107,25 @@ public class QuotaPolicy {
             .incrementAndGet(
                 key,
                 quotaPolicyConfiguration.isAsync(),
-                new Supplier<RateLimit>() {
-                    @Override
-                    public RateLimit get() {
-                        // Set the time at which the current rate limit window resets in UTC epoch seconds.
-                        long resetTimeMillis = DateUtils.getEndOfPeriod(
-                            request.timestamp(),
-                            quotaConfiguration.getPeriodTime(),
-                            quotaConfiguration.getPeriodTimeUnit()
-                        );
+                () -> {
+                    // Set the time at which the current rate limit window resets in UTC epoch seconds.
+                    long resetTimeMillis = DateUtils.getEndOfPeriod(
+                        request.timestamp(),
+                        quotaConfiguration.getPeriodTime(),
+                        quotaConfiguration.getPeriodTimeUnit()
+                    );
 
-                        RateLimit rate = new RateLimit(key);
-                        rate.setCounter(0);
-                        rate.setLimit(limit);
-                        rate.setResetTime(resetTimeMillis);
-                        rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
-                        return rate;
-                    }
+                    RateLimit rate = new RateLimit(key);
+                    rate.setCounter(0);
+                    rate.setLimit(limit);
+                    rate.setResetTime(resetTimeMillis);
+                    rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+                    return rate;
                 }
             )
             .observeOn(RxHelper.scheduler(context))
             .subscribe(
-                new SingleObserver<RateLimit>() {
+                new SingleObserver<>() {
                     @Override
                     public void onSubscribe(Disposable d) {}
 

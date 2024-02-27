@@ -29,7 +29,7 @@ import java.util.function.Supplier;
  */
 public class LocalCacheQuotaProvider implements RateLimitService {
 
-    private ConcurrentMap<Serializable, RateLimit> rateLimits = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Serializable, RateLimit> rateLimits = new ConcurrentHashMap<>();
 
     public void clean() {
         rateLimits.clear();
@@ -39,6 +39,7 @@ public class LocalCacheQuotaProvider implements RateLimitService {
     public Single<RateLimit> incrementAndGet(String key, long weight, boolean async, Supplier<RateLimit> supplier) {
         RateLimit rateLimit = rateLimits.computeIfAbsent(key, serializable -> supplier.get());
         rateLimit.setCounter(rateLimit.getCounter() + weight);
+
         return Single.just(rateLimit);
     }
 }
