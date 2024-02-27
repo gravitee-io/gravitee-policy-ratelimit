@@ -69,12 +69,6 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-rx-java3</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
             <scope>provided</scope>
         </dependency>
         <dependency>
