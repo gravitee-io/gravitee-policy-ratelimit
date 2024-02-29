@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.0.2...2.1.0) (2024-02-29)
+
+
+### Features
+
+* add an option to ignore host IP and subscription detail ([ba5d3ee](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/ba5d3ee6349c9fce9ad15f82ac7f0bc4a95adfba))
+
 ## [2.0.2](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.0.1...2.0.2) (2023-07-20)
 
 
