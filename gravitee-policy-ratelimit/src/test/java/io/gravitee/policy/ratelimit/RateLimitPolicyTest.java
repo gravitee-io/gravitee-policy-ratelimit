@@ -220,7 +220,7 @@ public class RateLimitPolicyTest {
                             soft.assertThat(policyResult.key()).isEqualTo("RATE_LIMIT_TOO_MANY_REQUESTS");
                             soft
                                 .assertThat(policyResult.message())
-                                .isEqualTo("Rate limit exceeded ! You reach the limit of 0 requests per 1 seconds");
+                                .isEqualTo("Rate limit exceeded! You reached the limit of 0 requests per 1 seconds");
                             soft
                                 .assertThat(policyResult.parameters())
                                 .contains(Map.entry("limit", 0L), Map.entry("period_time", 1L), Map.entry("period_unit", TimeUnit.SECONDS));

@@ -257,7 +257,7 @@ public class QuotaPolicyTest {
                             soft.assertThat(policyResult.key()).isEqualTo("QUOTA_TOO_MANY_REQUESTS");
                             soft
                                 .assertThat(policyResult.message())
-                                .isEqualTo("Quota exceeded ! You reach the limit of 0 requests per 10 seconds");
+                                .isEqualTo("Quota exceeded! You reached the limit of 0 requests per 10 seconds");
                             soft
                                 .assertThat(policyResult.parameters())
                                 .contains(
