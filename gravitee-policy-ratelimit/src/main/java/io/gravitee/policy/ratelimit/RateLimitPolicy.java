@@ -159,7 +159,7 @@ public class RateLimitPolicy {
         return PolicyResult.failure(
             RATE_LIMIT_TOO_MANY_REQUESTS,
             HttpStatusCode.TOO_MANY_REQUESTS_429,
-            "Rate limit exceeded ! You reach the limit of " +
+            "Rate limit exceeded! You reached the limit of " +
             actualLimit +
             " requests per " +
             rateLimitConfiguration.getPeriodTime() +

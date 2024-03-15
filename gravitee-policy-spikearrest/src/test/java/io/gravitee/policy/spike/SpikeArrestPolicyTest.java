@@ -238,7 +238,7 @@ public class SpikeArrestPolicyTest {
                                         soft.assertThat(policyResult.key()).isEqualTo("SPIKE_ARREST_TOO_MANY_REQUESTS");
                                         soft
                                             .assertThat(policyResult.message())
-                                            .isEqualTo("Spike limit exceeded ! You reach the limit of 1 requests per 100 ms.");
+                                            .isEqualTo("Spike limit exceeded! You reached the limit of 1 requests per 100 ms.");
                                         soft
                                             .assertThat(policyResult.parameters())
                                             .contains(
