@@ -160,7 +160,7 @@ public class SpikeArrestPolicy {
         return PolicyResult.failure(
             SPIKE_ARREST_TOO_MANY_REQUESTS,
             HttpStatusCode.TOO_MANY_REQUESTS_429,
-            "Spike limit exceeded ! You reach the limit of " + actualLimit.getLimit() + " requests per " + actualLimit.getPeriod() + " ms.",
+            "Spike limit exceeded! You reached the limit of " + actualLimit.getLimit() + " requests per " + actualLimit.getPeriod() + " ms.",
             Maps
                 .<String, Object>builder()
                 .put("slice_limit", actualLimit.getLimit())

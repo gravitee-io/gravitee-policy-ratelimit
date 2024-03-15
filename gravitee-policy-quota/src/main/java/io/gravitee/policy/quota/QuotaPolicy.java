@@ -168,7 +168,7 @@ public class QuotaPolicy {
         return PolicyResult.failure(
             QUOTA_TOO_MANY_REQUESTS,
             HttpStatusCode.TOO_MANY_REQUESTS_429,
-            "Quota exceeded ! You reach the limit of " +
+            "Quota exceeded! You reached the limit of " +
             actualLimit +
             " requests per " +
             quotaConfiguration.getPeriodTime() +
