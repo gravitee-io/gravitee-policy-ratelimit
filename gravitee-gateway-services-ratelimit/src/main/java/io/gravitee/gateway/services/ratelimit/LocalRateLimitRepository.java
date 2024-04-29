@@ -18,20 +18,27 @@ package io.gravitee.gateway.services.ratelimit;
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
+import lombok.NoArgsConstructor;
 
 public class LocalRateLimitRepository implements RateLimitRepository<LocalRateLimit> {
 
+    private final BaseSchedulerProvider schedulerProvider;
     private ConcurrentMap<String, LocalRateLimit> rateLimits = new ConcurrentHashMap<>();
 
-    LocalRateLimitRepository() {}
+    public LocalRateLimitRepository(BaseSchedulerProvider schedulerProvider) {
+        this.schedulerProvider = schedulerProvider;
+    }
 
     @Override
     public Single<LocalRateLimit> incrementAndGet(String key, long weight, Supplier<LocalRateLimit> supplier) {
-        return Single.create(emitter ->
-            emitter.onSuccess(
+        return Single
+            .fromCallable(() ->
                 rateLimits.compute(
                     key,
                     (key1, rateLimit) -> {
@@ -49,15 +56,19 @@ public class LocalRateLimitRepository implements RateLimitRepository<LocalRateLi
                     }
                 )
             )
-        );
+            .subscribeOn(schedulerProvider.computation());
     }
 
     Maybe<LocalRateLimit> get(String key) {
-        return (rateLimits.containsKey(key)) ? Maybe.just(rateLimits.get(key)) : Maybe.empty();
+        return Maybe.fromCallable(() -> rateLimits.get(key)).subscribeOn(schedulerProvider.computation());
     }
 
     Single<LocalRateLimit> save(LocalRateLimit rate) {
-        rateLimits.put(rate.getKey(), rate);
-        return Single.just(rate);
+        return Single
+            .fromCallable(() -> {
+                rateLimits.put(rate.getKey(), rate);
+                return rate;
+            })
+            .subscribeOn(schedulerProvider.computation());
     }
 }
