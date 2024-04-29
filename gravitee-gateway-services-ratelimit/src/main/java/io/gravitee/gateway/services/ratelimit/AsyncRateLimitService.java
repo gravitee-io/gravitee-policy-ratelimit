@@ -20,8 +20,10 @@ import io.gravitee.gateway.services.ratelimit.rx.SchedulerProvider;
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
+import io.vertx.rxjava3.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -36,6 +38,11 @@ public class AsyncRateLimitService extends AbstractService {
 
     @Value("${services.ratelimit.enabled:true}")
     private boolean enabled;
+
+    @Autowired
+    private Vertx vertx;
+
+    private AsyncRateLimitRepository asyncRateLimitRepository;
 
     @Override
     protected void doStart() throws Exception {
@@ -54,10 +61,10 @@ public class AsyncRateLimitService extends AbstractService {
 
         if (enabled) {
             // Prepare local cache
-            LocalRateLimitRepository localCacheRateLimitRepository = new LocalRateLimitRepository();
+            LocalRateLimitRepository localCacheRateLimitRepository = new LocalRateLimitRepository(new SchedulerProvider());
 
             LOGGER.debug("Register rate-limit repository asynchronous implementation {}", AsyncRateLimitRepository.class.getName());
-            AsyncRateLimitRepository asyncRateLimitRepository = new AsyncRateLimitRepository(new SchedulerProvider());
+            asyncRateLimitRepository = new AsyncRateLimitRepository(vertx);
             beanFactory.autowireBean(asyncRateLimitRepository);
             asyncRateLimitRepository.setLocalCacheRateLimitRepository(localCacheRateLimitRepository);
             asyncRateLimitRepository.setRemoteCacheRateLimitRepository(rateLimitRepository);
@@ -80,8 +87,9 @@ public class AsyncRateLimitService extends AbstractService {
 
     @Override
     protected void doStop() throws Exception {
-        if (enabled) {
-            super.doStop();
+        super.doStop();
+        if (enabled && asyncRateLimitRepository != null) {
+            asyncRateLimitRepository.clean();
         }
     }
 

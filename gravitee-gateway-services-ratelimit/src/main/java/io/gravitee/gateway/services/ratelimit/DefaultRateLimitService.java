@@ -20,11 +20,15 @@ import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import io.reactivex.rxjava3.core.Single;
 import java.util.function.Supplier;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
+@Getter
+@Setter
 public class DefaultRateLimitService implements RateLimitService {
 
     private RateLimitRepository<RateLimit> rateLimitRepository;
@@ -32,22 +36,6 @@ public class DefaultRateLimitService implements RateLimitService {
 
     private RateLimitRepository<RateLimit> getRateLimitRepository(boolean async) {
         return (async) ? asyncRateLimitRepository : rateLimitRepository;
-    }
-
-    public RateLimitRepository<RateLimit> getAsyncRateLimitRepository() {
-        return asyncRateLimitRepository;
-    }
-
-    public void setAsyncRateLimitRepository(RateLimitRepository<RateLimit> asyncRateLimitRepository) {
-        this.asyncRateLimitRepository = asyncRateLimitRepository;
-    }
-
-    public RateLimitRepository getRateLimitRepository() {
-        return rateLimitRepository;
-    }
-
-    public void setRateLimitRepository(RateLimitRepository<RateLimit> rateLimitRepository) {
-        this.rateLimitRepository = rateLimitRepository;
     }
 
     @Override

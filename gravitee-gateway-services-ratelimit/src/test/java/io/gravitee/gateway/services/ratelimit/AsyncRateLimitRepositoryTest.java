@@ -17,10 +17,13 @@ package io.gravitee.gateway.services.ratelimit;
 
 import static org.mockito.Mockito.spy;
 
+import io.gravitee.gateway.services.ratelimit.rx.SchedulerProvider;
+import io.gravitee.gateway.services.ratelimit.rx.TestSchedulerProvider;
 import io.gravitee.gateway.services.ratelimit.rx.TrampolineSchedulerProvider;
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import io.reactivex.rxjava3.schedulers.TestScheduler;
+import io.vertx.rxjava3.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -45,9 +48,9 @@ public class AsyncRateLimitRepositoryTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
 
-        localRateLimitRepository = spy(new LocalRateLimitRepository());
         testScheduler = new TestScheduler();
-        rateLimitRepository = spy(new AsyncRateLimitRepository(new TrampolineSchedulerProvider()));
+        localRateLimitRepository = spy(new LocalRateLimitRepository(new TestSchedulerProvider(testScheduler)));
+        rateLimitRepository = spy(new AsyncRateLimitRepository(Vertx.vertx()));
         rateLimitRepository.setLocalCacheRateLimitRepository(localRateLimitRepository);
         rateLimitRepository.setRemoteCacheRateLimitRepository(remoteRateLimitRepository);
     }
