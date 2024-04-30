@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.1.0...2.1.1) (2024-04-30)
+
+
+### Bug Fixes
+
+* use async vertx lock mechanism ([46f732b](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/46f732b43236cc81dce35ec4aef6990b3c63ea83))
+
 # [2.1.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.0.2...2.1.0) (2024-02-29)
 
 
