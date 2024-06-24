@@ -1,3 +1,10 @@
+## [2.1.2](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.1.1...2.1.2) (2024-06-24)
+
+
+### Bug Fixes
+
+* update language used in the HTTP response ([7018194](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/7018194597ba60bc25b7e48256dbecde4fc6d7d7))
+
 ## [2.1.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.1.0...2.1.1) (2024-04-30)
 
 
