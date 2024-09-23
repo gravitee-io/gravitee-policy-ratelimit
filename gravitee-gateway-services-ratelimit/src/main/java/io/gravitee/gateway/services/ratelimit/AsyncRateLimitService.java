@@ -16,7 +16,6 @@
 package io.gravitee.gateway.services.ratelimit;
 
 import io.gravitee.common.service.AbstractService;
-import io.gravitee.gateway.services.ratelimit.rx.SchedulerProvider;
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
@@ -61,7 +60,7 @@ public class AsyncRateLimitService extends AbstractService {
 
         if (enabled) {
             // Prepare local cache
-            LocalRateLimitRepository localCacheRateLimitRepository = new LocalRateLimitRepository(new SchedulerProvider());
+            LocalRateLimitRepository localCacheRateLimitRepository = new LocalRateLimitRepository();
 
             LOGGER.debug("Register rate-limit repository asynchronous implementation {}", AsyncRateLimitRepository.class.getName());
             asyncRateLimitRepository = new AsyncRateLimitRepository(vertx);
