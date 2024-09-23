@@ -17,7 +17,6 @@ package io.gravitee.gateway.services.ratelimit;
 
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.model.RateLimit;
-import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
@@ -37,6 +36,8 @@ import lombok.extern.slf4j.Slf4j;
 @Setter
 @Slf4j
 public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> {
+
+    private static final Long LOCK_TIMEOUT_MILLIS = 250L;
 
     private final Set<String> keys = new CopyOnWriteArraySet<>();
     private final SharedData sharedData;
@@ -61,7 +62,7 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
                 .delay(5000, TimeUnit.MILLISECONDS)
                 .rebatchRequests(1)
                 .filter(interval -> !keys.isEmpty())
-                .flatMapCompletable(interval ->
+                .concatMapCompletable(interval ->
                     Flowable
                         .fromIterable(keys)
                         .flatMapCompletable(key ->
@@ -84,15 +85,16 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
 
                                                     return localRateLimit;
                                                 })
+                                                .flatMap(rateLimit -> localCacheRateLimitRepository.save(rateLimit))
                                         )
+                                        .doFinally(lock::release)
                                         // And save the new counter value into the local cache
-                                        .flatMapSingle(rateLimit -> localCacheRateLimitRepository.save(rateLimit))
                                         .doOnSuccess(localRateLimit -> keys.remove(key))
                                         .doOnError(throwable ->
                                             log.error("An unexpected error occurs while refreshing asynchronous rate-limit", throwable)
                                         )
+                                        .onErrorComplete()
                                         .ignoreElement()
-                                        .doFinally(lock::release)
                                 )
                         )
                 )
@@ -109,7 +111,7 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
     @Override
     public Single<RateLimit> incrementAndGet(String key, long weight, Supplier<RateLimit> supplier) {
         return sharedData
-            .getLocalLock(key)
+            .getLocalLockWithTimeout(key, LOCK_TIMEOUT_MILLIS)
             .flatMap(lock ->
                 Single
                     .defer(() ->

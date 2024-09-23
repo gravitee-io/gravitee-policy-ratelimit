@@ -19,21 +19,15 @@ import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.schedulers.Schedulers;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
-import lombok.NoArgsConstructor;
 
 public class LocalRateLimitRepository implements RateLimitRepository<LocalRateLimit> {
 
-    private final BaseSchedulerProvider schedulerProvider;
-    private ConcurrentMap<String, LocalRateLimit> rateLimits = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, LocalRateLimit> rateLimits = new ConcurrentHashMap<>();
 
-    public LocalRateLimitRepository(BaseSchedulerProvider schedulerProvider) {
-        this.schedulerProvider = schedulerProvider;
-    }
+    public LocalRateLimitRepository() {}
 
     @Override
     public Single<LocalRateLimit> incrementAndGet(String key, long weight, Supplier<LocalRateLimit> supplier) {
@@ -56,11 +50,11 @@ public class LocalRateLimitRepository implements RateLimitRepository<LocalRateLi
                     }
                 )
             )
-            .subscribeOn(schedulerProvider.computation());
+            .subscribeOn(Schedulers.computation());
     }
 
     Maybe<LocalRateLimit> get(String key) {
-        return Maybe.fromCallable(() -> rateLimits.get(key)).subscribeOn(schedulerProvider.computation());
+        return Maybe.fromCallable(() -> rateLimits.get(key)).subscribeOn(Schedulers.computation());
     }
 
     Single<LocalRateLimit> save(LocalRateLimit rate) {
@@ -69,6 +63,6 @@ public class LocalRateLimitRepository implements RateLimitRepository<LocalRateLi
                 rateLimits.put(rate.getKey(), rate);
                 return rate;
             })
-            .subscribeOn(schedulerProvider.computation());
+            .subscribeOn(Schedulers.computation());
     }
 }
