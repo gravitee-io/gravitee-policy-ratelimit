@@ -1,3 +1,10 @@
+## [2.1.3](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.1.2...2.1.3) (2024-10-09)
+
+
+### Bug Fixes
+
+* avoid deadlock when exception was thrown by ([50bc691](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/50bc691bbb2c56bdcc1464d33af9a67e3e14cb91))
+
 ## [2.1.2](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.1.1...2.1.2) (2024-06-24)
 
 
