@@ -1,25 +1,4 @@
 {
-  "extends": ["config:base"],
-  "rebaseWhen": "conflicted",
-  "packageRules": [
-    {
-      "matchDatasources": ["orb"],
-      "matchUpdateTypes": ["patch", "minor"],
-      "automerge": true,
-      "automergeType": "branch",
-      "semanticCommitType": "ci"
-    },
-    {
-      "matchDepTypes": ["provided", "test", "build", "import", "parent"],
-      "matchUpdateTypes": ["patch", "minor"],
-      "automerge": true,
-      "automergeType": "branch",
-      "semanticCommitType": "chore"
-    },
-    {
-      "matchDepTypes": ["provided", "test", "build", "import", "parent"],
-      "matchUpdateTypes": ["major"],
-      "semanticCommitType": "chore"
-    }
-  ]
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["local>gravitee-io/renovate-config:plugin"]
 }
