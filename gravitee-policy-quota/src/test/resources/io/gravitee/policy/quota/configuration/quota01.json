@@ -1,8 +1,8 @@
 {
-  "quota": {
-    "limit": 10,
-    "dynamicLimit": "{(2*5)}",
-    "periodTime": 10,
-    "periodTimeUnit": "MINUTES"
-  }
+    "quota": {
+        "limit": 10,
+        "dynamicLimit": "{(2*5)}",
+        "periodTime": 10,
+        "periodTimeUnit": "MINUTES"
+    }
 }
