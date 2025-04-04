@@ -1,11 +1,11 @@
-/**
- * Copyright (C) 2015 The Gravitee team (http://gravitee.io)
+/*
+ * Copyright © 2015 The Gravitee team (http://gravitee.io)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,14 +26,14 @@ import org.junit.jupiter.params.provider.MethodSource;
  * @author Eric LELEU (eric.leleu at graviteesource.com)
  * @author GraviteeSource Team
  */
-public class LimitUtilsTest {
+class LimitUtilsTest {
 
     @ParameterizedTest
     @MethodSource("data")
-    public void testComputeSliceLimit(long limit, long period, TimeUnit periodUnit, LimitUtils.SliceLimit expectedSlice) {
+    void testComputeSliceLimit(long limit, long period, TimeUnit periodUnit, LimitUtils.SliceLimit expectedSlice) {
         LimitUtils.SliceLimit result = LimitUtils.computeSliceLimit(limit, period, periodUnit);
-        Assertions.assertThat(result.getLimit()).describedAs("Slice Limit is different").isEqualTo(expectedSlice.getLimit());
-        Assertions.assertThat(result.getPeriod()).describedAs("Slice period is different").isEqualTo(expectedSlice.getPeriod());
+        Assertions.assertThat(result.limit()).describedAs("Slice Limit is different").isEqualTo(expectedSlice.limit());
+        Assertions.assertThat(result.period()).describedAs("Slice period is different").isEqualTo(expectedSlice.period());
     }
 
     private static Stream<Arguments> data() {
