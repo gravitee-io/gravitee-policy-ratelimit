@@ -1,11 +1,11 @@
-/**
- * Copyright (C) 2015 The Gravitee team (http://gravitee.io)
+/*
+ * Copyright © 2015 The Gravitee team (http://gravitee.io)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,11 +16,13 @@
 package io.gravitee.policy.spike.utils;
 
 import java.util.concurrent.TimeUnit;
+import lombok.experimental.UtilityClass;
 
 /**
  * @author Eric LELEU (eric.leleu at graviteesource.com)
  * @author GraviteeSource Team
  */
+@UtilityClass
 public final class LimitUtils {
 
     // slice a second in a minimum of 100ms to allow counter updates
@@ -50,32 +52,7 @@ public final class LimitUtils {
         }
     }
 
-    public static class SliceLimit {
-
-        private long period;
-        private long limit;
-
-        public SliceLimit(long period, long limit) {
-            this.period = period;
-            this.limit = limit;
-        }
-
-        public long getPeriod() {
-            return period;
-        }
-
-        public void setPeriod(long period) {
-            this.period = period;
-        }
-
-        public long getLimit() {
-            return limit;
-        }
-
-        public void setLimit(long limit) {
-            this.limit = limit;
-        }
-    }
+    public record SliceLimit(long period, long limit) {}
 
     public static long getEndOfPeriod(long startingTime, long periodTime, TimeUnit periodTimeUnit) {
         return startingTime + periodTimeUnit.toMillis(periodTime);

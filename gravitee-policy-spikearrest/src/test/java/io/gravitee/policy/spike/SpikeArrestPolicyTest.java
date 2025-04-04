@@ -1,11 +1,11 @@
-/**
- * Copyright (C) 2015 The Gravitee team (http://gravitee.io)
+/*
+ * Copyright © 2015 The Gravitee team (http://gravitee.io)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,320 +15,178 @@
  */
 package io.gravitee.policy.spike;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-import io.gravitee.gateway.api.ExecutionContext;
-import io.gravitee.gateway.api.Request;
-import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.http.HttpHeaders;
-import io.gravitee.policy.api.PolicyChain;
-import io.gravitee.policy.api.PolicyResult;
+import io.gravitee.gateway.reactive.api.ExecutionFailure;
+import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
+import io.gravitee.gateway.reactive.api.context.http.HttpResponse;
 import io.gravitee.policy.spike.configuration.SpikeArrestConfiguration;
 import io.gravitee.policy.spike.configuration.SpikeArrestPolicyConfiguration;
-import io.gravitee.policy.spike.local.ExecutionContextStub;
-import io.gravitee.policy.spike.local.LocalCacheRateLimitProvider;
+import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
+import io.gravitee.repository.ratelimit.model.RateLimit;
+import io.reactivex.rxjava3.annotations.NonNull;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.CompletableObserver;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 import io.vertx.rxjava3.core.Vertx;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import org.assertj.core.api.SoftAssertions;
-import org.junit.jupiter.api.AfterEach;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-/**
- * @author David BRASSELY (david.brassely at graviteesource.com)
- * @author GraviteeSource Team
- */
-@ExtendWith(MockitoExtension.class)
-public class SpikeArrestPolicyTest {
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
+@ExtendWith({ VertxExtension.class, MockitoExtension.class })
+class SpikeArrestPolicyTest {
 
-    private final LocalCacheRateLimitProvider rateLimitService = new LocalCacheRateLimitProvider();
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private HttpPlainExecutionContext executionContext;
 
-    private Vertx vertx;
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private RateLimitService rateLimitService;
 
-    @Captor
-    ArgumentCaptor<PolicyResult> policyResultCaptor;
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private HttpResponse response;
 
-    @Mock
-    private Request request;
+    @Mock(strictness = Mock.Strictness.LENIENT)
+    private HttpHeaders httpHeaders;
 
-    @Mock
-    private Response response;
-
-    private ExecutionContext executionContext;
-    HttpHeaders responseHttpHeaders;
+    private SpikeArrestPolicy policy;
+    private SpikeArrestPolicyConfiguration configuration;
 
     @BeforeEach
-    public void init() {
-        vertx = Vertx.vertx();
+    void setUp() {
+        configuration = new SpikeArrestPolicyConfiguration();
+        SpikeArrestConfiguration spikeConfig = new SpikeArrestConfiguration();
+        spikeConfig.setLimit(100);
+        spikeConfig.setPeriodTime(1);
+        spikeConfig.setPeriodTimeUnit(TimeUnit.SECONDS);
+        configuration.setSpike(spikeConfig);
+        configuration.setAddHeaders(true);
 
-        executionContext = spy(new ExecutionContextStub());
-        executionContext.setAttribute(ExecutionContext.ATTR_PLAN, "my-plan");
-        executionContext.setAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID, "my-subscription");
+        policy = new SpikeArrestPolicy(configuration);
 
-        lenient().when(executionContext.getComponent(Vertx.class)).thenReturn(vertx);
-        lenient().when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
+        when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
+        when(executionContext.response()).thenReturn(response);
+        when(response.headers()).thenReturn(httpHeaders);
 
-        responseHttpHeaders = HttpHeaders.create();
-        lenient().when(response.headers()).thenReturn(responseHttpHeaders);
-    }
-
-    @AfterEach
-    void tearDown() {
-        rateLimitService.clean();
-        vertx.close().blockingAwait();
-    }
-
-    @Test
-    public void should_fail_when_no_service_installed() {
-        var policy = new SpikeArrestPolicy(
-            SpikeArrestPolicyConfiguration
-                .builder()
-                .spike(SpikeArrestConfiguration.builder().limit(1).periodTime(1).periodTimeUnit(TimeUnit.SECONDS).build())
-                .build()
-        );
-
-        vertx.runOnContext(event -> {
-            // Given
-            var policyChain = mock(PolicyChain.class);
-            when(executionContext.getComponent(RateLimitService.class)).thenReturn(null);
-
-            // When
-            policy.onRequest(request, response, executionContext, policyChain);
-
-            // Then
-            verify(policyChain).failWith(policyResultCaptor.capture());
-            SoftAssertions.assertSoftly(soft -> {
-                var result = policyResultCaptor.getValue();
-                soft.assertThat(result.statusCode()).isEqualTo(500);
-                soft.assertThat(result.message()).isEqualTo("No rate-limit service has been installed.");
-            });
-        });
+        when(executionContext.metrics()).thenReturn(new Metrics());
+        when(executionContext.interruptWith(any()))
+            .thenAnswer(invocationOnMock -> Completable.error(new MyException(invocationOnMock.getArgument(0))));
     }
 
     @Test
-    public void should_add_headers_when_enabled() throws InterruptedException {
-        var latch = new CountDownLatch(1);
-        var policy = new SpikeArrestPolicy(
-            SpikeArrestPolicyConfiguration
-                .builder()
-                .addHeaders(true)
-                .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
-                .build()
-        );
+    void should_allow_request_when_under_limit(Vertx vertx, VertxTestContext testContext) {
+        RateLimit rateLimit = new RateLimit("test-key");
+        rateLimit.setCounter(5);
+        rateLimit.setLimit(100);
+        rateLimit.setResetTime(System.currentTimeMillis() + 1000);
 
-        vertx.runOnContext(event ->
-            policy.onRequest(
-                request,
-                response,
-                executionContext,
-                chain(
-                    (req, res) -> {
-                        assertThat(responseHttpHeaders.get(SpikeArrestPolicy.X_SPIKE_ARREST_LIMIT)).isEqualTo("1");
-                        assertThat(responseHttpHeaders.get(SpikeArrestPolicy.X_SPIKE_ARREST_SLICE)).isEqualTo("1000ms");
-                        assertThat(responseHttpHeaders.get(SpikeArrestPolicy.X_SPIKE_ARREST_RESET)).isEqualTo("1000");
-                        latch.countDown();
-                    },
-                    policyResult -> {
-                        fail("Unexpected failure: " + policyResult.message());
-                        latch.countDown();
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.just(rateLimit));
+
+        vertx.runOnContext(v -> policy.onRequest(executionContext).subscribe(new SubscribeAdapter(testContext)));
+    }
+
+    @Test
+    void should_reject_request_when_over_limit(VertxTestContext testContext) {
+        RateLimit rateLimit = new RateLimit("test-key");
+        rateLimit.setCounter(11);
+        rateLimit.setLimit(10);
+        rateLimit.setResetTime(System.currentTimeMillis() + 1000);
+
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.just(rateLimit));
+
+        policy
+            .onRequest(executionContext)
+            .subscribe(
+                () -> testContext.failNow("Should have failed"),
+                error -> {
+                    if (error instanceof MyException) {
+                        testContext.completeNow();
+                    } else {
+                        testContext.failNow("Wrong exception type");
                     }
-                )
-            )
-        );
-
-        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+                }
+            );
     }
 
     @Test
-    public void should_not_add_headers_when_disabled() throws InterruptedException {
-        var latch = new CountDownLatch(1);
-        var policy = new SpikeArrestPolicy(
-            SpikeArrestPolicyConfiguration
-                .builder()
-                .addHeaders(false)
-                .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
-                .build()
-        );
+    void should_handle_rate_limit_service_error(Vertx vertx, VertxTestContext testContext) {
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.error(new RuntimeException("Service error")));
 
-        vertx.runOnContext(event ->
-            policy.onRequest(
-                request,
-                response,
-                executionContext,
-                chain(
-                    (req, res) -> {
-                        assertThat(responseHttpHeaders.toSingleValueMap())
-                            .doesNotContainKey(SpikeArrestPolicy.X_SPIKE_ARREST_LIMIT)
-                            .doesNotContainKey(SpikeArrestPolicy.X_SPIKE_ARREST_SLICE)
-                            .doesNotContainKey(SpikeArrestPolicy.X_SPIKE_ARREST_RESET);
-                        latch.countDown();
-                    },
-                    policyResult -> {
-                        fail("Unexpected failure: " + policyResult.message());
-                        latch.countDown();
-                    }
-                )
-            )
-        );
-
-        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+        vertx.runOnContext(v -> policy.onRequest(executionContext).subscribe(new SubscribeAdapter(testContext)));
     }
 
     @Test
-    public void should_provide_info_when_limit_exceeded() throws InterruptedException {
-        var latch = new CountDownLatch(2);
-        var policy = new SpikeArrestPolicy(
-            SpikeArrestPolicyConfiguration
-                .builder()
-                .spike(
-                    SpikeArrestConfiguration
-                        .builder()
-                        .limit(1)
-                        .dynamicLimit("0")
-                        .periodTime(100)
-                        .periodTimeUnit(TimeUnit.MILLISECONDS)
-                        .build()
-                )
-                .build()
-        );
-        vertx.runOnContext(event ->
-            // Run 1st request
-            policy.onRequest(
-                request,
-                response,
-                executionContext,
-                chain(
-                    (_req, _res) -> {
-                        latch.countDown();
+    void shouldFailWhenNoRateLimitService() {
+        when(executionContext.getComponent(RateLimitService.class)).thenReturn(null);
 
-                        // Run 2nd request that should fail
-                        policy.onRequest(
-                            request,
-                            response,
-                            executionContext,
-                            chain(
-                                (req, res) -> {
-                                    fail("Should fail");
-                                    latch.countDown();
-                                },
-                                policyResult -> {
-                                    SoftAssertions.assertSoftly(soft -> {
-                                        soft.assertThat(policyResult.statusCode()).isEqualTo(429);
-                                        soft.assertThat(policyResult.key()).isEqualTo("SPIKE_ARREST_TOO_MANY_REQUESTS");
-                                        soft
-                                            .assertThat(policyResult.message())
-                                            .isEqualTo("Spike limit exceeded! You reached the limit of 1 requests per 100 ms.");
-                                        soft
-                                            .assertThat(policyResult.parameters())
-                                            .contains(
-                                                Map.entry("slice_limit", 1L),
-                                                Map.entry("slice_period_time", 100L),
-                                                Map.entry("slice_period_unit", TimeUnit.MILLISECONDS),
-                                                Map.entry("limit", 1L),
-                                                Map.entry("period_time", 100L),
-                                                Map.entry("period_unit", TimeUnit.MILLISECONDS)
-                                            );
-                                    });
-                                    latch.countDown();
-                                }
-                            )
-                        );
-                    },
-                    policyResult -> {
-                        latch.countDown();
-                        fail("Unexpected failure: " + policyResult.message());
-                    }
-                )
-            )
-        );
-
-        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+        policy
+            .onRequest(executionContext)
+            .test()
+            .assertError(throwable ->
+                throwable instanceof MyException ex &&
+                ex.getExecutionFailure().message().contains("No rate-limit service has been installed")
+            );
     }
 
-    @Nested
-    class WhenErrorsOccursAtRepositoryLevel {
+    @Test
+    void should_set_response_headers_when_configured(Vertx vertx, VertxTestContext testContext) {
+        RateLimit rateLimit = new RateLimit("test-key");
+        rateLimit.setCounter(5);
+        rateLimit.setLimit(10);
+        rateLimit.setResetTime(System.currentTimeMillis() + 1000);
 
-        @BeforeEach
-        void setUp() {
-            var mockedRateLimitService = mock(RateLimitService.class);
-            when(mockedRateLimitService.incrementAndGet(any(), anyBoolean(), any()))
-                .thenReturn(Single.error(new RuntimeException("Error")));
-            lenient().when(executionContext.getComponent(RateLimitService.class)).thenReturn(mockedRateLimitService);
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.just(rateLimit));
+
+        vertx.runOnContext(v ->
+            policy
+                .onRequest(executionContext)
+                .doOnComplete(() -> {
+                    verify(httpHeaders).set(eq("X-Spike-Arrest-Limit"), anyString());
+                    verify(httpHeaders).set(eq("X-Spike-Arrest-Slice-Period"), anyString());
+                    verify(httpHeaders).set(eq("X-Spike-Arrest-Reset"), anyString());
+                })
+                .subscribe(
+                    () -> {
+                        testContext.completeNow();
+                    },
+                    testContext::failNow
+                )
+        );
+    }
+
+    private record SubscribeAdapter(VertxTestContext testContext) implements CompletableObserver {
+        @Override
+        public void onSubscribe(@NonNull Disposable d) {}
+
+        @Override
+        public void onComplete() {
+            testContext.completeNow();
         }
 
-        @Test
-        public void should_add_headers_when_enabled() throws InterruptedException {
-            var latch = new CountDownLatch(1);
-            var policy = new SpikeArrestPolicy(
-                SpikeArrestPolicyConfiguration
-                    .builder()
-                    .addHeaders(true)
-                    .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
-                    .build()
-            );
-
-            vertx.runOnContext(event ->
-                policy.onRequest(
-                    request,
-                    response,
-                    executionContext,
-                    chain(
-                        (req, res) -> {
-                            assertThat(responseHttpHeaders.toSingleValueMap())
-                                .contains(
-                                    Map.entry(SpikeArrestPolicy.X_SPIKE_ARREST_LIMIT, "1"),
-                                    Map.entry(SpikeArrestPolicy.X_SPIKE_ARREST_SLICE, "1000ms"),
-                                    Map.entry(SpikeArrestPolicy.X_SPIKE_ARREST_RESET, "-1")
-                                );
-                            latch.countDown();
-                        },
-                        policyResult -> {
-                            fail("Unexpected failure: " + policyResult.message());
-                            latch.countDown();
-                        }
-                    )
-                )
-            );
-
-            assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+        @Override
+        public void onError(@NonNull Throwable e) {
+            testContext.failNow(e);
         }
     }
 
-    private PolicyChain chain(BiConsumer<Request, Response> doNext, Consumer<PolicyResult> failWith) {
-        return new PolicyChain() {
-            @Override
-            public void doNext(Request request, Response response) {
-                doNext.accept(request, response);
-            }
+    @Getter
+    @RequiredArgsConstructor
+    private static class MyException extends Exception {
 
-            @Override
-            public void failWith(PolicyResult policyResult) {
-                failWith.accept(policyResult);
-            }
-
-            @Override
-            public void streamFailWith(PolicyResult policyResult) {}
-        };
+        private final ExecutionFailure executionFailure;
     }
 }
