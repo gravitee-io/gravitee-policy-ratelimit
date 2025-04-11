@@ -35,7 +35,8 @@ image:https://img.shields.io/static/v1?label=Available%20at&message=Gravitee.io&
 |Plugin version | APIM version
 
 | 1.x                  | Up to 3.19
-| 2.x                  | 3.20 to latest
+| 2.x                  | 3.20 to 4.5
+| 3.x                  | 4.6 to latest
 |===
 
 == Configuration
