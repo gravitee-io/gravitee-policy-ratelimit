@@ -1,3 +1,28 @@
+# [3.0.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.1.3...3.0.0) (2025-04-15)
+
+
+* feat!: allow use spike arrest on V4 message APIs ([44840df](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/44840dff1a0e4b25527523f91bbc09f3e854970f))
+* feat!: allow use rate limit on V4 message APIs ([468334d](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/468334dc522b706f81e6a1abd90d2a387bf45e33))
+* feat!: allow use quota on V4 message APIs ([7a5ac9a](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/7a5ac9adef185aefea217ceb003cc69e4ea031a8))
+
+
+### Features
+
+* create library to shared code between policies ([6960c5c](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/6960c5c69f034ab5695e5664badc54a6b755e25e))
+
+
+### BREAKING CHANGES
+
+* use HttpPolicy break compatibility with APIM v4.5 and below
+
+APIM-9188
+* use HttpPolicy break compatibility with APIM v4.5 and below
+
+APIM-9188
+* use HttpPolicy break compatibility with APIM v4.5 and below
+
+APIM-9188
+
 ## [2.1.3](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.1.2...2.1.3) (2024-10-09)
 
 
