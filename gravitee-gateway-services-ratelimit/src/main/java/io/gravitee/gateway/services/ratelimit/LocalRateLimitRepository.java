@@ -31,26 +31,21 @@ public class LocalRateLimitRepository implements RateLimitRepository<LocalRateLi
 
     @Override
     public Single<LocalRateLimit> incrementAndGet(String key, long weight, Supplier<LocalRateLimit> supplier) {
-        return Single
-            .fromCallable(() ->
-                rateLimits.compute(
-                    key,
-                    (key1, rateLimit) -> {
-                        // No local counter or existing one is expired
-                        if (rateLimit == null || rateLimit.getResetTime() <= System.currentTimeMillis()) {
-                            rateLimit = supplier.get();
-                        }
+        return Single.fromCallable(() ->
+            rateLimits.compute(key, (key1, rateLimit) -> {
+                // No local counter or existing one is expired
+                if (rateLimit == null || rateLimit.getResetTime() <= System.currentTimeMillis()) {
+                    rateLimit = supplier.get();
+                }
 
-                        // Increment local counter
-                        rateLimit.setLocal(rateLimit.getLocal() + weight);
+                // Increment local counter
+                rateLimit.setLocal(rateLimit.getLocal() + weight);
 
-                        // We have to update the counter because the policy is based on this one
-                        rateLimit.setCounter(rateLimit.getCounter() + weight);
-                        return rateLimit;
-                    }
-                )
-            )
-            .subscribeOn(Schedulers.computation());
+                // We have to update the counter because the policy is based on this one
+                rateLimit.setCounter(rateLimit.getCounter() + weight);
+                return rateLimit;
+            })
+        ).subscribeOn(Schedulers.computation());
     }
 
     Maybe<LocalRateLimit> get(String key) {
@@ -58,11 +53,9 @@ public class LocalRateLimitRepository implements RateLimitRepository<LocalRateLi
     }
 
     Single<LocalRateLimit> save(LocalRateLimit rate) {
-        return Single
-            .fromCallable(() -> {
-                rateLimits.put(rate.getKey(), rate);
-                return rate;
-            })
-            .subscribeOn(Schedulers.computation());
+        return Single.fromCallable(() -> {
+            rateLimits.put(rate.getKey(), rate);
+            return rate;
+        }).subscribeOn(Schedulers.computation());
     }
 }

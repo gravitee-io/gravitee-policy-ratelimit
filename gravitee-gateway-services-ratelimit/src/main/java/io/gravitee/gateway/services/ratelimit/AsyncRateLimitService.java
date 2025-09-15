@@ -47,12 +47,10 @@ public class AsyncRateLimitService extends AbstractService {
     protected void doStart() throws Exception {
         super.doStart();
 
-        DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) (
-            (ConfigurableApplicationContext) applicationContext
-        ).getBeanFactory();
-        DefaultListableBeanFactory parentBeanFactory = (DefaultListableBeanFactory) (
-            (ConfigurableApplicationContext) applicationContext.getParent()
-        ).getBeanFactory();
+        DefaultListableBeanFactory beanFactory =
+            (DefaultListableBeanFactory) ((ConfigurableApplicationContext) applicationContext).getBeanFactory();
+        DefaultListableBeanFactory parentBeanFactory =
+            (DefaultListableBeanFactory) ((ConfigurableApplicationContext) applicationContext.getParent()).getBeanFactory();
 
         // Retrieve the current rate-limit repository implementation
         RateLimitRepository<RateLimit> rateLimitRepository = parentBeanFactory.getBean(RateLimitRepository.class);

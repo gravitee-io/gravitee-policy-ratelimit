@@ -34,16 +34,13 @@ public class SpikeArrestPolicyConfigurationTest {
             SpikeArrestPolicyConfiguration.class
         );
 
-        org.assertj.core.api.Assertions
-            .assertThat(configuration)
-            .isEqualTo(
-                SpikeArrestPolicyConfiguration
-                    .builder()
-                    .addHeaders(false)
-                    .async(false)
-                    .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.MINUTES).build())
-                    .build()
-            );
+        org.assertj.core.api.Assertions.assertThat(configuration).isEqualTo(
+            SpikeArrestPolicyConfiguration.builder()
+                .addHeaders(false)
+                .async(false)
+                .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.MINUTES).build())
+                .build()
+        );
     }
 
     @Test
@@ -53,24 +50,15 @@ public class SpikeArrestPolicyConfigurationTest {
             SpikeArrestPolicyConfiguration.class
         );
 
-        org.assertj.core.api.Assertions
-            .assertThat(configuration)
-            .isEqualTo(
-                SpikeArrestPolicyConfiguration
-                    .builder()
-                    .addHeaders(true)
-                    .async(true)
-                    .spike(
-                        SpikeArrestConfiguration
-                            .builder()
-                            .limit(0)
-                            .dynamicLimit("10")
-                            .periodTime(10)
-                            .periodTimeUnit(TimeUnit.MINUTES)
-                            .build()
-                    )
-                    .build()
-            );
+        org.assertj.core.api.Assertions.assertThat(configuration).isEqualTo(
+            SpikeArrestPolicyConfiguration.builder()
+                .addHeaders(true)
+                .async(true)
+                .spike(
+                    SpikeArrestConfiguration.builder().limit(0).dynamicLimit("10").periodTime(10).periodTimeUnit(TimeUnit.MINUTES).build()
+                )
+                .build()
+        );
     }
 
     private <T> T load(String resource, Class<T> type) throws IOException {

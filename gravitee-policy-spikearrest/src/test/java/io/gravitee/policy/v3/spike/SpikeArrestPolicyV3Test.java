@@ -101,8 +101,7 @@ public class SpikeArrestPolicyV3Test {
     @Test
     public void should_fail_when_no_service_installed() {
         var policy = new SpikeArrestPolicyV3(
-            SpikeArrestPolicyConfiguration
-                .builder()
+            SpikeArrestPolicyConfiguration.builder()
                 .spike(SpikeArrestConfiguration.builder().limit(1).periodTime(1).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
         );
@@ -129,8 +128,7 @@ public class SpikeArrestPolicyV3Test {
     public void should_add_headers_when_enabled() throws InterruptedException {
         var latch = new CountDownLatch(1);
         var policy = new SpikeArrestPolicyV3(
-            SpikeArrestPolicyConfiguration
-                .builder()
+            SpikeArrestPolicyConfiguration.builder()
                 .addHeaders(true)
                 .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
@@ -163,8 +161,7 @@ public class SpikeArrestPolicyV3Test {
     public void should_not_add_headers_when_disabled() throws InterruptedException {
         var latch = new CountDownLatch(1);
         var policy = new SpikeArrestPolicyV3(
-            SpikeArrestPolicyConfiguration
-                .builder()
+            SpikeArrestPolicyConfiguration.builder()
                 .addHeaders(false)
                 .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
@@ -198,11 +195,9 @@ public class SpikeArrestPolicyV3Test {
     public void should_provide_info_when_limit_exceeded() throws InterruptedException {
         var latch = new CountDownLatch(2);
         var policy = new SpikeArrestPolicyV3(
-            SpikeArrestPolicyConfiguration
-                .builder()
+            SpikeArrestPolicyConfiguration.builder()
                 .spike(
-                    SpikeArrestConfiguration
-                        .builder()
+                    SpikeArrestConfiguration.builder()
                         .limit(1)
                         .dynamicLimit("0")
                         .periodTime(100)
@@ -271,8 +266,9 @@ public class SpikeArrestPolicyV3Test {
         @BeforeEach
         void setUp() {
             var mockedRateLimitService = mock(RateLimitService.class);
-            when(mockedRateLimitService.incrementAndGet(any(), anyBoolean(), any()))
-                .thenReturn(Single.error(new RuntimeException("Error")));
+            when(mockedRateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(
+                Single.error(new RuntimeException("Error"))
+            );
             lenient().when(executionContext.getComponent(RateLimitService.class)).thenReturn(mockedRateLimitService);
         }
 
@@ -280,8 +276,7 @@ public class SpikeArrestPolicyV3Test {
         public void should_add_headers_when_enabled() throws InterruptedException {
             var latch = new CountDownLatch(1);
             var policy = new SpikeArrestPolicyV3(
-                SpikeArrestPolicyConfiguration
-                    .builder()
+                SpikeArrestPolicyConfiguration.builder()
                     .addHeaders(true)
                     .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
                     .build()
@@ -294,12 +289,11 @@ public class SpikeArrestPolicyV3Test {
                     executionContext,
                     chain(
                         (req, res) -> {
-                            assertThat(responseHttpHeaders.toSingleValueMap())
-                                .contains(
-                                    Map.entry(SpikeArrestPolicyV3.X_SPIKE_ARREST_LIMIT, "1"),
-                                    Map.entry(SpikeArrestPolicyV3.X_SPIKE_ARREST_SLICE, "1000ms"),
-                                    Map.entry(SpikeArrestPolicyV3.X_SPIKE_ARREST_RESET, "-1")
-                                );
+                            assertThat(responseHttpHeaders.toSingleValueMap()).contains(
+                                Map.entry(SpikeArrestPolicyV3.X_SPIKE_ARREST_LIMIT, "1"),
+                                Map.entry(SpikeArrestPolicyV3.X_SPIKE_ARREST_SLICE, "1000ms"),
+                                Map.entry(SpikeArrestPolicyV3.X_SPIKE_ARREST_RESET, "-1")
+                            );
                             latch.countDown();
                         },
                         policyResult -> {

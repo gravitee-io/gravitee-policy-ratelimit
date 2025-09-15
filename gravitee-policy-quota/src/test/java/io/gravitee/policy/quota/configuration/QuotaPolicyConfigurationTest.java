@@ -36,23 +36,15 @@ class QuotaPolicyConfigurationTest {
             QuotaPolicyConfiguration.class
         );
 
-        assertThat(configuration)
-            .isEqualTo(
-                QuotaPolicyConfiguration
-                    .builder()
-                    .addHeaders(true)
-                    .async(false)
-                    .quota(
-                        QuotaConfiguration
-                            .builder()
-                            .limit(10)
-                            .dynamicLimit("{(2*5)}")
-                            .periodTime(10)
-                            .periodTimeUnit(ChronoUnit.MINUTES)
-                            .build()
-                    )
-                    .build()
-            );
+        assertThat(configuration).isEqualTo(
+            QuotaPolicyConfiguration.builder()
+                .addHeaders(true)
+                .async(false)
+                .quota(
+                    QuotaConfiguration.builder().limit(10).dynamicLimit("{(2*5)}").periodTime(10).periodTimeUnit(ChronoUnit.MINUTES).build()
+                )
+                .build()
+        );
     }
 
     @Test
@@ -62,15 +54,13 @@ class QuotaPolicyConfigurationTest {
             QuotaPolicyConfiguration.class
         );
 
-        assertThat(configuration)
-            .isEqualTo(
-                QuotaPolicyConfiguration
-                    .builder()
-                    .addHeaders(false)
-                    .async(true)
-                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.MINUTES).build())
-                    .build()
-            );
+        assertThat(configuration).isEqualTo(
+            QuotaPolicyConfiguration.builder()
+                .addHeaders(false)
+                .async(true)
+                .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.MINUTES).build())
+                .build()
+        );
     }
 
     private <T> T load(String resource, Class<T> type) throws IOException {

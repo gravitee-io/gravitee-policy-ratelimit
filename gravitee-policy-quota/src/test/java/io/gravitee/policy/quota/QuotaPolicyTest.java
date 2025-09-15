@@ -98,8 +98,9 @@ class QuotaPolicyTest {
         when(messageContext.metrics()).thenReturn(new Metrics());
 
         when(plainContext.interruptWith(any())).thenAnswer(invocation -> Completable.error(new MyException(invocation.getArgument(0))));
-        when(messageContext.interruptMessagesWith(any()))
-            .thenAnswer(invocation -> Flowable.error(new MyException(invocation.getArgument(0))));
+        when(messageContext.interruptMessagesWith(any())).thenAnswer(invocation ->
+            Flowable.error(new MyException(invocation.getArgument(0)))
+        );
     }
 
     @AfterEach
@@ -112,8 +113,7 @@ class QuotaPolicyTest {
         when(plainContext.getComponent(RateLimitService.class)).thenReturn(null);
 
         QuotaPolicy policy = new QuotaPolicy(
-            QuotaPolicyConfiguration
-                .builder()
+            QuotaPolicyConfiguration.builder()
                 .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
@@ -122,9 +122,10 @@ class QuotaPolicyTest {
             .onRequest(plainContext)
             .timeout(2, TimeUnit.SECONDS)
             .test()
-            .assertError(throwable ->
-                throwable instanceof MyException ex &&
-                ex.getExecutionFailure().message().contains("No rate-limit service has been installed")
+            .assertError(
+                throwable ->
+                    throwable instanceof MyException ex &&
+                    ex.getExecutionFailure().message().contains("No rate-limit service has been installed")
             );
     }
 
@@ -133,8 +134,7 @@ class QuotaPolicyTest {
         when(messageContext.getComponent(RateLimitService.class)).thenReturn(null);
 
         QuotaPolicy policy = new QuotaPolicy(
-            QuotaPolicyConfiguration
-                .builder()
+            QuotaPolicyConfiguration.builder()
                 .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
@@ -142,17 +142,17 @@ class QuotaPolicyTest {
         policy
             .onMessageRequest(messageContext)
             .test()
-            .assertError(throwable ->
-                throwable instanceof MyException ex &&
-                ex.getExecutionFailure().message().contains("No rate-limit service has been installed")
+            .assertError(
+                throwable ->
+                    throwable instanceof MyException ex &&
+                    ex.getExecutionFailure().message().contains("No rate-limit service has been installed")
             );
     }
 
     @Test
     void should_add_quota_headers_when_enabled(Vertx vertx, VertxTestContext testContext) {
         QuotaPolicy policy = new QuotaPolicy(
-            QuotaPolicyConfiguration
-                .builder()
+            QuotaPolicyConfiguration.builder()
                 .addHeaders(true)
                 .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
@@ -175,8 +175,7 @@ class QuotaPolicyTest {
     @Test
     void should_not_add_quota_headers_when_disabled(Vertx vertx, VertxTestContext testContext) {
         QuotaPolicy policy = new QuotaPolicy(
-            QuotaPolicyConfiguration
-                .builder()
+            QuotaPolicyConfiguration.builder()
                 .addHeaders(true)
                 .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
@@ -217,8 +216,7 @@ class QuotaPolicyTest {
         @Test
         void should_successfully_process_onRequest(Vertx vertx, VertxTestContext testContext) {
             QuotaPolicy policy = new QuotaPolicy(
-                QuotaPolicyConfiguration
-                    .builder()
+                QuotaPolicyConfiguration.builder()
                     .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                     .build()
             );
@@ -229,8 +227,7 @@ class QuotaPolicyTest {
         @Test
         void should_successfully_process_onMessageRequest(Vertx vertx, VertxTestContext testContext) {
             QuotaPolicy policy = new QuotaPolicy(
-                QuotaPolicyConfiguration
-                    .builder()
+                QuotaPolicyConfiguration.builder()
                     .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                     .build()
             );
@@ -261,8 +258,7 @@ class QuotaPolicyTest {
         @Test
         void should_interrupt_onRequest_when_quota_exceeded(Vertx vertx, VertxTestContext testContext) {
             QuotaPolicy policy = new QuotaPolicy(
-                QuotaPolicyConfiguration
-                    .builder()
+                QuotaPolicyConfiguration.builder()
                     .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                     .build()
             );
@@ -274,8 +270,9 @@ class QuotaPolicyTest {
                         assertThat(th).isInstanceOf(MyException.class);
                         ExecutionFailure executionFailure = ((MyException) th).getExecutionFailure();
                         assertThat(executionFailure.statusCode()).isEqualTo(429);
-                        assertThat(executionFailure.message())
-                            .contains("Quota exceeded! You reached the limit of 10 requests per 10 seconds");
+                        assertThat(executionFailure.message()).contains(
+                            "Quota exceeded! You reached the limit of 10 requests per 10 seconds"
+                        );
                         verify(headers).set(QuotaPolicyV3.X_QUOTA_LIMIT, "10");
                         verify(headers).set(QuotaPolicyV3.X_QUOTA_REMAINING, "0");
                         verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_RESET), anyString());
@@ -296,8 +293,7 @@ class QuotaPolicyTest {
         @Test
         void should_interrupt_onMessageRequest_when_quota_exceeded(Vertx vertx, VertxTestContext testContext) {
             QuotaPolicy policy = new QuotaPolicy(
-                QuotaPolicyConfiguration
-                    .builder()
+                QuotaPolicyConfiguration.builder()
                     .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                     .build()
             );
@@ -309,8 +305,9 @@ class QuotaPolicyTest {
                         assertThat(th).isInstanceOf(MyException.class);
                         ExecutionFailure executionFailure = ((MyException) th).getExecutionFailure();
                         assertThat(executionFailure.statusCode()).isEqualTo(429);
-                        assertThat(executionFailure.message())
-                            .contains("Quota exceeded! You reached the limit of 10 requests per 10 seconds");
+                        assertThat(executionFailure.message()).contains(
+                            "Quota exceeded! You reached the limit of 10 requests per 10 seconds"
+                        );
                         verify(headers).set(QuotaPolicyV3.X_QUOTA_LIMIT, "10");
                         verify(headers).set(QuotaPolicyV3.X_QUOTA_REMAINING, "0");
                         verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_RESET), anyString());
@@ -340,15 +337,15 @@ class QuotaPolicyTest {
             when(plainContext.getComponent(RateLimitService.class)).thenReturn(mockRateLimitService);
             when(messageContext.getComponent(RateLimitService.class)).thenReturn(mockRateLimitService);
 
-            when(mockRateLimitService.incrementAndGet(anyString(), anyBoolean(), any()))
-                .thenReturn(Single.error(new RuntimeException("Test error")));
+            when(mockRateLimitService.incrementAndGet(anyString(), anyBoolean(), any())).thenReturn(
+                Single.error(new RuntimeException("Test error"))
+            );
         }
 
         @Test
         void should_handle_repository_error_on_onRequest(Vertx vertx, VertxTestContext testContext) {
             QuotaPolicy policy = new QuotaPolicy(
-                QuotaPolicyConfiguration
-                    .builder()
+                QuotaPolicyConfiguration.builder()
                     .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                     .build()
             );
@@ -359,8 +356,7 @@ class QuotaPolicyTest {
         @Test
         void should_handle_repository_error_on_onMessageRequest(Vertx vertx, VertxTestContext testContext) {
             QuotaPolicy policy = new QuotaPolicy(
-                QuotaPolicyConfiguration
-                    .builder()
+                QuotaPolicyConfiguration.builder()
                     .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                     .build()
             );

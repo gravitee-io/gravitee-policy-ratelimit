@@ -29,12 +29,12 @@ import io.gravitee.ratelimit.DateUtils;
 import io.gravitee.ratelimit.KeyFactory;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
+import io.reactivex.rxjava3.annotations.Nullable;
 import io.reactivex.rxjava3.core.SingleObserver;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
-import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +58,8 @@ public class RateLimitPolicyV3 {
     private static final Logger LOGGER = LoggerFactory.getLogger(RateLimitPolicyV3.class);
 
     protected static final String RATE_LIMIT_TOO_MANY_REQUESTS = "RATE_LIMIT_TOO_MANY_REQUESTS";
+    protected static final String RATE_LIMIT_SERVER_ERROR = "RATE_LIMIT_SERVER_ERROR";
+    protected static final String RATE_LIMIT_NOT_APPLIED = "RATE_LIMIT_NOT_APPLIED";
 
     /**
      * The maximum number of requests that the consumer is permitted to make per time unit.
@@ -98,9 +100,11 @@ public class RateLimitPolicyV3 {
             return;
         }
 
-        String key = KEY_FACTORY
-            .createRateLimitKey(executionContext.getAttributes(), executionContext::getTemplateEngine, rateLimitConfiguration)
-            .blockingGet();
+        String key = KEY_FACTORY.createRateLimitKey(
+            executionContext.getAttributes(),
+            executionContext::getTemplateEngine,
+            rateLimitConfiguration
+        ).blockingGet();
         long limit = (rateLimitConfiguration.getLimit() > 0)
             ? rateLimitConfiguration.getLimit()
             : executionContext.getTemplateEngine().evalNow(rateLimitConfiguration.getDynamicLimit(), Long.class);
@@ -108,25 +112,21 @@ public class RateLimitPolicyV3 {
         Context context = Vertx.currentContext();
 
         rateLimitService
-            .incrementAndGet(
-                key,
-                rateLimitPolicyConfiguration.isAsync(),
-                () -> {
-                    // Set the time at which the current rate limit window resets in UTC epoch seconds.
-                    long resetTimeMillis = DateUtils.getEndOfPeriod(
-                        request.timestamp(),
-                        rateLimitConfiguration.getPeriodTime(),
-                        rateLimitConfiguration.getPeriodTimeUnit()
-                    );
+            .incrementAndGet(key, rateLimitPolicyConfiguration.isAsync(), () -> {
+                // Set the time at which the current rate limit window resets in UTC epoch seconds.
+                long resetTimeMillis = DateUtils.getEndOfPeriod(
+                    request.timestamp(),
+                    rateLimitConfiguration.getPeriodTime(),
+                    rateLimitConfiguration.getPeriodTimeUnit()
+                );
 
-                    RateLimit rate = new RateLimit(key);
-                    rate.setCounter(0);
-                    rate.setLimit(limit);
-                    rate.setResetTime(resetTimeMillis);
-                    rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
-                    return rate;
-                }
-            )
+                RateLimit rate = new RateLimit(key);
+                rate.setCounter(0);
+                rate.setLimit(limit);
+                rate.setResetTime(resetTimeMillis);
+                rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+                return rate;
+            })
             .observeOn(RxHelper.scheduler(context))
             .subscribe(
                 new SingleObserver<>() {
@@ -171,13 +171,12 @@ public class RateLimitPolicyV3 {
             RATE_LIMIT_TOO_MANY_REQUESTS,
             HttpStatusCode.TOO_MANY_REQUESTS_429,
             "Rate limit exceeded! You reached the limit of " +
-            actualLimit +
-            " requests per " +
-            rateLimitConfiguration.getPeriodTime() +
-            ' ' +
-            rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase(),
-            Maps
-                .<String, Object>builder()
+                actualLimit +
+                " requests per " +
+                rateLimitConfiguration.getPeriodTime() +
+                ' ' +
+                rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase(),
+            Maps.<String, Object>builder()
                 .put("limit", actualLimit)
                 .put("period_time", rateLimitConfiguration.getPeriodTime())
                 .put("period_unit", rateLimitConfiguration.getPeriodTimeUnit())

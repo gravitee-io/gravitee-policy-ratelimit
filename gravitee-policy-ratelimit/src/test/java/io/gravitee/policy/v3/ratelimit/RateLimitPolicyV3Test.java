@@ -102,8 +102,7 @@ public class RateLimitPolicyV3Test {
     @Test
     public void should_fail_when_no_service_installed() {
         var policy = new RateLimitPolicyV3(
-            RateLimitPolicyConfiguration
-                .builder()
+            RateLimitPolicyConfiguration.builder()
                 .rate(RateLimitConfiguration.builder().limit(1).periodTime(1).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
         );
@@ -130,8 +129,7 @@ public class RateLimitPolicyV3Test {
     public void should_add_headers_when_enabled() throws InterruptedException {
         var latch = new CountDownLatch(1);
         var policy = new RateLimitPolicyV3(
-            RateLimitPolicyConfiguration
-                .builder()
+            RateLimitPolicyConfiguration.builder()
                 .addHeaders(true)
                 .rate(RateLimitConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
@@ -164,8 +162,7 @@ public class RateLimitPolicyV3Test {
     public void should_not_add_headers_when_disabled() throws InterruptedException {
         var latch = new CountDownLatch(1);
         var policy = new RateLimitPolicyV3(
-            RateLimitPolicyConfiguration
-                .builder()
+            RateLimitPolicyConfiguration.builder()
                 .addHeaders(false)
                 .rate(RateLimitConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
@@ -199,8 +196,7 @@ public class RateLimitPolicyV3Test {
     public void should_provide_info_when_limit_exceeded() throws InterruptedException {
         var latch = new CountDownLatch(1);
         var policy = new RateLimitPolicyV3(
-            RateLimitPolicyConfiguration
-                .builder()
+            RateLimitPolicyConfiguration.builder()
                 .rate(RateLimitConfiguration.builder().limit(0).dynamicLimit("0").periodTime(1).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
         );
@@ -239,8 +235,7 @@ public class RateLimitPolicyV3Test {
         int calls = 15;
         var latch = new CountDownLatch(calls);
         var policy = new RateLimitPolicyV3(
-            RateLimitPolicyConfiguration
-                .builder()
+            RateLimitPolicyConfiguration.builder()
                 .addHeaders(true)
                 .rate(RateLimitConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
@@ -263,8 +258,7 @@ public class RateLimitPolicyV3Test {
         int calls = 15;
         var latch = new CountDownLatch(calls);
         var policy = new RateLimitPolicyV3(
-            RateLimitPolicyConfiguration
-                .builder()
+            RateLimitPolicyConfiguration.builder()
                 .addHeaders(true)
                 .rate(RateLimitConfiguration.builder().dynamicLimit("{(2*5)}").periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
@@ -288,8 +282,9 @@ public class RateLimitPolicyV3Test {
         @BeforeEach
         void setUp() {
             var mockedRateLimitService = mock(RateLimitService.class);
-            when(mockedRateLimitService.incrementAndGet(any(), anyBoolean(), any()))
-                .thenReturn(Single.error(new RuntimeException("Error")));
+            when(mockedRateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(
+                Single.error(new RuntimeException("Error"))
+            );
             lenient().when(executionContext.getComponent(RateLimitService.class)).thenReturn(mockedRateLimitService);
         }
 
@@ -297,8 +292,7 @@ public class RateLimitPolicyV3Test {
         public void should_add_headers_when_enabled() throws InterruptedException {
             var latch = new CountDownLatch(1);
             var policy = new RateLimitPolicyV3(
-                RateLimitPolicyConfiguration
-                    .builder()
+                RateLimitPolicyConfiguration.builder()
                     .addHeaders(true)
                     .rate(RateLimitConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
                     .build()
@@ -311,12 +305,11 @@ public class RateLimitPolicyV3Test {
                     executionContext,
                     chain(
                         (req, res) -> {
-                            assertThat(responseHttpHeaders.toSingleValueMap())
-                                .contains(
-                                    Map.entry(RateLimitPolicyV3.X_RATE_LIMIT_LIMIT, "10"),
-                                    Map.entry(RateLimitPolicyV3.X_RATE_LIMIT_REMAINING, "10"),
-                                    Map.entry(RateLimitPolicyV3.X_RATE_LIMIT_RESET, "-1")
-                                );
+                            assertThat(responseHttpHeaders.toSingleValueMap()).contains(
+                                Map.entry(RateLimitPolicyV3.X_RATE_LIMIT_LIMIT, "10"),
+                                Map.entry(RateLimitPolicyV3.X_RATE_LIMIT_REMAINING, "10"),
+                                Map.entry(RateLimitPolicyV3.X_RATE_LIMIT_RESET, "-1")
+                            );
                             latch.countDown();
                         },
                         policyResult -> {

@@ -57,6 +57,8 @@ public class QuotaPolicyV3 {
     private static final Logger LOGGER = LoggerFactory.getLogger(QuotaPolicyV3.class);
 
     protected static final String QUOTA_TOO_MANY_REQUESTS = "QUOTA_TOO_MANY_REQUESTS";
+    protected static final String QUOTA_SERVER_ERROR = "QUOTA_SERVER_ERROR";
+    protected static final String QUOTA_NOT_APPLIED = "QUOTA_NOT_APPLIED";
 
     /**
      * The maximum number of requests that the consumer is permitted to make per time unit.
@@ -92,9 +94,11 @@ public class QuotaPolicyV3 {
             return;
         }
 
-        String key = KEY_FACTORY
-            .createRateLimitKey(executionContext.getAttributes(), executionContext::getTemplateEngine, quotaConfiguration)
-            .blockingGet();
+        String key = KEY_FACTORY.createRateLimitKey(
+            executionContext.getAttributes(),
+            executionContext::getTemplateEngine,
+            quotaConfiguration
+        ).blockingGet();
         long limit = (quotaConfiguration.getLimit() > 0)
             ? quotaConfiguration.getLimit()
             : executionContext.getTemplateEngine().evalNow(quotaConfiguration.getDynamicLimit(), Long.class);
@@ -102,25 +106,21 @@ public class QuotaPolicyV3 {
         Context context = Vertx.currentContext();
 
         rateLimitService
-            .incrementAndGet(
-                key,
-                quotaPolicyConfiguration.isAsync(),
-                () -> {
-                    // Set the time at which the current rate limit window resets in UTC epoch seconds.
-                    long resetTimeMillis = DateUtils.getEndOfPeriod(
-                        request.timestamp(),
-                        quotaConfiguration.getPeriodTime(),
-                        quotaConfiguration.getPeriodTimeUnit()
-                    );
+            .incrementAndGet(key, quotaPolicyConfiguration.isAsync(), () -> {
+                // Set the time at which the current rate limit window resets in UTC epoch seconds.
+                long resetTimeMillis = DateUtils.getEndOfPeriod(
+                    request.timestamp(),
+                    quotaConfiguration.getPeriodTime(),
+                    quotaConfiguration.getPeriodTimeUnit()
+                );
 
-                    RateLimit rate = new RateLimit(key);
-                    rate.setCounter(0);
-                    rate.setLimit(limit);
-                    rate.setResetTime(resetTimeMillis);
-                    rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
-                    return rate;
-                }
-            )
+                RateLimit rate = new RateLimit(key);
+                rate.setCounter(0);
+                rate.setLimit(limit);
+                rate.setResetTime(resetTimeMillis);
+                rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+                return rate;
+            })
             .observeOn(RxHelper.scheduler(context))
             .subscribe(
                 new SingleObserver<>() {
@@ -174,13 +174,12 @@ public class QuotaPolicyV3 {
             QUOTA_TOO_MANY_REQUESTS,
             HttpStatusCode.TOO_MANY_REQUESTS_429,
             "Quota exceeded! You reached the limit of " +
-            actualLimit +
-            " requests per " +
-            quotaConfiguration.getPeriodTime() +
-            ' ' +
-            quotaConfiguration.getPeriodTimeUnit().name().toLowerCase(),
-            Maps
-                .<String, Object>builder()
+                actualLimit +
+                " requests per " +
+                quotaConfiguration.getPeriodTime() +
+                ' ' +
+                quotaConfiguration.getPeriodTimeUnit().name().toLowerCase(),
+            Maps.<String, Object>builder()
                 .put("limit", actualLimit)
                 .put("period_time", quotaConfiguration.getPeriodTime())
                 .put("period_unit", quotaConfiguration.getPeriodTimeUnit())
