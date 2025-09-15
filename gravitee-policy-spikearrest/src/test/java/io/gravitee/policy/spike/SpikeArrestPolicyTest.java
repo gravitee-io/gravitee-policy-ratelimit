@@ -83,8 +83,9 @@ class SpikeArrestPolicyTest {
         when(response.headers()).thenReturn(httpHeaders);
 
         when(executionContext.metrics()).thenReturn(new Metrics());
-        when(executionContext.interruptWith(any()))
-            .thenAnswer(invocationOnMock -> Completable.error(new MyException(invocationOnMock.getArgument(0))));
+        when(executionContext.interruptWith(any())).thenAnswer(invocationOnMock ->
+            Completable.error(new MyException(invocationOnMock.getArgument(0)))
+        );
     }
 
     @Test
@@ -136,9 +137,10 @@ class SpikeArrestPolicyTest {
         policy
             .onRequest(executionContext)
             .test()
-            .assertError(throwable ->
-                throwable instanceof MyException ex &&
-                ex.getExecutionFailure().message().contains("No rate-limit service has been installed")
+            .assertError(
+                throwable ->
+                    throwable instanceof MyException ex &&
+                    ex.getExecutionFailure().message().contains("No rate-limit service has been installed")
             );
     }
 

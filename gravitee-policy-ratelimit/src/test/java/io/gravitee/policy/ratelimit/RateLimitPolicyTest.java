@@ -88,14 +88,16 @@ class RateLimitPolicyTest {
         when(messageContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
         when(messageContext.response()).thenReturn(response);
         when(response.headers()).thenReturn(headers);
-        when(messageContext.interruptMessagesWith(any()))
-            .thenAnswer(invocationOnMock -> Flowable.error(new MyException(invocationOnMock.getArgument(0))));
+        when(messageContext.interruptMessagesWith(any())).thenAnswer(invocationOnMock ->
+            Flowable.error(new MyException(invocationOnMock.getArgument(0)))
+        );
 
         when(plainContext.metrics()).thenReturn(new Metrics());
         when(plainContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
         when(plainContext.response()).thenReturn(response);
-        when(plainContext.interruptWith(any()))
-            .thenAnswer(invocationOnMock -> Completable.error(new MyException(invocationOnMock.getArgument(0))));
+        when(plainContext.interruptWith(any())).thenAnswer(invocationOnMock ->
+            Completable.error(new MyException(invocationOnMock.getArgument(0)))
+        );
         when(response.headers()).thenReturn(headers);
     }
 
@@ -138,8 +140,9 @@ class RateLimitPolicyTest {
                     assertThat(th).isInstanceOf(MyException.class);
                     ExecutionFailure executionFailure = ((MyException) th).getExecutionFailure();
                     assertThat(executionFailure.statusCode()).isEqualTo(429);
-                    assertThat(executionFailure.message())
-                        .contains("Rate limit exceeded! You reached the limit of 10 requests per 1 minutes");
+                    assertThat(executionFailure.message()).contains(
+                        "Rate limit exceeded! You reached the limit of 10 requests per 1 minutes"
+                    );
                     verify(headers).set("X-Rate-Limit-Limit", "10");
                     verify(headers).set("X-Rate-Limit-Remaining", "0");
                     verify(headers).set(eq("X-Rate-Limit-Reset"), anyString());
@@ -164,9 +167,10 @@ class RateLimitPolicyTest {
         policy
             .onMessageRequest(messageContext)
             .test()
-            .assertError(throwable ->
-                throwable instanceof MyException ex &&
-                ex.getExecutionFailure().message().contains("No rate-limit service has been installed")
+            .assertError(
+                throwable ->
+                    throwable instanceof MyException ex &&
+                    ex.getExecutionFailure().message().contains("No rate-limit service has been installed")
             );
     }
 

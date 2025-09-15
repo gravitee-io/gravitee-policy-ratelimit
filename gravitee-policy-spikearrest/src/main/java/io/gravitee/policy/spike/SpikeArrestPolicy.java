@@ -20,6 +20,7 @@ import static io.gravitee.policy.spike.utils.LimitUtils.getEndOfPeriod;
 
 import io.gravitee.common.util.Maps;
 import io.gravitee.gateway.api.ExecutionContext;
+import io.gravitee.gateway.reactive.api.ExecutionWarn;
 import io.gravitee.gateway.reactive.api.context.http.HttpBaseExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
@@ -53,16 +54,16 @@ public class SpikeArrestPolicy extends SpikeArrestPolicyV3 implements HttpPolicy
 
     @Override
     public Completable onRequest(HttpPlainExecutionContext ctx) {
-        return Completable
-            .defer(() -> run(ctx))
-            .onErrorResumeNext(th -> ctx.interruptWith(PolicyRateLimitException.getExecutionFailure(th)));
+        return Completable.defer(() -> run(ctx)).onErrorResumeNext(th ->
+            ctx.interruptWith(PolicyRateLimitException.getExecutionFailure(SPIKE_ARREST_SERVER_ERROR, th))
+        );
     }
 
     @Override
     public Completable onMessageRequest(HttpMessageExecutionContext ctx) {
-        return Completable
-            .defer(() -> run(ctx))
-            .onErrorResumeNext(th -> ctx.interruptMessagesWith(PolicyRateLimitException.getExecutionFailure(th)).ignoreElements());
+        return Completable.defer(() -> run(ctx)).onErrorResumeNext(th ->
+            ctx.interruptMessagesWith(PolicyRateLimitException.getExecutionFailure(SPIKE_ARREST_SERVER_ERROR, th)).ignoreElements()
+        );
     }
 
     public Completable run(HttpBaseExecutionContext ctx) {
@@ -73,7 +74,7 @@ public class SpikeArrestPolicy extends SpikeArrestPolicyV3 implements HttpPolicy
         if (rateLimitService == null) {
             String message = "No rate-limit service has been installed.";
             ctx.metrics().setErrorMessage(message);
-            return Completable.error(PolicyRateLimitException.serverError(message));
+            return Completable.error(PolicyRateLimitException.serverError(SPIKE_ARREST_SERVER_ERROR, message));
         }
 
         var k = KEY_FACTORY.createRateLimitKey(ctx, spikeArrestConfiguration);
@@ -83,71 +84,60 @@ public class SpikeArrestPolicy extends SpikeArrestPolicyV3 implements HttpPolicy
 
         Context context = Vertx.currentContext();
 
-        return Single
-            .zip(k, l.defaultIfEmpty(0L), Pair::new)
-            .flatMapCompletable(entry -> {
-                long limit = entry.limit();
+        return Single.zip(k, l.defaultIfEmpty(0L), Pair::new).flatMapCompletable(entry -> {
+            long limit = entry.limit();
 
-                var slice = computeSliceLimit(
-                    limit,
-                    spikeArrestConfiguration.getPeriodTime(),
-                    spikeArrestConfiguration.getPeriodTimeUnit()
-                );
+            var slice = computeSliceLimit(limit, spikeArrestConfiguration.getPeriodTime(), spikeArrestConfiguration.getPeriodTimeUnit());
 
-                return rateLimitService
-                    .incrementAndGet(
-                        entry.key(),
-                        policyConfiguration.isAsync(),
-                        () -> {
-                            // Set the time at which the current rate limit window resets in UTC epoch seconds.
-                            long resetTimeMillis = getEndOfPeriod(ctx.timestamp(), slice.period(), TimeUnit.MILLISECONDS);
+            return rateLimitService
+                .incrementAndGet(entry.key(), policyConfiguration.isAsync(), () -> {
+                    // Set the time at which the current rate limit window resets in UTC epoch seconds.
+                    long resetTimeMillis = getEndOfPeriod(ctx.timestamp(), slice.period(), TimeUnit.MILLISECONDS);
 
-                            RateLimit rate = new RateLimit(entry.key());
-                            rate.setCounter(0);
-                            rate.setLimit(slice.limit());
-                            rate.setResetTime(resetTimeMillis);
-                            rate.setSubscription(ctx.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
-                            return rate;
-                        }
-                    )
-                    .observeOn(RxHelper.scheduler(context))
-                    .flatMapCompletable(rateLimit -> {
-                        // Set Rate Limit headers on response
-                        if (policyConfiguration.isAddHeaders()) {
-                            ctx.response().headers().set(X_SPIKE_ARREST_LIMIT, Long.toString(slice.limit()));
-                            ctx.response().headers().set(X_SPIKE_ARREST_SLICE, slice.period() + "ms");
-                            ctx.response().headers().set(X_SPIKE_ARREST_RESET, Long.toString(rateLimit.getResetTime()));
-                        }
+                    RateLimit rate = new RateLimit(entry.key());
+                    rate.setCounter(0);
+                    rate.setLimit(slice.limit());
+                    rate.setResetTime(resetTimeMillis);
+                    rate.setSubscription(ctx.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+                    return rate;
+                })
+                .observeOn(RxHelper.scheduler(context))
+                .flatMapCompletable(rateLimit -> {
+                    // Set Rate Limit headers on response
+                    if (policyConfiguration.isAddHeaders()) {
+                        ctx.response().headers().set(X_SPIKE_ARREST_LIMIT, Long.toString(slice.limit()));
+                        ctx.response().headers().set(X_SPIKE_ARREST_SLICE, slice.period() + "ms");
+                        ctx.response().headers().set(X_SPIKE_ARREST_RESET, Long.toString(rateLimit.getResetTime()));
+                    }
 
-                        if (rateLimit.getCounter() <= slice.limit()) {
-                            return Completable.complete();
-                        } else {
-                            String message = String.format(
-                                "Spike limit exceeded! You reached the limit of %d requests per %d ms.",
-                                slice.limit(),
-                                slice.period()
-                            );
-                            ctx.metrics().setErrorKey(SpikeArrestPolicyV3.SPIKE_ARREST_TOO_MANY_REQUESTS);
-                            ctx.metrics().setErrorMessage(message);
-                            return Completable.error(
-                                PolicyRateLimitException.overflow(
-                                    SpikeArrestPolicyV3.SPIKE_ARREST_TOO_MANY_REQUESTS,
-                                    message,
-                                    Maps
-                                        .<String, Object>builder()
-                                        .put("slice_limit", slice.limit())
-                                        .put("slice_period_time", slice.period())
-                                        .put("slice_period_unit", TimeUnit.MILLISECONDS)
-                                        .put("limit", limit)
-                                        .put("period_time", spikeArrestConfiguration.getPeriodTime())
-                                        .put("period_unit", spikeArrestConfiguration.getPeriodTimeUnit())
-                                        .build()
-                                )
-                            );
-                        }
-                    })
-                    .onErrorResumeNext(throwable -> errorManagement(ctx, throwable, policyConfiguration, slice));
-            });
+                    if (rateLimit.getCounter() <= slice.limit()) {
+                        return Completable.complete();
+                    } else {
+                        String message = String.format(
+                            "Spike limit exceeded! You reached the limit of %d requests per %d ms.",
+                            slice.limit(),
+                            slice.period()
+                        );
+                        ctx.metrics().setErrorKey(SpikeArrestPolicyV3.SPIKE_ARREST_TOO_MANY_REQUESTS);
+                        ctx.metrics().setErrorMessage(message);
+                        return Completable.error(
+                            PolicyRateLimitException.overflow(
+                                SpikeArrestPolicyV3.SPIKE_ARREST_TOO_MANY_REQUESTS,
+                                message,
+                                Maps.<String, Object>builder()
+                                    .put("slice_limit", slice.limit())
+                                    .put("slice_period_time", slice.period())
+                                    .put("slice_period_unit", TimeUnit.MILLISECONDS)
+                                    .put("limit", limit)
+                                    .put("period_time", spikeArrestConfiguration.getPeriodTime())
+                                    .put("period_unit", spikeArrestConfiguration.getPeriodTimeUnit())
+                                    .build()
+                            )
+                        );
+                    }
+                })
+                .onErrorResumeNext(throwable -> errorManagement(ctx, throwable, policyConfiguration, slice));
+        });
     }
 
     private static Completable errorManagement(
@@ -166,6 +156,11 @@ public class SpikeArrestPolicy extends SpikeArrestPolicyV3 implements HttpPolicy
             ctx.response().headers().set(X_SPIKE_ARREST_RESET, Long.toString(-1));
         }
 
+        ctx.warnWith(
+            new ExecutionWarn(SPIKE_ARREST_NOT_APPLIED)
+                .message("Request bypassed spike arrest policy due to internal error")
+                .cause(throwable)
+        );
         // If an errors occurs at the repository level, we accept the call
         return Completable.complete();
     }

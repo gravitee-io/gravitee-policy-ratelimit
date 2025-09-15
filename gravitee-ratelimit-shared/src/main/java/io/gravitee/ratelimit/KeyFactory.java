@@ -72,22 +72,21 @@ public class KeyFactory {
                 .map(key -> key + KEY_SEPARATOR + type);
         }
 
-        return Single
-            .zip(
-                Single.just(susbcription(attributes)),
-                template(templateEngineSupplier, configuration).defaultIfEmpty(""),
-                Single.just(type),
-                resolvedPath != null ? Single.just(Integer.toString(resolvedPath.hashCode())) : Single.just(""),
-                Stream::of
-            )
-            .map(stream -> stream.filter(not(String::isBlank)).collect(Collectors.joining(KEY_SEPARATOR)));
+        return Single.zip(
+            Single.just(susbcription(attributes)),
+            template(templateEngineSupplier, configuration).defaultIfEmpty(""),
+            Single.just(type),
+            resolvedPath != null ? Single.just(Integer.toString(resolvedPath.hashCode())) : Single.just(""),
+            Stream::of
+        ).map(stream -> stream.filter(not(String::isBlank)).collect(Collectors.joining(KEY_SEPARATOR)));
     }
 
     private static String susbcription(Map<String, Object> attributes) {
         var plan = attributes.get(ExecutionContext.ATTR_PLAN);
         if (plan != null) {
             return String.valueOf(plan) + attributes.get(ExecutionContext.ATTR_SUBSCRIPTION_ID);
-        } else if (attributes.containsKey(ATTR_OAUTH_CLIENT_ID)) { // TODO manage also APIKey when managed by K8S plugins
+        } else if (attributes.containsKey(ATTR_OAUTH_CLIENT_ID)) {
+            // TODO manage also APIKey when managed by K8S plugins
             return String.valueOf(attributes.get(ATTR_OAUTH_CLIENT_ID));
         } else {
             return String.valueOf(attributes.get(ExecutionContext.ATTR_API));

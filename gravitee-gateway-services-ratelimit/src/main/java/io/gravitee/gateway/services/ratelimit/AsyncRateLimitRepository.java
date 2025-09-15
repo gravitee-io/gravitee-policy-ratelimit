@@ -50,56 +50,52 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
     }
 
     public void initialize() {
-        mergeSubscription =
-            Flowable
-                .<Long, Long>generate(
-                    () -> 0L,
-                    (state, emitter) -> {
-                        emitter.onNext(state);
-                        return state + 1;
-                    }
-                )
-                .delay(5000, TimeUnit.MILLISECONDS)
-                .rebatchRequests(1)
-                .filter(interval -> !keys.isEmpty())
-                .concatMapCompletable(interval ->
-                    Flowable
-                        .fromIterable(keys)
-                        .flatMapCompletable(key ->
-                            sharedData
-                                .getLocalLock(key)
-                                .flatMapCompletable(lock ->
-                                    localCacheRateLimitRepository
-                                        .get(key)
-                                        // Remote rate is incremented by the local counter value
-                                        // If the remote does not contain existing value, use the local counter
-                                        .flatMapSingle(localRateLimit ->
-                                            remoteCacheRateLimitRepository
-                                                .incrementAndGet(key, localRateLimit.getLocal(), () -> localRateLimit)
-                                                .map(rateLimit -> {
-                                                    // Set the counter with the latest value from the repository
-                                                    localRateLimit.setCounter(rateLimit.getCounter());
+        mergeSubscription = Flowable.<Long, Long>generate(
+            () -> 0L,
+            (state, emitter) -> {
+                emitter.onNext(state);
+                return state + 1;
+            }
+        )
+            .delay(5000, TimeUnit.MILLISECONDS)
+            .rebatchRequests(1)
+            .filter(interval -> !keys.isEmpty())
+            .concatMapCompletable(interval ->
+                Flowable.fromIterable(keys).flatMapCompletable(key ->
+                    sharedData
+                        .getLocalLock(key)
+                        .flatMapCompletable(lock ->
+                            localCacheRateLimitRepository
+                                .get(key)
+                                // Remote rate is incremented by the local counter value
+                                // If the remote does not contain existing value, use the local counter
+                                .flatMapSingle(localRateLimit ->
+                                    remoteCacheRateLimitRepository
+                                        .incrementAndGet(key, localRateLimit.getLocal(), () -> localRateLimit)
+                                        .map(rateLimit -> {
+                                            // Set the counter with the latest value from the repository
+                                            localRateLimit.setCounter(rateLimit.getCounter());
 
-                                                    // Re-init the local counter
-                                                    localRateLimit.setLocal(0L);
+                                            // Re-init the local counter
+                                            localRateLimit.setLocal(0L);
 
-                                                    return localRateLimit;
-                                                })
-                                                .flatMap(rateLimit -> localCacheRateLimitRepository.save(rateLimit))
-                                        )
-                                        .doFinally(lock::release)
-                                        // And save the new counter value into the local cache
-                                        .doOnSuccess(localRateLimit -> keys.remove(key))
-                                        .doOnError(throwable ->
-                                            log.error("An unexpected error occurs while refreshing asynchronous rate-limit", throwable)
-                                        )
-                                        .onErrorComplete()
-                                        .ignoreElement()
+                                            return localRateLimit;
+                                        })
+                                        .flatMap(rateLimit -> localCacheRateLimitRepository.save(rateLimit))
                                 )
+                                .doFinally(lock::release)
+                                // And save the new counter value into the local cache
+                                .doOnSuccess(localRateLimit -> keys.remove(key))
+                                .doOnError(throwable ->
+                                    log.error("An unexpected error occurs while refreshing asynchronous rate-limit", throwable)
+                                )
+                                .onErrorComplete()
+                                .ignoreElement()
                         )
                 )
-                .onErrorComplete()
-                .subscribe();
+            )
+            .onErrorComplete()
+            .subscribe();
     }
 
     public void clean() {
@@ -113,13 +109,11 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
         return sharedData
             .getLocalLockWithTimeout(key, LOCK_TIMEOUT_MILLIS)
             .flatMap(lock ->
-                Single
-                    .defer(() ->
-                        localCacheRateLimitRepository
-                            .incrementAndGet(key, weight, () -> new LocalRateLimit(supplier.get()))
-                            .doOnSuccess(localRateLimit -> keys.add(localRateLimit.getKey()))
-                    )
-                    .doFinally(lock::release)
+                Single.defer(() ->
+                    localCacheRateLimitRepository
+                        .incrementAndGet(key, weight, () -> new LocalRateLimit(supplier.get()))
+                        .doOnSuccess(localRateLimit -> keys.add(localRateLimit.getKey()))
+                ).doFinally(lock::release)
             );
     }
 }

@@ -31,21 +31,19 @@ public class PolicyRateLimitException extends Exception {
         this.executionFailure = executionFailure;
     }
 
-    public static PolicyRateLimitException serverError(String message) {
-        String json = JsonObject.of("message", message).toString();
-        var ex = new ExecutionFailure(500).contentType(MediaType.APPLICATION_JSON).message(json);
+    public static PolicyRateLimitException serverError(String key, String message) {
+        var ex = new ExecutionFailure(500).key(key).message(message);
         return new PolicyRateLimitException(ex);
     }
 
     public static PolicyRateLimitException overflow(String key, String message, Map<String, Object> parameters) {
-        String json = JsonObject.of("message", message).toString();
-        var ex = new ExecutionFailure(429).contentType(MediaType.APPLICATION_JSON).key(key).message(json).parameters(parameters);
+        var ex = new ExecutionFailure(429).key(key).message(message).parameters(parameters);
         return new PolicyRateLimitException(ex);
     }
 
-    public static ExecutionFailure getExecutionFailure(Throwable throwable) {
+    public static ExecutionFailure getExecutionFailure(String key, Throwable throwable) {
         return throwable instanceof PolicyRateLimitException ex
             ? ex.getExecutionFailure()
-            : new ExecutionFailure(500).message("Unknown error");
+            : new ExecutionFailure(500).key(key).message("Unknown error").cause(throwable);
     }
 }

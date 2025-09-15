@@ -60,6 +60,8 @@ public class SpikeArrestPolicyV3 {
     private static final Logger LOGGER = LoggerFactory.getLogger(SpikeArrestPolicyV3.class);
 
     protected static final String SPIKE_ARREST_TOO_MANY_REQUESTS = "SPIKE_ARREST_TOO_MANY_REQUESTS";
+    protected static final String SPIKE_ARREST_SERVER_ERROR = "SPIKE_ARREST_SERVER_ERROR";
+    protected static final String SPIKE_ARREST_NOT_APPLIED = "SPIKE_ARREST_NOT_APPLIED";
 
     /**
      * The maximum number of requests that the backend is allowed to receive per time unit.
@@ -96,9 +98,11 @@ public class SpikeArrestPolicyV3 {
             return;
         }
 
-        String key = KEY_FACTORY
-            .createRateLimitKey(executionContext.getAttributes(), executionContext::getTemplateEngine, spikeArrestConfiguration)
-            .blockingGet();
+        String key = KEY_FACTORY.createRateLimitKey(
+            executionContext.getAttributes(),
+            executionContext::getTemplateEngine,
+            spikeArrestConfiguration
+        ).blockingGet();
         final long limit = (spikeArrestConfiguration.getLimit() > 0)
             ? spikeArrestConfiguration.getLimit()
             : executionContext.getTemplateEngine().evalNow(spikeArrestConfiguration.getDynamicLimit(), Long.class);
@@ -108,21 +112,17 @@ public class SpikeArrestPolicyV3 {
         Context context = Vertx.currentContext();
 
         rateLimitService
-            .incrementAndGet(
-                key,
-                spikeArrestPolicyConfiguration.isAsync(),
-                () -> {
-                    // Set the time at which the current rate limit window resets in UTC epoch seconds.
-                    long resetTimeMillis = getEndOfPeriod(request.timestamp(), slice.period(), TimeUnit.MILLISECONDS);
+            .incrementAndGet(key, spikeArrestPolicyConfiguration.isAsync(), () -> {
+                // Set the time at which the current rate limit window resets in UTC epoch seconds.
+                long resetTimeMillis = getEndOfPeriod(request.timestamp(), slice.period(), TimeUnit.MILLISECONDS);
 
-                    RateLimit rate = new RateLimit(key);
-                    rate.setCounter(0);
-                    rate.setLimit(slice.limit());
-                    rate.setResetTime(resetTimeMillis);
-                    rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
-                    return rate;
-                }
-            )
+                RateLimit rate = new RateLimit(key);
+                rate.setCounter(0);
+                rate.setLimit(slice.limit());
+                rate.setResetTime(resetTimeMillis);
+                rate.setSubscription((String) executionContext.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+                return rate;
+            })
             .observeOn(RxHelper.scheduler(context))
             .subscribe(
                 new SingleObserver<>() {
@@ -166,8 +166,7 @@ public class SpikeArrestPolicyV3 {
             SPIKE_ARREST_TOO_MANY_REQUESTS,
             HttpStatusCode.TOO_MANY_REQUESTS_429,
             "Spike limit exceeded! You reached the limit of " + actualLimit.limit() + " requests per " + actualLimit.period() + " ms.",
-            Maps
-                .<String, Object>builder()
+            Maps.<String, Object>builder()
                 .put("slice_limit", actualLimit.limit())
                 .put("slice_period_time", actualLimit.period())
                 .put("slice_period_unit", TimeUnit.MILLISECONDS)

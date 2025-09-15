@@ -77,8 +77,9 @@ public class AsyncRateLimitRepositoryTest {
         // Mock remote to return 11 when called
         RateLimit remoteRateLimit = new RateLimit(key);
         remoteRateLimit.setCounter(11);
-        when(remoteCacheRateLimitRepository.incrementAndGet(anyString(), anyLong(), any()))
-            .thenReturn(Single.just(new LocalRateLimit(remoteRateLimit)));
+        when(remoteCacheRateLimitRepository.incrementAndGet(anyString(), anyLong(), any())).thenReturn(
+            Single.just(new LocalRateLimit(remoteRateLimit))
+        );
 
         // Call increment and get method
         RateLimit localCounter = new RateLimit(key);

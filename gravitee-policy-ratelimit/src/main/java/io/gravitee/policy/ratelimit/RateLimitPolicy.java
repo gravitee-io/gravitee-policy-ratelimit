@@ -17,6 +17,7 @@ package io.gravitee.policy.ratelimit;
 
 import io.gravitee.common.util.Maps;
 import io.gravitee.gateway.api.ExecutionContext;
+import io.gravitee.gateway.reactive.api.ExecutionWarn;
 import io.gravitee.gateway.reactive.api.context.http.HttpBaseExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
@@ -49,16 +50,16 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
 
     @Override
     public Completable onMessageRequest(HttpMessageExecutionContext ctx) {
-        return Completable
-            .defer(() -> run(ctx))
-            .onErrorResumeNext(th -> ctx.interruptMessagesWith(PolicyRateLimitException.getExecutionFailure(th)).ignoreElements());
+        return Completable.defer(() -> run(ctx)).onErrorResumeNext(th ->
+            ctx.interruptMessagesWith(PolicyRateLimitException.getExecutionFailure(RATE_LIMIT_SERVER_ERROR, th)).ignoreElements()
+        );
     }
 
     @Override
     public Completable onRequest(HttpPlainExecutionContext ctx) {
-        return Completable
-            .defer(() -> run(ctx))
-            .onErrorResumeNext(th -> ctx.interruptWith(PolicyRateLimitException.getExecutionFailure(th)));
+        return Completable.defer(() -> run(ctx)).onErrorResumeNext(th ->
+            ctx.interruptWith(PolicyRateLimitException.getExecutionFailure(RATE_LIMIT_SERVER_ERROR, th))
+        );
     }
 
     @OnRequest
@@ -68,13 +69,14 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
         if (rateConfig == null) {
             String message = "No rate-limit config has been installed.";
             ctx.metrics().setErrorMessage(message);
-            return Completable.error(PolicyRateLimitException.serverError(message));
+            return Completable.error(PolicyRateLimitException.serverError(RATE_LIMIT_SERVER_ERROR, message));
         }
         RateLimitConfiguration rateLimitConfiguration = rateConfig.getRate();
 
         if (rateLimitService == null) {
-            ctx.metrics().setErrorMessage("No rate-limit service has been installed.");
-            return Completable.error(PolicyRateLimitException.serverError("No rate-limit service has been installed."));
+            String errorMessage = "No rate-limit service has been installed";
+            ctx.metrics().setErrorMessage(errorMessage);
+            return Completable.error(PolicyRateLimitException.serverError(RATE_LIMIT_SERVER_ERROR, errorMessage));
         }
 
         var k = KEY_FACTORY.createRateLimitKey(ctx, rateLimitConfiguration);
@@ -84,70 +86,60 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
 
         Context context = Vertx.currentContext();
 
-        return Single
-            .zip(k, l, Pair::new)
-            .flatMapCompletable(entry -> {
-                long limit = entry.limit();
+        return Single.zip(k, l, Pair::new).flatMapCompletable(entry -> {
+            long limit = entry.limit();
 
-                return rateLimitService
-                    .incrementAndGet(
-                        entry.key(),
-                        rateConfig.isAsync(),
-                        () -> {
-                            // Set the time at which the current rate limit window resets in UTC epoch seconds.
-                            long resetTimeMillis = DateUtils.getEndOfPeriod(
-                                ctx.timestamp(),
-                                rateLimitConfiguration.getPeriodTime(),
-                                rateLimitConfiguration.getPeriodTimeUnit()
-                            );
+            return rateLimitService
+                .incrementAndGet(entry.key(), rateConfig.isAsync(), () -> {
+                    // Set the time at which the current rate limit window resets in UTC epoch seconds.
+                    long resetTimeMillis = DateUtils.getEndOfPeriod(
+                        ctx.timestamp(),
+                        rateLimitConfiguration.getPeriodTime(),
+                        rateLimitConfiguration.getPeriodTimeUnit()
+                    );
 
-                            RateLimit rate = new RateLimit(entry.key());
-                            rate.setCounter(0);
-                            rate.setLimit(limit);
-                            rate.setResetTime(resetTimeMillis);
-                            rate.setSubscription(ctx.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
-                            return rate;
-                        }
-                    )
-                    .observeOn(RxHelper.scheduler(context))
-                    .flatMapCompletable(rateLimit -> {
-                        // Set Rate Limit headers on response
-                        if (rateConfig.isAddHeaders()) {
-                            ctx.response().headers().set(X_RATE_LIMIT_LIMIT, Long.toString(limit));
-                            ctx
-                                .response()
-                                .headers()
-                                .set(X_RATE_LIMIT_REMAINING, Long.toString(Math.max(0, limit - rateLimit.getCounter())));
-                            ctx.response().headers().set(X_RATE_LIMIT_RESET, Long.toString(rateLimit.getResetTime()));
-                        }
+                    RateLimit rate = new RateLimit(entry.key());
+                    rate.setCounter(0);
+                    rate.setLimit(limit);
+                    rate.setResetTime(resetTimeMillis);
+                    rate.setSubscription(ctx.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
+                    return rate;
+                })
+                .observeOn(RxHelper.scheduler(context))
+                .flatMapCompletable(rateLimit -> {
+                    // Set Rate Limit headers on response
+                    if (rateConfig.isAddHeaders()) {
+                        ctx.response().headers().set(X_RATE_LIMIT_LIMIT, Long.toString(limit));
+                        ctx.response().headers().set(X_RATE_LIMIT_REMAINING, Long.toString(Math.max(0, limit - rateLimit.getCounter())));
+                        ctx.response().headers().set(X_RATE_LIMIT_RESET, Long.toString(rateLimit.getResetTime()));
+                    }
 
-                        if (rateLimit.getCounter() <= limit) {
-                            return Completable.complete();
-                        } else {
-                            String message = String.format(
-                                "Rate limit exceeded! You reached the limit of %d requests per %d %s",
-                                limit,
-                                rateLimitConfiguration.getPeriodTime(),
-                                rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase()
-                            );
-                            ctx.metrics().setErrorKey(RateLimitPolicyV3.RATE_LIMIT_TOO_MANY_REQUESTS);
-                            ctx.metrics().setErrorMessage(message);
-                            return Completable.error(
-                                PolicyRateLimitException.overflow(
-                                    RateLimitPolicyV3.RATE_LIMIT_TOO_MANY_REQUESTS,
-                                    message,
-                                    Maps
-                                        .<String, Object>builder()
-                                        .put("limit", limit)
-                                        .put("period_time", rateLimitConfiguration.getPeriodTime())
-                                        .put("period_unit", rateLimitConfiguration.getPeriodTimeUnit())
-                                        .build()
-                                )
-                            );
-                        }
-                    })
-                    .onErrorResumeNext(throwable -> errorManagement(ctx, throwable, rateConfig, limit));
-            });
+                    if (rateLimit.getCounter() <= limit) {
+                        return Completable.complete();
+                    } else {
+                        String message = String.format(
+                            "Rate limit exceeded! You reached the limit of %d requests per %d %s",
+                            limit,
+                            rateLimitConfiguration.getPeriodTime(),
+                            rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase()
+                        );
+                        ctx.metrics().setErrorKey(RateLimitPolicyV3.RATE_LIMIT_TOO_MANY_REQUESTS);
+                        ctx.metrics().setErrorMessage(message);
+                        return Completable.error(
+                            PolicyRateLimitException.overflow(
+                                RateLimitPolicyV3.RATE_LIMIT_TOO_MANY_REQUESTS,
+                                message,
+                                Maps.<String, Object>builder()
+                                    .put("limit", limit)
+                                    .put("period_time", rateLimitConfiguration.getPeriodTime())
+                                    .put("period_unit", rateLimitConfiguration.getPeriodTimeUnit())
+                                    .build()
+                            )
+                        );
+                    }
+                })
+                .onErrorResumeNext(throwable -> errorManagement(ctx, throwable, rateConfig, limit));
+        });
     }
 
     private static Completable errorManagement(
@@ -166,7 +158,9 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
             ctx.response().headers().set(X_RATE_LIMIT_REMAINING, Long.toString(limit));
             ctx.response().headers().set(X_RATE_LIMIT_RESET, Long.toString(-1));
         }
-
+        ctx.warnWith(
+            new ExecutionWarn(RATE_LIMIT_NOT_APPLIED).message("Request bypassed rate limit policy due to internal error").cause(throwable)
+        );
         // If an errors occurs at the repository level, we accept the call
         return Completable.complete();
     }

@@ -35,22 +35,18 @@ public class RateLimitPolicyConfigurationTest {
             RateLimitPolicyConfiguration.class
         );
 
-        Assertions
-            .assertThat(configuration)
-            .isEqualTo(
-                RateLimitPolicyConfiguration
-                    .builder()
-                    .rate(
-                        RateLimitConfiguration
-                            .builder()
-                            .limit(10)
-                            .dynamicLimit("{(2*5)}")
-                            .periodTime(10)
-                            .periodTimeUnit(TimeUnit.MINUTES)
-                            .build()
-                    )
-                    .build()
-            );
+        Assertions.assertThat(configuration).isEqualTo(
+            RateLimitPolicyConfiguration.builder()
+                .rate(
+                    RateLimitConfiguration.builder()
+                        .limit(10)
+                        .dynamicLimit("{(2*5)}")
+                        .periodTime(10)
+                        .periodTimeUnit(TimeUnit.MINUTES)
+                        .build()
+                )
+                .build()
+        );
     }
 
     @Test
@@ -60,16 +56,13 @@ public class RateLimitPolicyConfigurationTest {
             RateLimitPolicyConfiguration.class
         );
 
-        Assertions
-            .assertThat(configuration)
-            .isEqualTo(
-                RateLimitPolicyConfiguration
-                    .builder()
-                    .async(true)
-                    .addHeaders(true)
-                    .rate(RateLimitConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.MINUTES).build())
-                    .build()
-            );
+        Assertions.assertThat(configuration).isEqualTo(
+            RateLimitPolicyConfiguration.builder()
+                .async(true)
+                .addHeaders(true)
+                .rate(RateLimitConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.MINUTES).build())
+                .build()
+        );
     }
 
     private <T> T load(String resource, Class<T> type) throws IOException {

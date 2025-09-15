@@ -103,8 +103,7 @@ class QuotaPolicyV3Test {
     @Test
     void should_fail_when_no_service_installed() {
         var policy = new QuotaPolicyV3(
-            QuotaPolicyConfiguration
-                .builder()
+            QuotaPolicyConfiguration.builder()
                 .quota(QuotaConfiguration.builder().limit(1).periodTime(1).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
@@ -131,8 +130,7 @@ class QuotaPolicyV3Test {
     void should_add_headers_when_enabled() throws InterruptedException {
         var latch = new CountDownLatch(1);
         var policy = new QuotaPolicyV3(
-            QuotaPolicyConfiguration
-                .builder()
+            QuotaPolicyConfiguration.builder()
                 .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
@@ -164,8 +162,7 @@ class QuotaPolicyV3Test {
     void should_not_add_headers_when_disabled() throws InterruptedException {
         var latch = new CountDownLatch(1);
         var policy = new QuotaPolicyV3(
-            QuotaPolicyConfiguration
-                .builder()
+            QuotaPolicyConfiguration.builder()
                 .addHeaders(false)
                 .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
@@ -198,8 +195,7 @@ class QuotaPolicyV3Test {
     void should_set_quota_related_attributes_in_context() throws InterruptedException {
         var latch = new CountDownLatch(1);
         var policy = new QuotaPolicyV3(
-            QuotaPolicyConfiguration
-                .builder()
+            QuotaPolicyConfiguration.builder()
                 .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
@@ -211,13 +207,12 @@ class QuotaPolicyV3Test {
                 executionContext,
                 chain(
                     (req, res) -> {
-                        assertThat(executionContext.getAttributes())
-                            .contains(
-                                Map.entry(ExecutionContext.ATTR_QUOTA_COUNT, 1L),
-                                Map.entry(ExecutionContext.ATTR_QUOTA_REMAINING, 9L),
-                                Map.entry(ExecutionContext.ATTR_QUOTA_LIMIT, 10L),
-                                Map.entry(ExecutionContext.ATTR_QUOTA_RESET_TIME, 10000L)
-                            );
+                        assertThat(executionContext.getAttributes()).contains(
+                            Map.entry(ExecutionContext.ATTR_QUOTA_COUNT, 1L),
+                            Map.entry(ExecutionContext.ATTR_QUOTA_REMAINING, 9L),
+                            Map.entry(ExecutionContext.ATTR_QUOTA_LIMIT, 10L),
+                            Map.entry(ExecutionContext.ATTR_QUOTA_RESET_TIME, 10000L)
+                        );
                         latch.countDown();
                     },
                     policyResult -> {
@@ -235,8 +230,7 @@ class QuotaPolicyV3Test {
     void should_provide_info_when_limit_exceeded() throws InterruptedException {
         var latch = new CountDownLatch(1);
         var policy = new QuotaPolicyV3(
-            QuotaPolicyConfiguration
-                .builder()
+            QuotaPolicyConfiguration.builder()
                 .quota(QuotaConfiguration.builder().limit(0).dynamicLimit("0").periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
@@ -280,8 +274,7 @@ class QuotaPolicyV3Test {
         int calls = 15;
         var latch = new CountDownLatch(calls);
         var policy = new QuotaPolicyV3(
-            QuotaPolicyConfiguration
-                .builder()
+            QuotaPolicyConfiguration.builder()
                 .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
@@ -303,8 +296,7 @@ class QuotaPolicyV3Test {
         int calls = 15;
         var latch = new CountDownLatch(calls);
         var policy = new QuotaPolicyV3(
-            QuotaPolicyConfiguration
-                .builder()
+            QuotaPolicyConfiguration.builder()
                 .quota(QuotaConfiguration.builder().dynamicLimit("{(2*5)}").periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
@@ -349,8 +341,9 @@ class QuotaPolicyV3Test {
         @BeforeEach
         void setUp() {
             var mockedRateLimitService = mock(RateLimitService.class);
-            when(mockedRateLimitService.incrementAndGet(any(), anyBoolean(), any()))
-                .thenReturn(Single.error(new RuntimeException("Error")));
+            when(mockedRateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(
+                Single.error(new RuntimeException("Error"))
+            );
             lenient().when(executionContext.getComponent(RateLimitService.class)).thenReturn(mockedRateLimitService);
         }
 
@@ -358,8 +351,7 @@ class QuotaPolicyV3Test {
         void should_add_headers_when_enabled() throws InterruptedException {
             var latch = new CountDownLatch(1);
             var policy = new QuotaPolicyV3(
-                QuotaPolicyConfiguration
-                    .builder()
+                QuotaPolicyConfiguration.builder()
                     .addHeaders(true)
                     .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                     .build()
@@ -372,12 +364,11 @@ class QuotaPolicyV3Test {
                     executionContext,
                     chain(
                         (req, res) -> {
-                            assertThat(responseHttpHeaders.toSingleValueMap())
-                                .contains(
-                                    Map.entry(QuotaPolicyV3.X_QUOTA_LIMIT, "10"),
-                                    Map.entry(QuotaPolicyV3.X_QUOTA_REMAINING, "10"),
-                                    Map.entry(QuotaPolicyV3.X_QUOTA_RESET, "-1")
-                                );
+                            assertThat(responseHttpHeaders.toSingleValueMap()).contains(
+                                Map.entry(QuotaPolicyV3.X_QUOTA_LIMIT, "10"),
+                                Map.entry(QuotaPolicyV3.X_QUOTA_REMAINING, "10"),
+                                Map.entry(QuotaPolicyV3.X_QUOTA_RESET, "-1")
+                            );
                             latch.countDown();
                         },
                         policyResult -> {
@@ -395,8 +386,7 @@ class QuotaPolicyV3Test {
         void should_set_some_quota_related_attributes_in_context() throws InterruptedException {
             var latch = new CountDownLatch(1);
             var policy = new QuotaPolicyV3(
-                QuotaPolicyConfiguration
-                    .builder()
+                QuotaPolicyConfiguration.builder()
                     .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
                     .build()
             );
@@ -408,11 +398,10 @@ class QuotaPolicyV3Test {
                     executionContext,
                     chain(
                         (req, res) -> {
-                            assertThat(executionContext.getAttributes())
-                                .contains(
-                                    Map.entry(ExecutionContext.ATTR_QUOTA_REMAINING, 10L),
-                                    Map.entry(ExecutionContext.ATTR_QUOTA_LIMIT, 10L)
-                                );
+                            assertThat(executionContext.getAttributes()).contains(
+                                Map.entry(ExecutionContext.ATTR_QUOTA_REMAINING, 10L),
+                                Map.entry(ExecutionContext.ATTR_QUOTA_LIMIT, 10L)
+                            );
                             latch.countDown();
                         },
                         policyResult -> {
