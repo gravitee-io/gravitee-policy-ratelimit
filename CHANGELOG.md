@@ -1,3 +1,15 @@
+# [4.0.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/3.0.0...4.0.0) (2025-09-17)
+
+
+### Features
+
+* include cause throwable in the execution failure ([b49c918](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/b49c9185743bd18b281252e9669c6646a467ff12))
+
+
+### BREAKING CHANGES
+
+* requires APIM version 4.9.0 or later
+
 # [3.0.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/2.1.3...3.0.0) (2025-04-15)
 
 
