@@ -35,7 +35,7 @@
     </parent>
 
     <properties>
-        <gravitee-apim.version>4.9.0-alpha.2-SNAPSHOT</gravitee-apim.version>
+        <gravitee-apim.version>4.9.0-alpha.2</gravitee-apim.version>
         <gravitee-bom.version>8.2.22</gravitee-bom.version>
     </properties>
 
