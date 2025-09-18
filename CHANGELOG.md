@@ -1,3 +1,10 @@
+## [4.0.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.0.0...4.0.1) (2025-09-18)
+
+
+### Bug Fixes
+
+* update apim to 4.9.0-alpha.2 ([9d7a4be](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/9d7a4bef776b6aaf3a9d569f95a2c8ccfa18ca5a))
+
 # [4.0.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/3.0.0...4.0.0) (2025-09-17)
 
 
