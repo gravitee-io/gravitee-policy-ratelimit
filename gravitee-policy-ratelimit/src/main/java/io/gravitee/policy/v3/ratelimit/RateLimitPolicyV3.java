@@ -60,6 +60,7 @@ public class RateLimitPolicyV3 {
     protected static final String RATE_LIMIT_TOO_MANY_REQUESTS = "RATE_LIMIT_TOO_MANY_REQUESTS";
     protected static final String RATE_LIMIT_SERVER_ERROR = "RATE_LIMIT_SERVER_ERROR";
     protected static final String RATE_LIMIT_NOT_APPLIED = "RATE_LIMIT_NOT_APPLIED";
+    protected static final String RATE_LIMIT_BLOCK_ON_INTERNAL_ERROR = "RATE_LIMIT_BLOCK_ON_INTERNAL_ERROR";
 
     /**
      * The maximum number of requests that the consumer is permitted to make per time unit.

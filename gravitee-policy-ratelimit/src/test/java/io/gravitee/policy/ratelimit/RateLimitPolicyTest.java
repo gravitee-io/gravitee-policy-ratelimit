@@ -27,6 +27,7 @@ import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpResponse;
 import io.gravitee.policy.ratelimit.configuration.RateLimitConfiguration;
 import io.gravitee.policy.ratelimit.configuration.RateLimitPolicyConfiguration;
+import io.gravitee.ratelimit.ErrorStrategy;
 import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
@@ -175,7 +176,24 @@ class RateLimitPolicyTest {
     }
 
     @Test
+    void should_handle_service_error_without_given_config(Vertx vertx, VertxTestContext testContext) {
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.error(new RuntimeException("Service error")));
+
+        vertx.runOnContext(v -> {
+            policy
+                .onMessageRequest(messageContext)
+                .doOnComplete(() -> {
+                    verify(headers).set("X-Rate-Limit-Limit", "10");
+                    verify(headers).set("X-Rate-Limit-Remaining", "10");
+                    verify(headers).set("X-Rate-Limit-Reset", "-1");
+                })
+                .subscribe(new SubscribeAdapter(testContext)); // Should accept the call on error
+        });
+    }
+
+    @Test
     void should_handle_service_error(Vertx vertx, VertxTestContext testContext) {
+        configuration.setErrorStrategy(ErrorStrategy.FALLBACK_PASS_TROUGH);
         when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.error(new RuntimeException("Service error")));
 
         vertx.runOnContext(v -> {

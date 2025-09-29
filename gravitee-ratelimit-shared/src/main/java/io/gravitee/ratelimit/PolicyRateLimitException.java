@@ -15,9 +15,7 @@
  */
 package io.gravitee.ratelimit;
 
-import io.gravitee.common.http.MediaType;
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
-import io.vertx.core.json.JsonObject;
 import java.util.Map;
 import lombok.Getter;
 
@@ -38,6 +36,11 @@ public class PolicyRateLimitException extends Exception {
 
     public static PolicyRateLimitException overflow(String key, String message, Map<String, Object> parameters) {
         var ex = new ExecutionFailure(429).key(key).message(message).parameters(parameters);
+        return new PolicyRateLimitException(ex);
+    }
+
+    public static PolicyRateLimitException overflow(String key, String message, Throwable throwable) {
+        var ex = new ExecutionFailure(429).key(key).message(message).cause(throwable);
         return new PolicyRateLimitException(ex);
     }
 
