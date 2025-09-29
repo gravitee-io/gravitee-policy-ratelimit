@@ -16,6 +16,7 @@
 package io.gravitee.policy.ratelimit.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.gravitee.ratelimit.ErrorStrategy;
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +38,7 @@ public class RateLimitPolicyConfigurationTest {
 
         Assertions.assertThat(configuration).isEqualTo(
             RateLimitPolicyConfiguration.builder()
+                .errorStrategy(ErrorStrategy.FALLBACK_PASS_TROUGH)
                 .rate(
                     RateLimitConfiguration.builder()
                         .limit(10)
@@ -58,9 +60,34 @@ public class RateLimitPolicyConfigurationTest {
 
         Assertions.assertThat(configuration).isEqualTo(
             RateLimitPolicyConfiguration.builder()
+                .errorStrategy(ErrorStrategy.FALLBACK_PASS_TROUGH)
                 .async(true)
                 .addHeaders(true)
                 .rate(RateLimitConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.MINUTES).build())
+                .build()
+        );
+    }
+
+    @Test
+    public void test_quota03() throws IOException {
+        RateLimitPolicyConfiguration configuration = load(
+            "/io/gravitee/policy/ratelimit/configuration/ratelimit03.json",
+            RateLimitPolicyConfiguration.class
+        );
+
+        Assertions.assertThat(configuration).isEqualTo(
+            RateLimitPolicyConfiguration.builder()
+                .errorStrategy(ErrorStrategy.BLOCK_ON_INTERNAL_ERROR)
+                .async(false)
+                .addHeaders(false)
+                .rate(
+                    RateLimitConfiguration.builder()
+                        .dynamicLimit("{(2*5)}")
+                        .limit(10)
+                        .periodTime(10)
+                        .periodTimeUnit(TimeUnit.MINUTES)
+                        .build()
+                )
                 .build()
         );
     }

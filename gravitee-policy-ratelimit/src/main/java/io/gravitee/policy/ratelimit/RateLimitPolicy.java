@@ -15,7 +15,6 @@
  */
 package io.gravitee.policy.ratelimit;
 
-import io.gravitee.common.util.Maps;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.reactive.api.ExecutionWarn;
 import io.gravitee.gateway.reactive.api.context.http.HttpBaseExecutionContext;
@@ -34,7 +33,10 @@ import io.reactivex.rxjava3.core.Single;
 import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
 
     private static final KeyFactory KEY_FACTORY = new KeyFactory("rl");
@@ -129,11 +131,14 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
                             PolicyRateLimitException.overflow(
                                 RateLimitPolicyV3.RATE_LIMIT_TOO_MANY_REQUESTS,
                                 message,
-                                Maps.<String, Object>builder()
-                                    .put("limit", limit)
-                                    .put("period_time", rateLimitConfiguration.getPeriodTime())
-                                    .put("period_unit", rateLimitConfiguration.getPeriodTimeUnit())
-                                    .build()
+                                Map.of(
+                                    "limit",
+                                    limit,
+                                    "period_time",
+                                    rateLimitConfiguration.getPeriodTime(),
+                                    "period_unit",
+                                    rateLimitConfiguration.getPeriodTimeUnit()
+                                )
                             )
                         );
                     }
@@ -142,7 +147,7 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
         });
     }
 
-    private static Completable errorManagement(
+    private Completable errorManagement(
         HttpBaseExecutionContext ctx,
         Throwable throwable,
         RateLimitPolicyConfiguration rateConfig,
@@ -151,17 +156,26 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
         if (throwable instanceof PolicyRateLimitException ex) {
             return Completable.error(ex);
         }
-        // Set Rate Limit headers on response
-        if (rateConfig.isAddHeaders()) {
-            ctx.response().headers().set(X_RATE_LIMIT_LIMIT, Long.toString(limit));
-            // We don't know about the remaining calls, let's assume it is the same as the limit
-            ctx.response().headers().set(X_RATE_LIMIT_REMAINING, Long.toString(limit));
-            ctx.response().headers().set(X_RATE_LIMIT_RESET, Long.toString(-1));
-        }
-        ctx.warnWith(
-            new ExecutionWarn(RATE_LIMIT_NOT_APPLIED).message("Request bypassed rate limit policy due to internal error").cause(throwable)
-        );
-        // If an errors occurs at the repository level, we accept the call
-        return Completable.complete();
+        return switch (getRateLimitPolicyConfiguration().getErrorStrategy()) {
+            case BLOCK_ON_INTERNAL_ERROR -> {
+                var msg = "Rate limit blocked the query due to internal error";
+                yield Completable.error(PolicyRateLimitException.overflow(RATE_LIMIT_BLOCK_ON_INTERNAL_ERROR, msg, throwable));
+            }
+            case FALLBACK_PASS_TROUGH -> {
+                // Set Rate Limit headers on response
+                if (rateConfig.isAddHeaders()) {
+                    ctx.response().headers().set(X_RATE_LIMIT_LIMIT, Long.toString(limit));
+                    // We don't know about the remaining calls, let's assume it is the same as the limit
+                    ctx.response().headers().set(X_RATE_LIMIT_REMAINING, Long.toString(limit));
+                    ctx.response().headers().set(X_RATE_LIMIT_RESET, Long.toString(-1));
+                }
+                ctx.warnWith(
+                    new ExecutionWarn(RATE_LIMIT_NOT_APPLIED)
+                        .message("Request bypassed rate limit policy due to internal error")
+                        .cause(throwable)
+                );
+                yield Completable.complete();
+            }
+        };
     }
 }

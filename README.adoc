@@ -103,6 +103,24 @@ This policy does not prevent request spikes.
 |===
 |Property |Required |Description |Type |Default
 
+|Failover passthrough
+|No
+|In case of failure, the request is forwarded without rate limiting.
+|Boolean
+|false
+
+|Non-strict mode (async)
+|No
+|By activating this option, rate-limiting is applied in an asynchronous way meaning that the distributed counter value is not strict.
+|Boolean
+|false
+
+|Add response headers
+|No
+|Add X-Rate-Limit-Limit, X-Rate-Limit-Remaining and X-Rate-Limit-Reset headers in HTTP response.
+|Boolean
+|false
+
 |key
 |No
 |Key to identify a consumer to apply rate-limiting against. Leave it empty to use the default behavior (plan/subscription pair). Supports Expression Language.
