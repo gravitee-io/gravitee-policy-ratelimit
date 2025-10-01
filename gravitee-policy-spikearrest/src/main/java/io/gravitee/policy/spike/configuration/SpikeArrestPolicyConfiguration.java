@@ -16,6 +16,7 @@
 package io.gravitee.policy.spike.configuration;
 
 import io.gravitee.policy.api.PolicyConfiguration;
+import io.gravitee.ratelimit.ErrorStrategy;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -30,6 +31,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SpikeArrestPolicyConfiguration implements PolicyConfiguration {
+
+    // for backward compatibility, we set the previous default behavior
+    @Builder.Default
+    private ErrorStrategy errorStrategy = ErrorStrategy.FALLBACK_PASS_TROUGH;
 
     private boolean async;
 

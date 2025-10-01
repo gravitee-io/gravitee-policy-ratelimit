@@ -16,6 +16,7 @@
 package io.gravitee.policy.spike.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.gravitee.ratelimit.ErrorStrategy;
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +53,25 @@ public class SpikeArrestPolicyConfigurationTest {
 
         org.assertj.core.api.Assertions.assertThat(configuration).isEqualTo(
             SpikeArrestPolicyConfiguration.builder()
+                .addHeaders(true)
+                .async(true)
+                .spike(
+                    SpikeArrestConfiguration.builder().limit(0).dynamicLimit("10").periodTime(10).periodTimeUnit(TimeUnit.MINUTES).build()
+                )
+                .build()
+        );
+    }
+
+    @Test
+    public void test_spikeArrest03() throws IOException {
+        SpikeArrestPolicyConfiguration configuration = load(
+            "/io/gravitee/policy/spike/configuration/spikearrest03.json",
+            SpikeArrestPolicyConfiguration.class
+        );
+
+        org.assertj.core.api.Assertions.assertThat(configuration).isEqualTo(
+            SpikeArrestPolicyConfiguration.builder()
+                .errorStrategy(ErrorStrategy.BLOCK_ON_INTERNAL_ERROR)
                 .addHeaders(true)
                 .async(true)
                 .spike(

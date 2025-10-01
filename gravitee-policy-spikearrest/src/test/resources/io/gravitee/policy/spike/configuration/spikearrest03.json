@@ -1,0 +1,10 @@
+{
+    "errorStrategy": "BLOCK_ON_INTERNAL_ERROR",
+    "addHeaders": true,
+    "async": true,
+    "spike": {
+        "dynamicLimit": "10",
+        "periodTime": 10,
+        "periodTimeUnit": "MINUTES"
+    }
+}
