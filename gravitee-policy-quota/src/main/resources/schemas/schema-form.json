@@ -2,6 +2,19 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "properties": {
+        "errorStrategy": {
+            "type": "string",
+            "title": "Error strategy",
+            "description": "Strategy applied to handle rate-limiting internal errors.",
+            "default": "FALLBACK_PASS_TROUGH",
+            "enum": ["BLOCK_ON_INTERNAL_ERROR", "FALLBACK_PASS_TROUGH"],
+            "gioConfig": {
+                "enumLabelMap": {
+                    "BLOCK_ON_INTERNAL_ERROR": "Block queries in case of internal failure",
+                    "FALLBACK_PASS_TROUGH": "Accept queries in case of internal failure (previous default behavior)"
+                }
+            }
+        },
         "async": {
             "type": "boolean",
             "default": false,
