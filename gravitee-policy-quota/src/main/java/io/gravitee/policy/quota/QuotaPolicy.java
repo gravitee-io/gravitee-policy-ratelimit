@@ -152,19 +152,29 @@ public class QuotaPolicy extends QuotaPolicyV3 implements HttpPolicy {
         if (throwable instanceof PolicyRateLimitException ex) {
             return Completable.error(ex);
         }
-        // Set Rate Limit headers on response
-        if (policyConfig.isAddHeaders()) {
-            ctx.response().headers().set(X_QUOTA_LIMIT, Long.toString(limit));
-            // We don't know about the remaining calls, let's assume it is the same as the limit
-            ctx.response().headers().set(X_QUOTA_REMAINING, Long.toString(limit));
-            ctx.response().headers().set(X_QUOTA_RESET, Long.toString(-1));
-        }
+        return switch (policyConfig.getErrorStrategy()) {
+            case BLOCK_ON_INTERNAL_ERROR -> {
+                var msg = "Quota blocked the query due to internal error";
+                yield Completable.error(PolicyRateLimitException.overflow(QUOTA_BLOCK_ON_INTERNAL_ERROR, msg, throwable));
+            }
+            case FALLBACK_PASS_TROUGH -> {
+                // Set Rate Limit headers on response
+                if (policyConfig.isAddHeaders()) {
+                    ctx.response().headers().set(X_QUOTA_LIMIT, Long.toString(limit));
+                    // We don't know about the remaining calls, let's assume it is the same as the limit
+                    ctx.response().headers().set(X_QUOTA_REMAINING, Long.toString(limit));
+                    ctx.response().headers().set(X_QUOTA_RESET, Long.toString(-1));
+                }
 
-        ctx.setAttribute(ExecutionContext.ATTR_QUOTA_REMAINING, limit);
-        ctx.setAttribute(ExecutionContext.ATTR_QUOTA_LIMIT, limit);
+                ctx.setAttribute(ExecutionContext.ATTR_QUOTA_REMAINING, limit);
+                ctx.setAttribute(ExecutionContext.ATTR_QUOTA_LIMIT, limit);
 
-        ctx.warnWith(new ExecutionWarn(QUOTA_NOT_APPLIED).message("Request bypassed quota policy due to internal error").cause(throwable));
-        // If an errors occurs at the repository level, we accept the call
-        return Completable.complete();
+                ctx.warnWith(
+                    new ExecutionWarn(QUOTA_NOT_APPLIED).message("Request bypassed quota policy due to internal error").cause(throwable)
+                );
+                // If an errors occurs at the repository level, we accept the call
+                yield Completable.complete();
+            }
+        };
     }
 }

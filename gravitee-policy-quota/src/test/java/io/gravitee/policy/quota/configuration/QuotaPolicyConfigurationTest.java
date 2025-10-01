@@ -18,6 +18,7 @@ package io.gravitee.policy.quota.configuration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.gravitee.ratelimit.ErrorStrategy;
 import java.io.IOException;
 import java.net.URL;
 import java.time.temporal.ChronoUnit;
@@ -56,6 +57,23 @@ class QuotaPolicyConfigurationTest {
 
         assertThat(configuration).isEqualTo(
             QuotaPolicyConfiguration.builder()
+                .addHeaders(false)
+                .async(true)
+                .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.MINUTES).build())
+                .build()
+        );
+    }
+
+    @Test
+    void test_quota03() throws IOException {
+        QuotaPolicyConfiguration configuration = load(
+            "/io/gravitee/policy/quota/configuration/quota03.json",
+            QuotaPolicyConfiguration.class
+        );
+
+        assertThat(configuration).isEqualTo(
+            QuotaPolicyConfiguration.builder()
+                .errorStrategy(ErrorStrategy.BLOCK_ON_INTERNAL_ERROR)
                 .addHeaders(false)
                 .async(true)
                 .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.MINUTES).build())

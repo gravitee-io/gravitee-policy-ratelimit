@@ -59,6 +59,7 @@ public class QuotaPolicyV3 {
     protected static final String QUOTA_TOO_MANY_REQUESTS = "QUOTA_TOO_MANY_REQUESTS";
     protected static final String QUOTA_SERVER_ERROR = "QUOTA_SERVER_ERROR";
     protected static final String QUOTA_NOT_APPLIED = "QUOTA_NOT_APPLIED";
+    protected static final String QUOTA_BLOCK_ON_INTERNAL_ERROR = "QUOTA_BLOCK_ON_INTERNAL_ERROR";
 
     /**
      * The maximum number of requests that the consumer is permitted to make per time unit.
