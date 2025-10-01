@@ -149,19 +149,27 @@ public class SpikeArrestPolicy extends SpikeArrestPolicyV3 implements HttpPolicy
         if (throwable instanceof PolicyRateLimitException ex) {
             return Completable.error(ex);
         }
-        // Set Spike Arrest Limit headers on response
-        if (policyConfiguration.isAddHeaders()) {
-            ctx.response().headers().set(X_SPIKE_ARREST_LIMIT, Long.toString(slice.limit()));
-            ctx.response().headers().set(X_SPIKE_ARREST_SLICE, slice.period() + "ms");
-            ctx.response().headers().set(X_SPIKE_ARREST_RESET, Long.toString(-1));
-        }
+        return switch (policyConfiguration.getErrorStrategy()) {
+            case BLOCK_ON_INTERNAL_ERROR -> {
+                var msg = "Spike arrest blocked the query due to internal error";
+                yield Completable.error(PolicyRateLimitException.overflow(SPIKE_ARREST_BLOCK_ON_INTERNAL_ERROR, msg, throwable));
+            }
+            case FALLBACK_PASS_TROUGH -> {
+                // Set Spike Arrest Limit headers on response
+                if (policyConfiguration.isAddHeaders()) {
+                    ctx.response().headers().set(X_SPIKE_ARREST_LIMIT, Long.toString(slice.limit()));
+                    ctx.response().headers().set(X_SPIKE_ARREST_SLICE, slice.period() + "ms");
+                    ctx.response().headers().set(X_SPIKE_ARREST_RESET, Long.toString(-1));
+                }
 
-        ctx.warnWith(
-            new ExecutionWarn(SPIKE_ARREST_NOT_APPLIED)
-                .message("Request bypassed spike arrest policy due to internal error")
-                .cause(throwable)
-        );
-        // If an errors occurs at the repository level, we accept the call
-        return Completable.complete();
+                ctx.warnWith(
+                    new ExecutionWarn(SPIKE_ARREST_NOT_APPLIED)
+                        .message("Request bypassed spike arrest policy due to internal error")
+                        .cause(throwable)
+                );
+                // If an errors occurs at the repository level, we accept the call
+                yield Completable.complete();
+            }
+        };
     }
 }

@@ -62,6 +62,7 @@ public class SpikeArrestPolicyV3 {
     protected static final String SPIKE_ARREST_TOO_MANY_REQUESTS = "SPIKE_ARREST_TOO_MANY_REQUESTS";
     protected static final String SPIKE_ARREST_SERVER_ERROR = "SPIKE_ARREST_SERVER_ERROR";
     protected static final String SPIKE_ARREST_NOT_APPLIED = "SPIKE_ARREST_NOT_APPLIED";
+    protected static final String SPIKE_ARREST_BLOCK_ON_INTERNAL_ERROR = "SPIKE_ARREST_BLOCK_ON_INTERNAL_ERROR";
 
     /**
      * The maximum number of requests that the backend is allowed to receive per time unit.
