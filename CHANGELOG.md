@@ -1,3 +1,12 @@
+# [4.1.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.0.1...4.1.0) (2025-10-02)
+
+
+### Features
+
+* add new options to control behaviour in case of redis error ([33aef7c](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/33aef7cddba4f086b8cb2d20c828fd9e8193ce04))
+* implement new params in quota quota policy ([2cd0050](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/2cd0050959c751bf39463518ab63cc2deba0ddf4))
+* implement params in spike arrest policy ([fb7877c](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/fb7877c76e555e49463a58764aab1ac40fa7ae19))
+
 ## [4.0.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.0.0...4.0.1) (2025-09-18)
 
 
