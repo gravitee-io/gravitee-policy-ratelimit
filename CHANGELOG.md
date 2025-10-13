@@ -1,3 +1,10 @@
+## [4.1.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.1.0...4.1.1) (2025-10-13)
+
+
+### Bug Fixes
+
+* improve documentation of behaviour of async mode ([03021f9](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/03021f9727a07fbeb4be513a2e4b663637fa23d1))
+
 # [4.1.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.0.1...4.1.0) (2025-10-02)
 
 
