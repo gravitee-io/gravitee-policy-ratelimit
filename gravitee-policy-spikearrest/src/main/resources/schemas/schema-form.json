@@ -19,7 +19,7 @@
             "type": "boolean",
             "default": false,
             "title": "Non-strict mode (async)",
-            "description": "By activating this option, spike limit is applied in an asynchronous way meaning that the distributed counter value is not strict."
+            "description": "By activating this option, spike limit is applied in an asynchronous way meaning that the distributed counter value is not strict (backend can receive more queries than configured)."
         },
         "addHeaders": {
             "type": "boolean",
