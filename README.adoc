@@ -52,6 +52,18 @@ This policy does not prevent request spikes.
 |===
 |Property |Required |Description |Type |Default
 
+|Failover passthrough
+|No
+|In case of failure, the request is forwarded without quota.
+|Boolean
+|false
+
+|Non-strict mode (async)
+|No
+|By activating this option, quota is applied in an asynchronous way meaning that the distributed counter value is not strict (backend can receive more queries than configured).
+|Boolean
+|false
+
 |key
 |No
 |Key to identify a consumer to apply the quota against. Leave it empty to apply the default behavior (plan/subscription pair). Supports Expression Language.
@@ -111,7 +123,7 @@ This policy does not prevent request spikes.
 
 |Non-strict mode (async)
 |No
-|By activating this option, rate-limiting is applied in an asynchronous way meaning that the distributed counter value is not strict.
+|By activating this option, rate-limiting is applied in an asynchronous way meaning that the distributed counter value is not strict (backend can receive more queries than configured).
 |Boolean
 |false
 
@@ -174,6 +186,18 @@ By default, the SpikeArrest policy is applied to a plan, not a consumer. To appl
 
 |===
 |Property |Required |Description |Type |Default
+
+|Failover passthrough
+|No
+|In case of failure, the request is forwarded without spike arrest.
+|Boolean
+|false
+
+|Non-strict mode (async)
+|No
+|By activating this option, spike arrest is applied in an asynchronous way meaning that the distributed counter value is not strict (backend can receive more queries than configured).
+|Boolean
+|false
 
 |key
 |No
