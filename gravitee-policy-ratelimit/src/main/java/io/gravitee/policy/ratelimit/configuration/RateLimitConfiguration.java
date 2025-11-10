@@ -38,6 +38,8 @@ public class RateLimitConfiguration implements KeyConfiguration {
 
     private long periodTime;
 
+    private String periodTimeExpression;
+
     private TimeUnit periodTimeUnit;
 
     private String key;
