@@ -85,6 +85,9 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
         var l = (rateLimitConfiguration.getLimit() > 0)
             ? Single.just(rateLimitConfiguration.getLimit())
             : ctx.getTemplateEngine().eval(rateLimitConfiguration.getDynamicLimit(), Long.class).defaultIfEmpty(0L);
+        var timeDuration = (rateLimitConfiguration.getPeriodTime() > 1)
+            ? Single.just(rateLimitConfiguration.getPeriodTime())
+            : ctx.getTemplateEngine().eval(rateLimitConfiguration.getPeriodTimeExpression(), Long.class).defaultIfEmpty(1L);
 
         Context context = Vertx.currentContext();
 
@@ -96,7 +99,7 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
                     // Set the time at which the current rate limit window resets in UTC epoch seconds.
                     long resetTimeMillis = DateUtils.getEndOfPeriod(
                         ctx.timestamp(),
-                        rateLimitConfiguration.getPeriodTime(),
+                        timeDuration.blockingGet(),
                         rateLimitConfiguration.getPeriodTimeUnit()
                     );
 
@@ -122,7 +125,7 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
                         String message = String.format(
                             "Rate limit exceeded! You reached the limit of %d requests per %d %s",
                             limit,
-                            rateLimitConfiguration.getPeriodTime(),
+                            timeDuration.blockingGet(),
                             rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase()
                         );
                         ctx.metrics().setErrorKey(RateLimitPolicyV3.RATE_LIMIT_TOO_MANY_REQUESTS);
@@ -135,7 +138,7 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
                                     "limit",
                                     limit,
                                     "period_time",
-                                    rateLimitConfiguration.getPeriodTime(),
+                                    timeDuration.blockingGet(),
                                     "period_unit",
                                     rateLimitConfiguration.getPeriodTimeUnit()
                                 )
