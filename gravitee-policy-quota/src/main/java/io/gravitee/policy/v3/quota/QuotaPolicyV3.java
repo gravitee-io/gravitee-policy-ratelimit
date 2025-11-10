@@ -29,6 +29,7 @@ import io.gravitee.ratelimit.DateUtils;
 import io.gravitee.ratelimit.KeyFactory;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
+import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.core.SingleObserver;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.vertx.rxjava3.core.Context;
@@ -103,6 +104,9 @@ public class QuotaPolicyV3 {
         long limit = (quotaConfiguration.getLimit() > 0)
             ? quotaConfiguration.getLimit()
             : executionContext.getTemplateEngine().evalNow(quotaConfiguration.getDynamicLimit(), Long.class);
+        var timeDuration = (quotaConfiguration.getPeriodTime() > 1)
+            ? Single.just(quotaConfiguration.getPeriodTime())
+            : executionContext.getTemplateEngine().eval(quotaConfiguration.getPeriodTimeExpression(), Long.class).defaultIfEmpty(1L);
 
         Context context = Vertx.currentContext();
 
@@ -111,7 +115,7 @@ public class QuotaPolicyV3 {
                 // Set the time at which the current rate limit window resets in UTC epoch seconds.
                 long resetTimeMillis = DateUtils.getEndOfPeriod(
                     request.timestamp(),
-                    quotaConfiguration.getPeriodTime(),
+                    timeDuration.blockingGet(),
                     quotaConfiguration.getPeriodTimeUnit()
                 );
 
@@ -146,7 +150,7 @@ public class QuotaPolicyV3 {
                         if (rateLimit.getCounter() <= limit) {
                             policyChain.doNext(request, response);
                         } else {
-                            policyChain.failWith(createLimitExceeded(quotaConfiguration, limit));
+                            policyChain.failWith(createLimitExceeded(quotaConfiguration, limit, timeDuration.blockingGet()));
                         }
                     }
 
@@ -170,19 +174,19 @@ public class QuotaPolicyV3 {
             );
     }
 
-    private PolicyResult createLimitExceeded(QuotaConfiguration quotaConfiguration, long actualLimit) {
+    private PolicyResult createLimitExceeded(QuotaConfiguration quotaConfiguration, long actualLimit, long periodTime) {
         return PolicyResult.failure(
             QUOTA_TOO_MANY_REQUESTS,
             HttpStatusCode.TOO_MANY_REQUESTS_429,
             "Quota exceeded! You reached the limit of " +
                 actualLimit +
                 " requests per " +
-                quotaConfiguration.getPeriodTime() +
+                periodTime +
                 ' ' +
                 quotaConfiguration.getPeriodTimeUnit().name().toLowerCase(),
             Maps.<String, Object>builder()
                 .put("limit", actualLimit)
-                .put("period_time", quotaConfiguration.getPeriodTime())
+                .put("period_time", periodTime)
                 .put("period_unit", quotaConfiguration.getPeriodTimeUnit())
                 .build()
         );

@@ -38,6 +38,8 @@ public class QuotaConfiguration implements KeyConfiguration {
 
     private long periodTime;
 
+    private String periodTimeExpression;
+
     private ChronoUnit periodTimeUnit;
 
     private String key;
