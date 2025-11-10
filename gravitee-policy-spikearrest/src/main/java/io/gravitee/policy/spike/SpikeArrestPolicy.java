@@ -81,13 +81,16 @@ public class SpikeArrestPolicy extends SpikeArrestPolicyV3 implements HttpPolicy
         var l = (spikeArrestConfiguration.getLimit() > 0)
             ? Maybe.just(spikeArrestConfiguration.getLimit())
             : ctx.getTemplateEngine().eval(spikeArrestConfiguration.getDynamicLimit(), Long.class);
+        var timeDuration = (spikeArrestConfiguration.getPeriodTime() > 1)
+            ? Single.just(spikeArrestConfiguration.getPeriodTime())
+            : ctx.getTemplateEngine().eval(spikeArrestConfiguration.getPeriodTimeExpression(), Long.class).defaultIfEmpty(1L);
 
         Context context = Vertx.currentContext();
 
         return Single.zip(k, l.defaultIfEmpty(0L), Pair::new).flatMapCompletable(entry -> {
             long limit = entry.limit();
 
-            var slice = computeSliceLimit(limit, spikeArrestConfiguration.getPeriodTime(), spikeArrestConfiguration.getPeriodTimeUnit());
+            var slice = computeSliceLimit(limit, timeDuration.blockingGet(), spikeArrestConfiguration.getPeriodTimeUnit());
 
             return rateLimitService
                 .incrementAndGet(entry.key(), policyConfiguration.isAsync(), () -> {

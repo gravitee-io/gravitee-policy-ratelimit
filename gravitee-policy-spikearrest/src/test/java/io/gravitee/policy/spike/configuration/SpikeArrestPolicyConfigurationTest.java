@@ -56,7 +56,13 @@ public class SpikeArrestPolicyConfigurationTest {
                 .addHeaders(true)
                 .async(true)
                 .spike(
-                    SpikeArrestConfiguration.builder().limit(0).dynamicLimit("10").periodTime(10).periodTimeUnit(TimeUnit.MINUTES).build()
+                    SpikeArrestConfiguration.builder()
+                        .limit(0)
+                        .dynamicLimit("10")
+                        .periodTime(10)
+                        .periodTimeExpression("10")
+                        .periodTimeUnit(TimeUnit.MINUTES)
+                        .build()
                 )
                 .build()
         );
@@ -75,7 +81,13 @@ public class SpikeArrestPolicyConfigurationTest {
                 .addHeaders(true)
                 .async(true)
                 .spike(
-                    SpikeArrestConfiguration.builder().limit(0).dynamicLimit("10").periodTime(10).periodTimeUnit(TimeUnit.MINUTES).build()
+                    SpikeArrestConfiguration.builder()
+                        .limit(0)
+                        .dynamicLimit("10")
+                        .periodTime(10)
+                        .periodTimeExpression("10")
+                        .periodTimeUnit(TimeUnit.MINUTES)
+                        .build()
                 )
                 .build()
         );
