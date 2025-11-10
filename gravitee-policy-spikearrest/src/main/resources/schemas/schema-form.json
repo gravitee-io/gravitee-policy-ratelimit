@@ -63,7 +63,17 @@
                 "periodTime": {
                     "type": "integer",
                     "title": "Time duration",
+                    "description": "Static value of time duration (This value is used when greater than 1).",
+                    "minimum": 1,
                     "default": 1
+                },
+                "periodTimeExpression": {
+                    "type": "string",
+                    "title": "Expression for time duration",
+                    "description": "Dynamic time duration based on EL expressions (This value is used if static value is 1).",
+                    "x-schema-form": {
+                        "expression-language": true
+                    }
                 },
                 "periodTimeUnit": {
                     "type": "string",

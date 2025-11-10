@@ -71,7 +71,7 @@ class SpikeArrestPolicyTest {
         configuration = new SpikeArrestPolicyConfiguration();
         SpikeArrestConfiguration spikeConfig = new SpikeArrestConfiguration();
         spikeConfig.setLimit(100);
-        spikeConfig.setPeriodTime(1);
+        spikeConfig.setPeriodTime(2);
         spikeConfig.setPeriodTimeUnit(TimeUnit.SECONDS);
         configuration.setSpike(spikeConfig);
         configuration.setAddHeaders(true);
