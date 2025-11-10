@@ -78,6 +78,9 @@ public class QuotaPolicy extends QuotaPolicyV3 implements HttpPolicy {
         var l = (quotaConfiguration.getLimit() > 0)
             ? Maybe.just(quotaConfiguration.getLimit())
             : ctx.getTemplateEngine().eval(quotaConfiguration.getDynamicLimit(), Long.class);
+        var timeDuration = (quotaConfiguration.getPeriodTime() > 1)
+            ? Single.just(quotaConfiguration.getPeriodTime())
+            : ctx.getTemplateEngine().eval(quotaConfiguration.getPeriodTimeExpression(), Long.class).defaultIfEmpty(1L);
 
         Context context = Vertx.currentContext();
 
@@ -89,7 +92,7 @@ public class QuotaPolicy extends QuotaPolicyV3 implements HttpPolicy {
                     // Set the time at which the current rate limit window resets in UTC epoch seconds.
                     long resetTimeMillis = DateUtils.getEndOfPeriod(
                         ctx.timestamp(),
-                        quotaConfiguration.getPeriodTime(),
+                        timeDuration.blockingGet(),
                         quotaConfiguration.getPeriodTimeUnit()
                     );
 
@@ -121,7 +124,7 @@ public class QuotaPolicy extends QuotaPolicyV3 implements HttpPolicy {
                         String message = String.format(
                             "Quota exceeded! You reached the limit of %d requests per %d %s",
                             limit,
-                            quotaConfiguration.getPeriodTime(),
+                            timeDuration.blockingGet(),
                             quotaConfiguration.getPeriodTimeUnit().name().toLowerCase()
                         );
                         ctx.metrics().setErrorKey(QuotaPolicyV3.QUOTA_TOO_MANY_REQUESTS);
@@ -132,7 +135,7 @@ public class QuotaPolicy extends QuotaPolicyV3 implements HttpPolicy {
                                 message,
                                 Maps.<String, Object>builder()
                                     .put("limit", limit)
-                                    .put("period_time", quotaConfiguration.getPeriodTime())
+                                    .put("period_time", timeDuration.blockingGet())
                                     .put("period_unit", quotaConfiguration.getPeriodTimeUnit())
                                     .build()
                             )

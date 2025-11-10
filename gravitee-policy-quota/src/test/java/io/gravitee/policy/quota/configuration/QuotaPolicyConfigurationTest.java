@@ -42,7 +42,13 @@ class QuotaPolicyConfigurationTest {
                 .addHeaders(true)
                 .async(false)
                 .quota(
-                    QuotaConfiguration.builder().limit(10).dynamicLimit("{(2*5)}").periodTime(10).periodTimeUnit(ChronoUnit.MINUTES).build()
+                    QuotaConfiguration.builder()
+                        .limit(10)
+                        .dynamicLimit("{(2*5)}")
+                        .periodTime(10)
+                        .periodTimeExpression("{(2*5)}")
+                        .periodTimeUnit(ChronoUnit.MINUTES)
+                        .build()
                 )
                 .build()
         );
