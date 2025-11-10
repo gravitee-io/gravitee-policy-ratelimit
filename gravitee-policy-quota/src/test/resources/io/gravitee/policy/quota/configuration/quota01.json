@@ -3,6 +3,7 @@
         "limit": 10,
         "dynamicLimit": "{(2*5)}",
         "periodTime": 10,
+        "periodTimeExpression": "{(2*5)}",
         "periodTimeUnit": "MINUTES"
     }
 }
