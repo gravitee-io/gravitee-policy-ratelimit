@@ -195,7 +195,7 @@ public class RateLimitPolicyV3Test {
         var latch = new CountDownLatch(1);
         var policy = new RateLimitPolicyV3(
             RateLimitPolicyConfiguration.builder()
-                .rate(RateLimitConfiguration.builder().limit(0).dynamicLimit("0").periodTime(1).periodTimeUnit(TimeUnit.SECONDS).build())
+                .rate(RateLimitConfiguration.builder().limit(0).dynamicLimit("0").periodTime(2).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
         );
         vertx.runOnContext(event ->
@@ -214,10 +214,10 @@ public class RateLimitPolicyV3Test {
                             soft.assertThat(policyResult.key()).isEqualTo("RATE_LIMIT_TOO_MANY_REQUESTS");
                             soft
                                 .assertThat(policyResult.message())
-                                .isEqualTo("Rate limit exceeded! You reached the limit of 0 requests per 1 seconds");
+                                .isEqualTo("Rate limit exceeded! You reached the limit of 0 requests per 2 seconds");
                             soft
                                 .assertThat(policyResult.parameters())
-                                .contains(Map.entry("limit", 0L), Map.entry("period_time", 1L), Map.entry("period_unit", TimeUnit.SECONDS));
+                                .contains(Map.entry("limit", 0L), Map.entry("period_time", 2L), Map.entry("period_unit", TimeUnit.SECONDS));
                         });
                         latch.countDown();
                     }
