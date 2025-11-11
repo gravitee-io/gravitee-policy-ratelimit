@@ -25,7 +25,10 @@ import io.gravitee.policy.api.annotations.OnRequest;
 import io.gravitee.policy.ratelimit.configuration.RateLimitConfiguration;
 import io.gravitee.policy.ratelimit.configuration.RateLimitPolicyConfiguration;
 import io.gravitee.policy.v3.ratelimit.RateLimitPolicyV3;
-import io.gravitee.ratelimit.*;
+import io.gravitee.ratelimit.DateUtils;
+import io.gravitee.ratelimit.KeyFactory;
+import io.gravitee.ratelimit.PolicyRateLimitException;
+import io.gravitee.ratelimit.SharedPolicy;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import io.reactivex.rxjava3.core.Completable;
@@ -34,6 +37,7 @@ import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -85,23 +89,20 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
         var l = (rateLimitConfiguration.getLimit() > 0)
             ? Single.just(rateLimitConfiguration.getLimit())
             : ctx.getTemplateEngine().eval(rateLimitConfiguration.getDynamicLimit(), Long.class).defaultIfEmpty(0L);
-        var timeDuration = (rateLimitConfiguration.getPeriodTime() > 1)
+        var timeDuration = rateLimitConfiguration.hasValidPeriodTime()
             ? Single.just(rateLimitConfiguration.getPeriodTime())
-            : ctx.getTemplateEngine().eval(rateLimitConfiguration.getPeriodTimeExpression(), Long.class).defaultIfEmpty(1L);
+            : ctx.getTemplateEngine().eval(rateLimitConfiguration.getDynamicPeriodTime(), Long.class).defaultIfEmpty(1L);
+        var timeUnit = rateLimitConfiguration.hasValidPeriodTime() ? rateLimitConfiguration.getPeriodTimeUnit() : TimeUnit.SECONDS;
 
         Context context = Vertx.currentContext();
 
-        return Single.zip(k, l, Pair::new).flatMapCompletable(entry -> {
+        return Single.zip(k, l, timeDuration, SharedPolicy::new).flatMapCompletable(entry -> {
             long limit = entry.limit();
 
             return rateLimitService
                 .incrementAndGet(entry.key(), rateConfig.isAsync(), () -> {
                     // Set the time at which the current rate limit window resets in UTC epoch seconds.
-                    long resetTimeMillis = DateUtils.getEndOfPeriod(
-                        ctx.timestamp(),
-                        timeDuration.blockingGet(),
-                        rateLimitConfiguration.getPeriodTimeUnit()
-                    );
+                    long resetTimeMillis = DateUtils.getEndOfPeriod(ctx.timestamp(), entry.period(), timeUnit);
 
                     RateLimit rate = new RateLimit(entry.key());
                     rate.setCounter(0);
@@ -125,8 +126,8 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
                         String message = String.format(
                             "Rate limit exceeded! You reached the limit of %d requests per %d %s",
                             limit,
-                            timeDuration.blockingGet(),
-                            rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase()
+                            entry.period(),
+                            timeUnit.name().toLowerCase()
                         );
                         ctx.metrics().setErrorKey(RateLimitPolicyV3.RATE_LIMIT_TOO_MANY_REQUESTS);
                         ctx.metrics().setErrorMessage(message);
@@ -134,14 +135,7 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
                             PolicyRateLimitException.overflow(
                                 RateLimitPolicyV3.RATE_LIMIT_TOO_MANY_REQUESTS,
                                 message,
-                                Map.of(
-                                    "limit",
-                                    limit,
-                                    "period_time",
-                                    timeDuration.blockingGet(),
-                                    "period_unit",
-                                    rateLimitConfiguration.getPeriodTimeUnit()
-                                )
+                                Map.of("limit", limit, "period_time", entry.period(), "period_unit", timeUnit.name().toLowerCase())
                             )
                         );
                     }

@@ -45,9 +45,9 @@ class QuotaPolicyConfigurationTest {
                     QuotaConfiguration.builder()
                         .limit(10)
                         .dynamicLimit("{(2*5)}")
-                        .periodTime(10)
-                        .periodTimeExpression("{(2*5)}")
-                        .periodTimeUnit(ChronoUnit.MINUTES)
+                        .periodTime(10L)
+                        .dynamicPeriodTime("{(5+5)}")
+                        .periodTimeUnit(ChronoUnit.HOURS)
                         .build()
                 )
                 .build()
@@ -65,7 +65,14 @@ class QuotaPolicyConfigurationTest {
             QuotaPolicyConfiguration.builder()
                 .addHeaders(false)
                 .async(true)
-                .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.MINUTES).build())
+                .quota(
+                    QuotaConfiguration.builder()
+                        .limit(10)
+                        .periodTime(0L)
+                        .dynamicPeriodTime("{(5+5)}")
+                        .periodTimeUnit(ChronoUnit.HOURS)
+                        .build()
+                )
                 .build()
         );
     }
@@ -82,7 +89,14 @@ class QuotaPolicyConfigurationTest {
                 .errorStrategy(ErrorStrategy.BLOCK_ON_INTERNAL_ERROR)
                 .addHeaders(false)
                 .async(true)
-                .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.MINUTES).build())
+                .quota(
+                    QuotaConfiguration.builder()
+                        .limit(10)
+                        .periodTime(10L)
+                        .dynamicPeriodTime("{(5+5)}")
+                        .periodTimeUnit(ChronoUnit.HOURS)
+                        .build()
+                )
                 .build()
         );
     }

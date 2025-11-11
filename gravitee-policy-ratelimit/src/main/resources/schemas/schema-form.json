@@ -62,27 +62,28 @@
                 },
                 "periodTime": {
                     "type": "integer",
-                    "title": "Time duration",
-                    "description": "Static value of time duration (This value is used when greater than 1).",
-                    "minimum": 1,
-                    "default": 1
-                },
-                "periodTimeExpression": {
-                    "type": "string",
-                    "title": "Expression for time duration",
-                    "description": "Dynamic time duration based on EL expressions (This value is used if static value is 1).",
-                    "x-schema-form": {
-                        "expression-language": true
-                    }
+                    "title": "Static time duration",
+                    "description": "If defined, will be used instead of 'Dynamic time duration'.",
+                    "minimum": 0
                 },
                 "periodTimeUnit": {
                     "type": "string",
-                    "title": "Time unit",
+                    "title": "Static time unit",
                     "default": "SECONDS",
                     "enum": ["SECONDS", "MINUTES"]
+                },
+                "dynamicPeriodTime": {
+                    "type": "string",
+                    "title": "Dynamic time duration (Supports EL)",
+                    "description": "The 'Static time duration' must be empty to use the dynamic period. The time unit is set to SECONDS by default.",
+                    "x-schema-form": {
+                        "expression-language": true
+                    },
+                    "gioConfig": {
+                        "el": true
+                    }
                 }
-            },
-            "required": ["periodTime", "periodTimeUnit"]
+            }
         }
     },
     "required": ["rate", "errorStrategy"]

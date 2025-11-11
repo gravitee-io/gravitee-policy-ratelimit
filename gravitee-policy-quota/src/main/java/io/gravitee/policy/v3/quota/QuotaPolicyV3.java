@@ -29,12 +29,12 @@ import io.gravitee.ratelimit.DateUtils;
 import io.gravitee.ratelimit.KeyFactory;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
-import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.core.SingleObserver;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
+import java.time.temporal.ChronoUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,20 +104,17 @@ public class QuotaPolicyV3 {
         long limit = (quotaConfiguration.getLimit() > 0)
             ? quotaConfiguration.getLimit()
             : executionContext.getTemplateEngine().evalNow(quotaConfiguration.getDynamicLimit(), Long.class);
-        var timeDuration = (quotaConfiguration.getPeriodTime() > 1)
-            ? Single.just(quotaConfiguration.getPeriodTime())
-            : executionContext.getTemplateEngine().eval(quotaConfiguration.getPeriodTimeExpression(), Long.class).defaultIfEmpty(1L);
+        var timeDuration = quotaConfiguration.hasValidPeriodTime()
+            ? quotaConfiguration.getPeriodTime()
+            : executionContext.getTemplateEngine().evalNow(quotaConfiguration.getDynamicPeriodTime(), Long.class);
+        var timeUnit = quotaConfiguration.hasValidPeriodTime() ? quotaConfiguration.getPeriodTimeUnit() : ChronoUnit.HOURS;
 
         Context context = Vertx.currentContext();
 
         rateLimitService
             .incrementAndGet(key, quotaPolicyConfiguration.isAsync(), () -> {
                 // Set the time at which the current rate limit window resets in UTC epoch seconds.
-                long resetTimeMillis = DateUtils.getEndOfPeriod(
-                    request.timestamp(),
-                    timeDuration.blockingGet(),
-                    quotaConfiguration.getPeriodTimeUnit()
-                );
+                long resetTimeMillis = DateUtils.getEndOfPeriod(request.timestamp(), timeDuration, timeUnit);
 
                 RateLimit rate = new RateLimit(key);
                 rate.setCounter(0);
@@ -150,7 +147,7 @@ public class QuotaPolicyV3 {
                         if (rateLimit.getCounter() <= limit) {
                             policyChain.doNext(request, response);
                         } else {
-                            policyChain.failWith(createLimitExceeded(quotaConfiguration, limit, timeDuration.blockingGet()));
+                            policyChain.failWith(createLimitExceeded(quotaConfiguration, limit, timeDuration, timeUnit));
                         }
                     }
 
@@ -174,21 +171,12 @@ public class QuotaPolicyV3 {
             );
     }
 
-    private PolicyResult createLimitExceeded(QuotaConfiguration quotaConfiguration, long actualLimit, long periodTime) {
+    private PolicyResult createLimitExceeded(QuotaConfiguration quotaConfiguration, long actualLimit, long duration, ChronoUnit timeUnit) {
         return PolicyResult.failure(
             QUOTA_TOO_MANY_REQUESTS,
             HttpStatusCode.TOO_MANY_REQUESTS_429,
-            "Quota exceeded! You reached the limit of " +
-                actualLimit +
-                " requests per " +
-                periodTime +
-                ' ' +
-                quotaConfiguration.getPeriodTimeUnit().name().toLowerCase(),
-            Maps.<String, Object>builder()
-                .put("limit", actualLimit)
-                .put("period_time", periodTime)
-                .put("period_unit", quotaConfiguration.getPeriodTimeUnit())
-                .build()
+            "Quota exceeded! You reached the limit of " + actualLimit + " requests per " + duration + ' ' + timeUnit.name().toLowerCase(),
+            Maps.<String, Object>builder().put("limit", actualLimit).put("period_time", duration).put("period_unit", timeUnit).build()
         );
     }
 

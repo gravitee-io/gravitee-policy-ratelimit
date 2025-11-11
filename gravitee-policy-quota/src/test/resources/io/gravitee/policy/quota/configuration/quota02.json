@@ -3,7 +3,8 @@
     "async": true,
     "quota": {
         "limit": 10,
-        "periodTime": 10,
-        "periodTimeUnit": "MINUTES"
+        "periodTime": 0,
+        "dynamicPeriodTime": "{(5+5)}",
+        "periodTimeUnit": "HOURS"
     }
 }
