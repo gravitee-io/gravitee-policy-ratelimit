@@ -36,13 +36,17 @@ public class RateLimitConfiguration implements KeyConfiguration {
 
     private String dynamicLimit;
 
-    private long periodTime;
-
-    private String periodTimeExpression;
+    private Long periodTime;
 
     private TimeUnit periodTimeUnit;
+
+    private String dynamicPeriodTime;
 
     private String key;
 
     private boolean useKeyOnly;
+
+    public boolean hasValidPeriodTime() {
+        return periodTime != null && periodTime > 0;
+    }
 }

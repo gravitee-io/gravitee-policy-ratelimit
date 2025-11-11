@@ -35,6 +35,7 @@ import io.reactivex.rxjava3.disposables.Disposable;
 import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,23 +107,20 @@ public class RateLimitPolicyV3 {
             executionContext::getTemplateEngine,
             rateLimitConfiguration
         ).blockingGet();
-        long limit = (rateLimitConfiguration.getLimit() > 0)
+        var limit = (rateLimitConfiguration.getLimit() > 0)
             ? rateLimitConfiguration.getLimit()
             : executionContext.getTemplateEngine().evalNow(rateLimitConfiguration.getDynamicLimit(), Long.class);
-        long periodTime = (rateLimitConfiguration.getPeriodTime() > 1)
+        var timeDuration = rateLimitConfiguration.hasValidPeriodTime()
             ? rateLimitConfiguration.getPeriodTime()
-            : executionContext.getTemplateEngine().evalNow(rateLimitConfiguration.getPeriodTimeExpression(), Long.class);
+            : executionContext.getTemplateEngine().evalNow(rateLimitConfiguration.getDynamicPeriodTime(), Long.class);
+        var timeUnit = rateLimitConfiguration.hasValidPeriodTime() ? rateLimitConfiguration.getPeriodTimeUnit() : TimeUnit.SECONDS;
 
         Context context = Vertx.currentContext();
 
         rateLimitService
             .incrementAndGet(key, rateLimitPolicyConfiguration.isAsync(), () -> {
                 // Set the time at which the current rate limit window resets in UTC epoch seconds.
-                long resetTimeMillis = DateUtils.getEndOfPeriod(
-                    request.timestamp(),
-                    periodTime,
-                    rateLimitConfiguration.getPeriodTimeUnit()
-                );
+                long resetTimeMillis = DateUtils.getEndOfPeriod(request.timestamp(), timeDuration, timeUnit);
 
                 RateLimit rate = new RateLimit(key);
                 rate.setCounter(0);
@@ -149,7 +147,7 @@ public class RateLimitPolicyV3 {
                         if (rateLimit.getCounter() <= limit) {
                             policyChain.doNext(request, response);
                         } else {
-                            policyChain.failWith(createLimitExceeded(rateLimitConfiguration, limit, periodTime));
+                            policyChain.failWith(createLimitExceeded(rateLimitConfiguration, limit, timeDuration, timeUnit));
                         }
                     }
 
@@ -170,21 +168,22 @@ public class RateLimitPolicyV3 {
             );
     }
 
-    private PolicyResult createLimitExceeded(RateLimitConfiguration rateLimitConfiguration, long actualLimit, long periodTime) {
+    private PolicyResult createLimitExceeded(
+        RateLimitConfiguration rateLimitConfiguration,
+        long actualLimit,
+        long duration,
+        TimeUnit timeUnit
+    ) {
         return PolicyResult.failure(
             RATE_LIMIT_TOO_MANY_REQUESTS,
             HttpStatusCode.TOO_MANY_REQUESTS_429,
             "Rate limit exceeded! You reached the limit of " +
                 actualLimit +
                 " requests per " +
-                periodTime +
+                duration +
                 ' ' +
-                rateLimitConfiguration.getPeriodTimeUnit().name().toLowerCase(),
-            Maps.<String, Object>builder()
-                .put("limit", actualLimit)
-                .put("period_time", periodTime)
-                .put("period_unit", rateLimitConfiguration.getPeriodTimeUnit())
-                .build()
+                timeUnit.name().toLowerCase(),
+            Maps.<String, Object>builder().put("limit", actualLimit).put("period_time", duration).put("period_unit", timeUnit).build()
         );
     }
 

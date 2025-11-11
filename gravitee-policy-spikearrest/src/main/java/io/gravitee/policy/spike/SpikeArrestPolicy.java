@@ -29,8 +29,8 @@ import io.gravitee.policy.spike.configuration.SpikeArrestConfiguration;
 import io.gravitee.policy.spike.configuration.SpikeArrestPolicyConfiguration;
 import io.gravitee.policy.spike.utils.LimitUtils;
 import io.gravitee.policy.v3.spike.SpikeArrestPolicyV3;
-import io.gravitee.ratelimit.Pair;
 import io.gravitee.ratelimit.PolicyRateLimitException;
+import io.gravitee.ratelimit.SharedPolicy;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import io.reactivex.rxjava3.core.Completable;
@@ -81,16 +81,17 @@ public class SpikeArrestPolicy extends SpikeArrestPolicyV3 implements HttpPolicy
         var l = (spikeArrestConfiguration.getLimit() > 0)
             ? Maybe.just(spikeArrestConfiguration.getLimit())
             : ctx.getTemplateEngine().eval(spikeArrestConfiguration.getDynamicLimit(), Long.class);
-        var timeDuration = (spikeArrestConfiguration.getPeriodTime() > 1)
+        var timeDuration = spikeArrestConfiguration.hasValidPeriodTime()
             ? Single.just(spikeArrestConfiguration.getPeriodTime())
-            : ctx.getTemplateEngine().eval(spikeArrestConfiguration.getPeriodTimeExpression(), Long.class).defaultIfEmpty(1L);
+            : ctx.getTemplateEngine().eval(spikeArrestConfiguration.getDynamicPeriodTime(), Long.class).defaultIfEmpty(1L);
+        var timeUnit = spikeArrestConfiguration.hasValidPeriodTime() ? spikeArrestConfiguration.getPeriodTimeUnit() : TimeUnit.SECONDS;
 
         Context context = Vertx.currentContext();
 
-        return Single.zip(k, l.defaultIfEmpty(0L), Pair::new).flatMapCompletable(entry -> {
+        return Single.zip(k, l.defaultIfEmpty(0L), timeDuration, SharedPolicy::new).flatMapCompletable(entry -> {
             long limit = entry.limit();
 
-            var slice = computeSliceLimit(limit, timeDuration.blockingGet(), spikeArrestConfiguration.getPeriodTimeUnit());
+            var slice = computeSliceLimit(limit, entry.period(), timeUnit);
 
             return rateLimitService
                 .incrementAndGet(entry.key(), policyConfiguration.isAsync(), () -> {
@@ -132,8 +133,8 @@ public class SpikeArrestPolicy extends SpikeArrestPolicyV3 implements HttpPolicy
                                     .put("slice_period_time", slice.period())
                                     .put("slice_period_unit", TimeUnit.MILLISECONDS)
                                     .put("limit", limit)
-                                    .put("period_time", spikeArrestConfiguration.getPeriodTime())
-                                    .put("period_unit", spikeArrestConfiguration.getPeriodTimeUnit())
+                                    .put("period_time", entry.period())
+                                    .put("period_unit", timeUnit)
                                     .build()
                             )
                         );

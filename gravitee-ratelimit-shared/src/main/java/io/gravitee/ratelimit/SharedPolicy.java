@@ -15,4 +15,4 @@
  */
 package io.gravitee.ratelimit;
 
-public record Pair(String key, long limit) {}
+public record SharedPolicy(String key, long limit, long period) {}

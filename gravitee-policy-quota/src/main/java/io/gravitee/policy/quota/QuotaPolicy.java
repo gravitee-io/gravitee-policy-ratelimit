@@ -27,14 +27,17 @@ import io.gravitee.policy.quota.configuration.QuotaPolicyConfiguration;
 import io.gravitee.policy.v3.quota.QuotaPolicyV3;
 import io.gravitee.ratelimit.DateUtils;
 import io.gravitee.ratelimit.KeyFactory;
-import io.gravitee.ratelimit.Pair;
 import io.gravitee.ratelimit.PolicyRateLimitException;
+import io.gravitee.ratelimit.SharedPolicy;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
-import io.reactivex.rxjava3.core.*;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Single;
 import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
+import java.time.temporal.ChronoUnit;
 
 public class QuotaPolicy extends QuotaPolicyV3 implements HttpPolicy {
 
@@ -78,23 +81,20 @@ public class QuotaPolicy extends QuotaPolicyV3 implements HttpPolicy {
         var l = (quotaConfiguration.getLimit() > 0)
             ? Maybe.just(quotaConfiguration.getLimit())
             : ctx.getTemplateEngine().eval(quotaConfiguration.getDynamicLimit(), Long.class);
-        var timeDuration = (quotaConfiguration.getPeriodTime() > 1)
+        var timeDuration = quotaConfiguration.hasValidPeriodTime()
             ? Single.just(quotaConfiguration.getPeriodTime())
-            : ctx.getTemplateEngine().eval(quotaConfiguration.getPeriodTimeExpression(), Long.class).defaultIfEmpty(1L);
+            : ctx.getTemplateEngine().eval(quotaConfiguration.getDynamicPeriodTime(), Long.class).defaultIfEmpty(1L);
+        var timeUnit = quotaConfiguration.hasValidPeriodTime() ? quotaConfiguration.getPeriodTimeUnit() : ChronoUnit.HOURS;
 
         Context context = Vertx.currentContext();
 
-        return Single.zip(k, l.defaultIfEmpty(0L), Pair::new).flatMapCompletable(entry -> {
+        return Single.zip(k, l.defaultIfEmpty(0L), timeDuration, SharedPolicy::new).flatMapCompletable(entry -> {
             long limit = entry.limit();
 
             return rateLimitService
                 .incrementAndGet(entry.key(), policyConfig.isAsync(), () -> {
                     // Set the time at which the current rate limit window resets in UTC epoch seconds.
-                    long resetTimeMillis = DateUtils.getEndOfPeriod(
-                        ctx.timestamp(),
-                        timeDuration.blockingGet(),
-                        quotaConfiguration.getPeriodTimeUnit()
-                    );
+                    long resetTimeMillis = DateUtils.getEndOfPeriod(ctx.timestamp(), entry.period(), timeUnit);
 
                     RateLimit rate = new RateLimit(entry.key());
                     rate.setCounter(0);
@@ -124,8 +124,8 @@ public class QuotaPolicy extends QuotaPolicyV3 implements HttpPolicy {
                         String message = String.format(
                             "Quota exceeded! You reached the limit of %d requests per %d %s",
                             limit,
-                            timeDuration.blockingGet(),
-                            quotaConfiguration.getPeriodTimeUnit().name().toLowerCase()
+                            entry.period(),
+                            timeUnit.name().toLowerCase()
                         );
                         ctx.metrics().setErrorKey(QuotaPolicyV3.QUOTA_TOO_MANY_REQUESTS);
                         ctx.metrics().setErrorMessage(message);
@@ -135,8 +135,8 @@ public class QuotaPolicy extends QuotaPolicyV3 implements HttpPolicy {
                                 message,
                                 Maps.<String, Object>builder()
                                     .put("limit", limit)
-                                    .put("period_time", timeDuration.blockingGet())
-                                    .put("period_unit", quotaConfiguration.getPeriodTimeUnit())
+                                    .put("period_time", entry.period())
+                                    .put("period_unit", timeUnit)
                                     .build()
                             )
                         );

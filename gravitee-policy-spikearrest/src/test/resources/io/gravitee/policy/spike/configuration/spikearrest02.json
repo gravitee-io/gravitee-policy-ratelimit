@@ -4,7 +4,6 @@
     "spike": {
         "dynamicLimit": "10",
         "periodTime": 10,
-        "periodTimeExpression": "10",
         "periodTimeUnit": "MINUTES"
     }
 }
