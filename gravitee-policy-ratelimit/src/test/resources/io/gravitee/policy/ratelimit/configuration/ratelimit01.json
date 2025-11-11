@@ -3,7 +3,6 @@
         "limit": 10,
         "dynamicLimit": "{(2*5)}",
         "periodTime": 10,
-        "periodTimeExpression": "{#request.headers['X-RateLimit-Period-Time']}",
         "periodTimeUnit": "MINUTES"
     }
 }

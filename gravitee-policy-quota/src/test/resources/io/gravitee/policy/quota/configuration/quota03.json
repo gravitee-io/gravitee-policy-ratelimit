@@ -5,6 +5,7 @@
     "quota": {
         "limit": 10,
         "periodTime": 10,
-        "periodTimeUnit": "MINUTES"
+        "dynamicPeriodTime": "{(5+5)}",
+        "periodTimeUnit": "HOURS"
     }
 }

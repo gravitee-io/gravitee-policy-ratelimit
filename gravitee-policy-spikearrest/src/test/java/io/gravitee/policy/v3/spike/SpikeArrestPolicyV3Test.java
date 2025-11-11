@@ -19,11 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
@@ -100,7 +96,7 @@ public class SpikeArrestPolicyV3Test {
     public void should_fail_when_no_service_installed() {
         var policy = new SpikeArrestPolicyV3(
             SpikeArrestPolicyConfiguration.builder()
-                .spike(SpikeArrestConfiguration.builder().limit(1).periodTime(1).periodTimeUnit(TimeUnit.SECONDS).build())
+                .spike(SpikeArrestConfiguration.builder().limit(1).periodTime(1L).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
         );
 
@@ -128,7 +124,7 @@ public class SpikeArrestPolicyV3Test {
         var policy = new SpikeArrestPolicyV3(
             SpikeArrestPolicyConfiguration.builder()
                 .addHeaders(true)
-                .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
+                .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
         );
 
@@ -161,7 +157,7 @@ public class SpikeArrestPolicyV3Test {
         var policy = new SpikeArrestPolicyV3(
             SpikeArrestPolicyConfiguration.builder()
                 .addHeaders(false)
-                .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
+                .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
         );
 
@@ -190,6 +186,34 @@ public class SpikeArrestPolicyV3Test {
     }
 
     @Test
+    void should_use_dynamic_period_time_when_static_value_is_zero() {
+        var policy = new SpikeArrestPolicyV3(
+            SpikeArrestPolicyConfiguration.builder()
+                .addHeaders(true)
+                .spike(SpikeArrestConfiguration.builder().limit(5).dynamicPeriodTime("{(2*5)}").build())
+                .build()
+        );
+
+        vertx.runOnContext(event ->
+            policy.onRequest(
+                request,
+                response,
+                executionContext,
+                chain(
+                    (req, res) -> {
+                        assertThat(responseHttpHeaders.get(SpikeArrestPolicyV3.X_SPIKE_ARREST_LIMIT)).isEqualTo("1");
+                        assertThat(responseHttpHeaders.get(SpikeArrestPolicyV3.X_SPIKE_ARREST_SLICE)).isEqualTo("2000ms");
+                        assertThat(responseHttpHeaders.get(SpikeArrestPolicyV3.X_SPIKE_ARREST_RESET)).isEqualTo("2000");
+                    },
+                    policyResult -> {
+                        fail("Unexpected failure: " + policyResult.message());
+                    }
+                )
+            )
+        );
+    }
+
+    @Test
     public void should_provide_info_when_limit_exceeded() throws InterruptedException {
         var latch = new CountDownLatch(2);
         var policy = new SpikeArrestPolicyV3(
@@ -198,7 +222,7 @@ public class SpikeArrestPolicyV3Test {
                     SpikeArrestConfiguration.builder()
                         .limit(1)
                         .dynamicLimit("0")
-                        .periodTime(100)
+                        .periodTime(100L)
                         .periodTimeUnit(TimeUnit.MILLISECONDS)
                         .build()
                 )
@@ -276,7 +300,7 @@ public class SpikeArrestPolicyV3Test {
             var policy = new SpikeArrestPolicyV3(
                 SpikeArrestPolicyConfiguration.builder()
                     .addHeaders(true)
-                    .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
+                    .spike(SpikeArrestConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(TimeUnit.SECONDS).build())
                     .build()
             );
 

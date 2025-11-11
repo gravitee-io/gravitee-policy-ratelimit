@@ -19,13 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
+import io.gravitee.el.TemplateEngine;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
@@ -62,6 +58,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class QuotaPolicyV3Test {
 
     private final LocalCacheQuotaProvider rateLimitService = new LocalCacheQuotaProvider();
+    private final TemplateEngine templateEngine = mock(TemplateEngine.class);
     private Vertx vertx;
 
     @Captor
@@ -87,6 +84,7 @@ class QuotaPolicyV3Test {
 
         lenient().when(executionContext.getComponent(Vertx.class)).thenReturn(vertx);
         lenient().when(executionContext.getComponent(RateLimitService.class)).thenReturn(rateLimitService);
+        lenient().when(executionContext.getComponent(TemplateEngine.class)).thenReturn(templateEngine);
 
         responseHttpHeaders = HttpHeaders.create();
         lenient().when(response.headers()).thenReturn(responseHttpHeaders);
@@ -102,7 +100,7 @@ class QuotaPolicyV3Test {
     void should_fail_when_no_service_installed() {
         var policy = new QuotaPolicyV3(
             QuotaPolicyConfiguration.builder()
-                .quota(QuotaConfiguration.builder().limit(1).periodTime(1).periodTimeUnit(ChronoUnit.SECONDS).build())
+                .quota(QuotaConfiguration.builder().limit(1).periodTime(10L).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
 
@@ -129,7 +127,7 @@ class QuotaPolicyV3Test {
         var latch = new CountDownLatch(1);
         var policy = new QuotaPolicyV3(
             QuotaPolicyConfiguration.builder()
-                .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
 
@@ -157,12 +155,39 @@ class QuotaPolicyV3Test {
     }
 
     @Test
+    void should_use_dynamic_period_time_when_period_time_is_zero() {
+        var policy = new QuotaPolicyV3(
+            QuotaPolicyConfiguration.builder()
+                .quota(QuotaConfiguration.builder().limit(10).periodTime(0L).dynamicPeriodTime("{(1*1)}").build())
+                .build()
+        );
+
+        vertx.runOnContext(event ->
+            policy.onRequest(
+                request,
+                response,
+                executionContext,
+                chain(
+                    (req, res) -> {
+                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_LIMIT)).isEqualTo("10");
+                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_REMAINING)).isEqualTo("9");
+                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_RESET)).isEqualTo("3600000");
+                    },
+                    policyResult -> {
+                        fail("Unexpected failure: " + policyResult.message());
+                    }
+                )
+            )
+        );
+    }
+
+    @Test
     void should_not_add_headers_when_disabled() throws InterruptedException {
         var latch = new CountDownLatch(1);
         var policy = new QuotaPolicyV3(
             QuotaPolicyConfiguration.builder()
                 .addHeaders(false)
-                .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
 
@@ -194,7 +219,7 @@ class QuotaPolicyV3Test {
         var latch = new CountDownLatch(1);
         var policy = new QuotaPolicyV3(
             QuotaPolicyConfiguration.builder()
-                .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
 
@@ -229,7 +254,7 @@ class QuotaPolicyV3Test {
         var latch = new CountDownLatch(1);
         var policy = new QuotaPolicyV3(
             QuotaPolicyConfiguration.builder()
-                .quota(QuotaConfiguration.builder().limit(0).dynamicLimit("0").periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                .quota(QuotaConfiguration.builder().limit(0).dynamicLimit("0").periodTime(10L).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
 
@@ -273,7 +298,7 @@ class QuotaPolicyV3Test {
         var latch = new CountDownLatch(calls);
         var policy = new QuotaPolicyV3(
             QuotaPolicyConfiguration.builder()
-                .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
         responseHttpHeaders = mock(HttpHeaders.class);
@@ -295,7 +320,7 @@ class QuotaPolicyV3Test {
         var latch = new CountDownLatch(calls);
         var policy = new QuotaPolicyV3(
             QuotaPolicyConfiguration.builder()
-                .quota(QuotaConfiguration.builder().dynamicLimit("{(2*5)}").periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                .quota(QuotaConfiguration.builder().dynamicLimit("{(2*5)}").periodTime(10L).periodTimeUnit(ChronoUnit.SECONDS).build())
                 .build()
         );
         responseHttpHeaders = mock(HttpHeaders.class);
@@ -351,7 +376,7 @@ class QuotaPolicyV3Test {
             var policy = new QuotaPolicyV3(
                 QuotaPolicyConfiguration.builder()
                     .addHeaders(true)
-                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.SECONDS).build())
                     .build()
             );
 
@@ -385,7 +410,7 @@ class QuotaPolicyV3Test {
             var latch = new CountDownLatch(1);
             var policy = new QuotaPolicyV3(
                 QuotaPolicyConfiguration.builder()
-                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.SECONDS).build())
                     .build()
             );
 

@@ -35,7 +35,10 @@ import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import io.reactivex.rxjava3.annotations.NonNull;
-import io.reactivex.rxjava3.core.*;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.CompletableObserver;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -114,7 +117,7 @@ class QuotaPolicyTest {
 
         QuotaPolicy policy = new QuotaPolicy(
             QuotaPolicyConfiguration.builder()
-                .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.HOURS).build())
                 .build()
         );
 
@@ -135,7 +138,7 @@ class QuotaPolicyTest {
 
         QuotaPolicy policy = new QuotaPolicy(
             QuotaPolicyConfiguration.builder()
-                .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.HOURS).build())
                 .build()
         );
 
@@ -154,7 +157,7 @@ class QuotaPolicyTest {
         QuotaPolicy policy = new QuotaPolicy(
             QuotaPolicyConfiguration.builder()
                 .addHeaders(true)
-                .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.HOURS).build())
                 .build()
         );
 
@@ -177,7 +180,7 @@ class QuotaPolicyTest {
         QuotaPolicy policy = new QuotaPolicy(
             QuotaPolicyConfiguration.builder()
                 .addHeaders(true)
-                .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.HOURS).build())
                 .build()
         );
 
@@ -217,7 +220,7 @@ class QuotaPolicyTest {
         void should_successfully_process_onRequest(Vertx vertx, VertxTestContext testContext) {
             QuotaPolicy policy = new QuotaPolicy(
                 QuotaPolicyConfiguration.builder()
-                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.HOURS).build())
                     .build()
             );
 
@@ -228,7 +231,26 @@ class QuotaPolicyTest {
         void should_successfully_process_onMessageRequest(Vertx vertx, VertxTestContext testContext) {
             QuotaPolicy policy = new QuotaPolicy(
                 QuotaPolicyConfiguration.builder()
-                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.HOURS).build())
+                    .build()
+            );
+
+            vertx.runOnContext(v -> policy.onMessageRequest(messageContext).subscribe(new SubscribeAdapter(testContext)));
+        }
+
+        @Test
+        void should_use_dynamic_period_time_when_period_time_is_zero(Vertx vertx, VertxTestContext testContext) {
+            QuotaPolicy policy = new QuotaPolicy(
+                QuotaPolicyConfiguration.builder()
+                    .addHeaders(true)
+                    .quota(
+                        QuotaConfiguration.builder()
+                            .limit(10)
+                            .periodTime(0L)
+                            .dynamicPeriodTime("{(5+5)}")
+                            .periodTimeUnit(ChronoUnit.HOURS)
+                            .build()
+                    )
                     .build()
             );
 
@@ -259,7 +281,7 @@ class QuotaPolicyTest {
         void should_interrupt_onRequest_when_quota_exceeded(Vertx vertx, VertxTestContext testContext) {
             QuotaPolicy policy = new QuotaPolicy(
                 QuotaPolicyConfiguration.builder()
-                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.HOURS).build())
                     .build()
             );
 
@@ -271,7 +293,7 @@ class QuotaPolicyTest {
                         ExecutionFailure executionFailure = ((MyException) th).getExecutionFailure();
                         assertThat(executionFailure.statusCode()).isEqualTo(429);
                         assertThat(executionFailure.message()).contains(
-                            "Quota exceeded! You reached the limit of 10 requests per 10 seconds"
+                            "Quota exceeded! You reached the limit of 10 requests per 10 hours"
                         );
                         verify(headers).set(QuotaPolicyV3.X_QUOTA_LIMIT, "10");
                         verify(headers).set(QuotaPolicyV3.X_QUOTA_REMAINING, "0");
@@ -294,7 +316,7 @@ class QuotaPolicyTest {
         void should_interrupt_onMessageRequest_when_quota_exceeded(Vertx vertx, VertxTestContext testContext) {
             QuotaPolicy policy = new QuotaPolicy(
                 QuotaPolicyConfiguration.builder()
-                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.HOURS).build())
                     .build()
             );
 
@@ -306,7 +328,7 @@ class QuotaPolicyTest {
                         ExecutionFailure executionFailure = ((MyException) th).getExecutionFailure();
                         assertThat(executionFailure.statusCode()).isEqualTo(429);
                         assertThat(executionFailure.message()).contains(
-                            "Quota exceeded! You reached the limit of 10 requests per 10 seconds"
+                            "Quota exceeded! You reached the limit of 10 requests per 10 hours"
                         );
                         verify(headers).set(QuotaPolicyV3.X_QUOTA_LIMIT, "10");
                         verify(headers).set(QuotaPolicyV3.X_QUOTA_REMAINING, "0");
@@ -346,7 +368,7 @@ class QuotaPolicyTest {
         void should_handle_repository_error_on_onRequest(Vertx vertx, VertxTestContext testContext) {
             QuotaPolicy policy = new QuotaPolicy(
                 QuotaPolicyConfiguration.builder()
-                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.HOURS).build())
                     .build()
             );
 
@@ -357,7 +379,7 @@ class QuotaPolicyTest {
         void should_handle_repository_error_on_onMessageRequest(Vertx vertx, VertxTestContext testContext) {
             QuotaPolicy policy = new QuotaPolicy(
                 QuotaPolicyConfiguration.builder()
-                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(ChronoUnit.SECONDS).build())
+                    .quota(QuotaConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(ChronoUnit.HOURS).build())
                     .build()
             );
 

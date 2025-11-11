@@ -15,9 +15,7 @@
  */
 package io.gravitee.policy.v3.spike;
 
-import static io.gravitee.policy.spike.utils.LimitUtils.SliceLimit;
-import static io.gravitee.policy.spike.utils.LimitUtils.computeSliceLimit;
-import static io.gravitee.policy.spike.utils.LimitUtils.getEndOfPeriod;
+import static io.gravitee.policy.spike.utils.LimitUtils.*;
 
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.util.Maps;
@@ -32,7 +30,6 @@ import io.gravitee.policy.spike.configuration.SpikeArrestPolicyConfiguration;
 import io.gravitee.ratelimit.KeyFactory;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
-import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.core.SingleObserver;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.vertx.rxjava3.core.Context;
@@ -108,11 +105,12 @@ public class SpikeArrestPolicyV3 {
         final long limit = (spikeArrestConfiguration.getLimit() > 0)
             ? spikeArrestConfiguration.getLimit()
             : executionContext.getTemplateEngine().evalNow(spikeArrestConfiguration.getDynamicLimit(), Long.class);
-        var timeDuration = (spikeArrestConfiguration.getPeriodTime() > 1)
-            ? Single.just(spikeArrestConfiguration.getPeriodTime())
-            : executionContext.getTemplateEngine().eval(spikeArrestConfiguration.getPeriodTimeExpression(), Long.class).defaultIfEmpty(1L);
+        long timeDuration = spikeArrestConfiguration.hasValidPeriodTime()
+            ? spikeArrestConfiguration.getPeriodTime()
+            : executionContext.getTemplateEngine().evalNow(spikeArrestConfiguration.getDynamicPeriodTime(), Long.class);
+        TimeUnit timeUnit = spikeArrestConfiguration.hasValidPeriodTime() ? spikeArrestConfiguration.getPeriodTimeUnit() : TimeUnit.SECONDS;
 
-        SliceLimit slice = computeSliceLimit(limit, timeDuration.blockingGet(), spikeArrestConfiguration.getPeriodTimeUnit());
+        SliceLimit slice = computeSliceLimit(limit, timeDuration, timeUnit);
 
         Context context = Vertx.currentContext();
 
@@ -146,7 +144,7 @@ public class SpikeArrestPolicyV3 {
                         if (rateLimit.getCounter() <= slice.limit()) {
                             policyChain.doNext(request, response);
                         } else {
-                            policyChain.failWith(createLimitExceeded(spikeArrestConfiguration, slice, limit, timeDuration.blockingGet()));
+                            policyChain.failWith(createLimitExceeded(spikeArrestConfiguration, slice, limit, timeDuration, timeUnit));
                         }
                     }
 
@@ -170,7 +168,8 @@ public class SpikeArrestPolicyV3 {
         SpikeArrestConfiguration spikeArrestConfiguration,
         SliceLimit actualLimit,
         long limit,
-        long periodTime
+        long duration,
+        TimeUnit timeUnit
     ) {
         return PolicyResult.failure(
             SPIKE_ARREST_TOO_MANY_REQUESTS,
@@ -181,8 +180,8 @@ public class SpikeArrestPolicyV3 {
                 .put("slice_period_time", actualLimit.period())
                 .put("slice_period_unit", TimeUnit.MILLISECONDS)
                 .put("limit", limit)
-                .put("period_time", periodTime)
-                .put("period_unit", spikeArrestConfiguration.getPeriodTimeUnit())
+                .put("period_time", duration)
+                .put("period_unit", timeUnit)
                 .build()
         );
     }

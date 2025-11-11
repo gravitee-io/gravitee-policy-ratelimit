@@ -78,7 +78,7 @@ class RateLimitPolicyTest {
         configuration = new RateLimitPolicyConfiguration();
         RateLimitConfiguration rateLimitConfig = new RateLimitConfiguration();
         rateLimitConfig.setLimit(10);
-        rateLimitConfig.setPeriodTime(2);
+        rateLimitConfig.setPeriodTime(1L);
         rateLimitConfig.setPeriodTimeUnit(TimeUnit.MINUTES);
         configuration.setRate(rateLimitConfig);
         configuration.setAddHeaders(true);
@@ -142,7 +142,7 @@ class RateLimitPolicyTest {
                     ExecutionFailure executionFailure = ((MyException) th).getExecutionFailure();
                     assertThat(executionFailure.statusCode()).isEqualTo(429);
                     assertThat(executionFailure.message()).contains(
-                        "Rate limit exceeded! You reached the limit of 10 requests per 2 minutes"
+                        "Rate limit exceeded! You reached the limit of 10 requests per 1 minutes"
                     );
                     verify(headers).set("X-Rate-Limit-Limit", "10");
                     verify(headers).set("X-Rate-Limit-Remaining", "0");

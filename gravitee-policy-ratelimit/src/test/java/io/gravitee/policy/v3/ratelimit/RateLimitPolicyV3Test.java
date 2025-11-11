@@ -19,12 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
@@ -101,7 +96,7 @@ public class RateLimitPolicyV3Test {
     public void should_fail_when_no_service_installed() {
         var policy = new RateLimitPolicyV3(
             RateLimitPolicyConfiguration.builder()
-                .rate(RateLimitConfiguration.builder().limit(1).periodTime(1).periodTimeUnit(TimeUnit.SECONDS).build())
+                .rate(RateLimitConfiguration.builder().limit(1).periodTime(1L).periodTimeUnit(TimeUnit.MINUTES).build())
                 .build()
         );
 
@@ -129,7 +124,7 @@ public class RateLimitPolicyV3Test {
         var policy = new RateLimitPolicyV3(
             RateLimitPolicyConfiguration.builder()
                 .addHeaders(true)
-                .rate(RateLimitConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
+                .rate(RateLimitConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(TimeUnit.MINUTES).build())
                 .build()
         );
 
@@ -142,7 +137,7 @@ public class RateLimitPolicyV3Test {
                     (req, res) -> {
                         assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_LIMIT)).isEqualTo("10");
                         assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_REMAINING)).isEqualTo("9");
-                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_RESET)).isEqualTo("10000");
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_RESET)).isEqualTo("600000");
                         latch.countDown();
                     },
                     policyResult -> {
@@ -157,12 +152,40 @@ public class RateLimitPolicyV3Test {
     }
 
     @Test
+    void should_use_dynamic_period_time_when_static_value_is_zero() {
+        var policy = new RateLimitPolicyV3(
+            RateLimitPolicyConfiguration.builder()
+                .addHeaders(true)
+                .rate(RateLimitConfiguration.builder().limit(10).dynamicPeriodTime("{(2*5*60)}").build())
+                .build()
+        );
+
+        vertx.runOnContext(event ->
+            policy.onRequest(
+                request,
+                response,
+                executionContext,
+                chain(
+                    (req, res) -> {
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_LIMIT)).isEqualTo("10");
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_REMAINING)).isEqualTo("9");
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_RESET)).isEqualTo("600000");
+                    },
+                    policyResult -> {
+                        fail("Unexpected failure: " + policyResult.message());
+                    }
+                )
+            )
+        );
+    }
+
+    @Test
     public void should_not_add_headers_when_disabled() throws InterruptedException {
         var latch = new CountDownLatch(1);
         var policy = new RateLimitPolicyV3(
             RateLimitPolicyConfiguration.builder()
                 .addHeaders(false)
-                .rate(RateLimitConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
+                .rate(RateLimitConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(TimeUnit.MINUTES).build())
                 .build()
         );
 
@@ -195,7 +218,7 @@ public class RateLimitPolicyV3Test {
         var latch = new CountDownLatch(1);
         var policy = new RateLimitPolicyV3(
             RateLimitPolicyConfiguration.builder()
-                .rate(RateLimitConfiguration.builder().limit(0).dynamicLimit("0").periodTime(2).periodTimeUnit(TimeUnit.SECONDS).build())
+                .rate(RateLimitConfiguration.builder().limit(0).dynamicLimit("0").periodTime(1L).periodTimeUnit(TimeUnit.SECONDS).build())
                 .build()
         );
         vertx.runOnContext(event ->
@@ -214,10 +237,10 @@ public class RateLimitPolicyV3Test {
                             soft.assertThat(policyResult.key()).isEqualTo("RATE_LIMIT_TOO_MANY_REQUESTS");
                             soft
                                 .assertThat(policyResult.message())
-                                .isEqualTo("Rate limit exceeded! You reached the limit of 0 requests per 2 seconds");
+                                .isEqualTo("Rate limit exceeded! You reached the limit of 0 requests per 1 seconds");
                             soft
                                 .assertThat(policyResult.parameters())
-                                .contains(Map.entry("limit", 0L), Map.entry("period_time", 2L), Map.entry("period_unit", TimeUnit.SECONDS));
+                                .contains(Map.entry("limit", 0L), Map.entry("period_time", 1L), Map.entry("period_unit", TimeUnit.SECONDS));
                         });
                         latch.countDown();
                     }
@@ -235,7 +258,7 @@ public class RateLimitPolicyV3Test {
         var policy = new RateLimitPolicyV3(
             RateLimitPolicyConfiguration.builder()
                 .addHeaders(true)
-                .rate(RateLimitConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
+                .rate(RateLimitConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(TimeUnit.MINUTES).build())
                 .build()
         );
         responseHttpHeaders = mock(HttpHeaders.class);
@@ -258,7 +281,7 @@ public class RateLimitPolicyV3Test {
         var policy = new RateLimitPolicyV3(
             RateLimitPolicyConfiguration.builder()
                 .addHeaders(true)
-                .rate(RateLimitConfiguration.builder().dynamicLimit("{(2*5)}").periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
+                .rate(RateLimitConfiguration.builder().dynamicLimit("{(2*5)}").periodTime(10L).periodTimeUnit(TimeUnit.MINUTES).build())
                 .build()
         );
         responseHttpHeaders = mock(HttpHeaders.class);
@@ -292,7 +315,7 @@ public class RateLimitPolicyV3Test {
             var policy = new RateLimitPolicyV3(
                 RateLimitPolicyConfiguration.builder()
                     .addHeaders(true)
-                    .rate(RateLimitConfiguration.builder().limit(10).periodTime(10).periodTimeUnit(TimeUnit.SECONDS).build())
+                    .rate(RateLimitConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(TimeUnit.MINUTES).build())
                     .build()
             );
 
