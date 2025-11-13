@@ -1,3 +1,10 @@
+# [4.2.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.1.1...4.2.0-alpha.1) (2025-11-13)
+
+
+### Features
+
+* add the mcp & llm proxies to the policies ([e821ae6](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/e821ae668a580e4ac88dd4544d2a388e328f2239))
+
 ## [4.1.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.1.0...4.1.1) (2025-10-13)
 
 
