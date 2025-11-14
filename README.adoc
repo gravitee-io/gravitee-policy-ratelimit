@@ -84,7 +84,7 @@ This policy does not prevent request spikes.
 
 |periodTime
 |Yes
-|Time duration
+|Static Time duration. This value must be empty to use the `dynamicPeriodTime`.
 |Integer
 |1
 
@@ -94,17 +94,37 @@ This policy does not prevent request spikes.
 |String
 |MONTHS
 
+|dynamicPeriodTime
+|No
+|This expression will be used when `periodTime` is empty. Supports EL. For The default time unit is `HOURS`.
+|String
+|null
+
 |===
 
 ==== Configuration example
 
+Static Time Duration
 [source, json]
 ----
+{
   "quota": {
     "limit": "1000",
     "periodTime": 1,
     "periodTimeUnit": "MONTHS"
   }
+}
+----
+Dynamic Time Duration
+[source, json]
+----
+{
+  "quota": {
+    "limit": "1000",
+    "dynamicPeriodTime": "{#context.attributes['rate-limit-quota-period']}",
+    "periodTimeUnit": "HOURS"
+  }
+}
 ----
 
 === Rate-Limit
@@ -153,7 +173,7 @@ This policy does not prevent request spikes.
 
 |periodTime
 |Yes
-|Time duration
+|Static Time duration. This value must be empty to use the `dynamicPeriodTime`.
 |Integer
 |1
 
@@ -163,17 +183,37 @@ This policy does not prevent request spikes.
 |String
 |SECONDS
 
+|dynamicPeriodTime
+|No
+|This expression will be used when `periodTime` is empty. Supports EL. For The default time unit is `SECONDS`.
+|String
+|null
+
 |===
 
 ==== Configuration example
 
+Static Time Duration
 [source, json]
 ----
+{
   "rate": {
-    "limit": "10",
-    "periodTime": 10,
-    "periodTimeUnit": "MINUTES"
+    "limit": "1000",
+    "periodTime": 1,
+    "periodTimeUnit": "SECONDS"
   }
+}
+----
+Dynamic Time Duration
+[source, json]
+----
+{
+  "rate": {
+    "limit": "1000",
+    "dynamicPeriodTime": "{#context.attributes['rate-limit-quota-period']}",
+    "periodTimeUnit": "SECONDS"
+  }
+}
 ----
 
 === Spike Arrest
@@ -219,7 +259,7 @@ By default, the SpikeArrest policy is applied to a plan, not a consumer. To appl
 
 |periodTime
 |Yes
-|Time duration
+|Static Time duration. This value must be empty to use the `dynamicPeriodTime`.
 |Integer
 |1
 
@@ -229,17 +269,37 @@ By default, the SpikeArrest policy is applied to a plan, not a consumer. To appl
 |String
 |SECONDS
 
+|dynamicPeriodTime
+|No
+|This expression will be used when `periodTime` is empty. Supports EL. For The default time unit is `SECONDS`.
+|String
+|null
+
 |===
 
 ==== Configuration example
 
+Static Time Duration
 [source, json]
 ----
+{
   "spike": {
-    "limit": "10",
-    "periodTime": 10,
-    "periodTimeUnit": "MINUTES"
+    "limit": "1000",
+    "periodTime": 1,
+    "periodTimeUnit": "SECONDS"
   }
+}
+----
+Dynamic Time Duration
+[source, json]
+----
+{
+  "spike": {
+    "limit": "1000",
+    "dynamicPeriodTime": "{#context.attributes['rate-limit-quota-period']}",
+    "periodTimeUnit": "SECONDS"
+  }
+}
 ----
 
 == Errors
