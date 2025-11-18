@@ -1,3 +1,18 @@
+# [4.2.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.2.0-alpha.1...4.2.0-alpha.2) (2025-11-18)
+
+
+### Bug Fixes
+
+* freeze time unit with dynamic duration ([19f1c03](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/19f1c033d0ebb33e950d1ca884a74bd848a92b65))
+* update readme ([24f7b3e](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/24f7b3efcf378f10ff333d27a81c731014829d45))
+
+
+### Features
+
+* time duration expression in quota policy ([89ab00a](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/89ab00a115b268c4fd2870065651dfebea111efb))
+* time duration expression in rate limit policy ([faf00a3](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/faf00a3ee0fffd164e8b2f08d0352579d3751e50))
+* time duration expression in spike arrest policy ([638142f](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/638142fc43e5fb46a6dbc3050190315df588e962))
+
 # [4.2.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.1.1...4.2.0-alpha.1) (2025-11-13)
 
 
