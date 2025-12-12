@@ -15,12 +15,13 @@
  */
 package io.gravitee.policy.ratelimit.configuration;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.gravitee.ratelimit.ErrorStrategy;
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -36,7 +37,7 @@ public class RateLimitPolicyConfigurationTest {
             RateLimitPolicyConfiguration.class
         );
 
-        Assertions.assertThat(configuration).isEqualTo(
+        assertThat(configuration).isEqualTo(
             RateLimitPolicyConfiguration.builder()
                 .errorStrategy(ErrorStrategy.FALLBACK_PASS_TROUGH)
                 .rate(
@@ -49,6 +50,7 @@ public class RateLimitPolicyConfigurationTest {
                 )
                 .build()
         );
+        assertThat(configuration.getRate().periodTime()).isEqualTo(new PeriodCalculation.Static(10));
     }
 
     @Test
@@ -58,7 +60,7 @@ public class RateLimitPolicyConfigurationTest {
             RateLimitPolicyConfiguration.class
         );
 
-        Assertions.assertThat(configuration).isEqualTo(
+        assertThat(configuration).isEqualTo(
             RateLimitPolicyConfiguration.builder()
                 .errorStrategy(ErrorStrategy.FALLBACK_PASS_TROUGH)
                 .async(true)
@@ -66,6 +68,7 @@ public class RateLimitPolicyConfigurationTest {
                 .rate(RateLimitConfiguration.builder().limit(10).periodTime(10L).periodTimeUnit(TimeUnit.MINUTES).build())
                 .build()
         );
+        assertThat(configuration.getRate().periodTime()).isEqualTo(new PeriodCalculation.Static(10));
     }
 
     @Test
@@ -75,7 +78,7 @@ public class RateLimitPolicyConfigurationTest {
             RateLimitPolicyConfiguration.class
         );
 
-        Assertions.assertThat(configuration).isEqualTo(
+        assertThat(configuration).isEqualTo(
             RateLimitPolicyConfiguration.builder()
                 .errorStrategy(ErrorStrategy.BLOCK_ON_INTERNAL_ERROR)
                 .async(false)
@@ -90,6 +93,48 @@ public class RateLimitPolicyConfigurationTest {
                         .build()
                 )
                 .build()
+        );
+        assertThat(configuration.getRate().periodTime()).isEqualTo(new PeriodCalculation.Static(10));
+    }
+
+    @Test
+    public void test_quota04() throws IOException {
+        RateLimitPolicyConfiguration configuration = load(
+            "/io/gravitee/policy/ratelimit/configuration/ratelimit04.json",
+            RateLimitPolicyConfiguration.class
+        );
+
+        assertThat(configuration).isEqualTo(
+            RateLimitPolicyConfiguration.builder()
+                .errorStrategy(ErrorStrategy.BLOCK_ON_INTERNAL_ERROR)
+                .rate(RateLimitConfiguration.builder().limit(10).dynamicLimit("{(2*5)}").periodTimeUnit(TimeUnit.MINUTES).build())
+                .build()
+        );
+        assertThat(configuration.getRate().periodTime()).isEqualTo(new PeriodCalculation.Static(1));
+    }
+
+    @Test
+    public void test_quota05() throws IOException {
+        RateLimitPolicyConfiguration configuration = load(
+            "/io/gravitee/policy/ratelimit/configuration/ratelimit05.json",
+            RateLimitPolicyConfiguration.class
+        );
+
+        assertThat(configuration).isEqualTo(
+            RateLimitPolicyConfiguration.builder()
+                .errorStrategy(ErrorStrategy.BLOCK_ON_INTERNAL_ERROR)
+                .rate(
+                    RateLimitConfiguration.builder()
+                        .limit(10)
+                        .dynamicLimit("{(2*5)}")
+                        .dynamicPeriodTime("{#api.properties[\"periodTime\"]}")
+                        .periodTimeUnit(TimeUnit.MINUTES)
+                        .build()
+                )
+                .build()
+        );
+        assertThat(configuration.getRate().periodTime()).isEqualTo(
+            new PeriodCalculation.ExpressionLanguage("{#api.properties[\"periodTime\"]}")
         );
     }
 

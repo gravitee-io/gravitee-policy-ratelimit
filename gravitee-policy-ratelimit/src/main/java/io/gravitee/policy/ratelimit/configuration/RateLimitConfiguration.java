@@ -46,7 +46,16 @@ public class RateLimitConfiguration implements KeyConfiguration {
 
     private boolean useKeyOnly;
 
-    public boolean hasValidPeriodTime() {
-        return periodTime != null && periodTime > 0;
+    public TimeUnit validPeriodTime() {
+        return periodTimeUnit == null ? TimeUnit.SECONDS : periodTimeUnit;
+    }
+
+    public PeriodCalculation periodTime() {
+        if (periodTime != null && periodTime > 0) {
+            return new PeriodCalculation.Static(periodTime);
+        } else if (dynamicPeriodTime != null && !dynamicPeriodTime.isBlank()) {
+            return new PeriodCalculation.ExpressionLanguage(dynamicPeriodTime);
+        }
+        return PeriodCalculation.DEFAULT;
     }
 }

@@ -22,6 +22,7 @@ import io.gravitee.gateway.reactive.api.context.http.HttpMessageExecutionContext
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
 import io.gravitee.policy.api.annotations.OnRequest;
+import io.gravitee.policy.ratelimit.configuration.PeriodCalculation;
 import io.gravitee.policy.ratelimit.configuration.RateLimitConfiguration;
 import io.gravitee.policy.ratelimit.configuration.RateLimitPolicyConfiguration;
 import io.gravitee.policy.v3.ratelimit.RateLimitPolicyV3;
@@ -89,10 +90,14 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
         var l = (rateLimitConfiguration.getLimit() > 0)
             ? Single.just(rateLimitConfiguration.getLimit())
             : ctx.getTemplateEngine().eval(rateLimitConfiguration.getDynamicLimit(), Long.class).defaultIfEmpty(0L);
-        var timeDuration = rateLimitConfiguration.hasValidPeriodTime()
-            ? Single.just(rateLimitConfiguration.getPeriodTime())
-            : ctx.getTemplateEngine().eval(rateLimitConfiguration.getDynamicPeriodTime(), Long.class).defaultIfEmpty(1L);
-        var timeUnit = rateLimitConfiguration.hasValidPeriodTime() ? rateLimitConfiguration.getPeriodTimeUnit() : TimeUnit.SECONDS;
+        var timeDuration = switch (rateLimitConfiguration.periodTime()) {
+            case PeriodCalculation.Static(long value) -> Single.just(value);
+            case PeriodCalculation.ExpressionLanguage(String expression) -> ctx
+                .getTemplateEngine()
+                .eval(expression, Long.class)
+                .defaultIfEmpty(1L);
+        };
+        var timeUnit = rateLimitConfiguration.validPeriodTime();
 
         Context context = Vertx.currentContext();
 
