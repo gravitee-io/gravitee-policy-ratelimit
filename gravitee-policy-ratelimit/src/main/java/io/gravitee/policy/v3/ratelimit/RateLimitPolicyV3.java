@@ -23,6 +23,7 @@ import io.gravitee.gateway.api.Response;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequest;
+import io.gravitee.policy.ratelimit.configuration.PeriodCalculation;
 import io.gravitee.policy.ratelimit.configuration.RateLimitConfiguration;
 import io.gravitee.policy.ratelimit.configuration.RateLimitPolicyConfiguration;
 import io.gravitee.ratelimit.DateUtils;
@@ -110,10 +111,13 @@ public class RateLimitPolicyV3 {
         var limit = (rateLimitConfiguration.getLimit() > 0)
             ? rateLimitConfiguration.getLimit()
             : executionContext.getTemplateEngine().evalNow(rateLimitConfiguration.getDynamicLimit(), Long.class);
-        var timeDuration = rateLimitConfiguration.hasValidPeriodTime()
-            ? rateLimitConfiguration.getPeriodTime()
-            : executionContext.getTemplateEngine().evalNow(rateLimitConfiguration.getDynamicPeriodTime(), Long.class);
-        var timeUnit = rateLimitConfiguration.hasValidPeriodTime() ? rateLimitConfiguration.getPeriodTimeUnit() : TimeUnit.SECONDS;
+        var timeDuration = switch (rateLimitConfiguration.periodTime()) {
+            case PeriodCalculation.Static(long value) -> value;
+            case PeriodCalculation.ExpressionLanguage(String expression) -> executionContext
+                .getTemplateEngine()
+                .evalNow(expression, Long.class);
+        };
+        var timeUnit = rateLimitConfiguration.validPeriodTime();
 
         Context context = Vertx.currentContext();
 
