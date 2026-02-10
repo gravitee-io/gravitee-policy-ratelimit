@@ -161,12 +161,91 @@ class SpikeArrestPolicyTest {
                     verify(httpHeaders).set(eq("X-Spike-Arrest-Slice-Period"), anyString());
                     verify(httpHeaders).set(eq("X-Spike-Arrest-Reset"), anyString());
                 })
-                .subscribe(
-                    () -> {
-                        testContext.completeNow();
-                    },
-                    testContext::failNow
-                )
+                .subscribe(testContext::completeNow, testContext::failNow)
+        );
+    }
+
+    @Test
+    void should_fallback_to_static_period_time_when_dynamic_is_null(Vertx vertx, VertxTestContext testContext) {
+        SpikeArrestConfiguration spikeConfig = new SpikeArrestConfiguration();
+        spikeConfig.setLimit(100);
+        spikeConfig.setPeriodTime(5L);
+        spikeConfig.setPeriodTimeUnit(TimeUnit.SECONDS);
+        spikeConfig.setDynamicPeriodTime(null);
+        configuration.setSpike(spikeConfig);
+
+        RateLimit rateLimit = new RateLimit("test-key");
+        rateLimit.setCounter(1);
+        rateLimit.setLimit(100);
+        rateLimit.setResetTime(System.currentTimeMillis() + 5000);
+
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.just(rateLimit));
+
+        vertx.runOnContext(v ->
+            policy
+                .onRequest(executionContext)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnComplete(() -> {
+                    verify(httpHeaders).set(eq("X-Spike-Arrest-Limit"), anyString());
+                    verify(httpHeaders).set(eq("X-Spike-Arrest-Slice-Period"), anyString());
+                })
+                .subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
+    @Test
+    void should_fallback_to_static_period_time_when_dynamic_is_blank(Vertx vertx, VertxTestContext testContext) {
+        SpikeArrestConfiguration spikeConfig = new SpikeArrestConfiguration();
+        spikeConfig.setLimit(100);
+        spikeConfig.setPeriodTime(5L);
+        spikeConfig.setPeriodTimeUnit(TimeUnit.SECONDS);
+        spikeConfig.setDynamicPeriodTime("   ");
+        configuration.setSpike(spikeConfig);
+
+        RateLimit rateLimit = new RateLimit("test-key");
+        rateLimit.setCounter(1);
+        rateLimit.setLimit(100);
+        rateLimit.setResetTime(System.currentTimeMillis() + 5000);
+
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.just(rateLimit));
+
+        vertx.runOnContext(v ->
+            policy
+                .onRequest(executionContext)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnComplete(() -> {
+                    verify(httpHeaders).set(eq("X-Spike-Arrest-Limit"), anyString());
+                    verify(httpHeaders).set(eq("X-Spike-Arrest-Slice-Period"), anyString());
+                })
+                .subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
+    @Test
+    void should_default_period_time_to_1_when_null_and_no_dynamic(Vertx vertx, VertxTestContext testContext) {
+        SpikeArrestConfiguration spikeConfig = new SpikeArrestConfiguration();
+        spikeConfig.setLimit(100);
+        spikeConfig.setPeriodTime(null);
+        spikeConfig.setPeriodTimeUnit(null);
+        spikeConfig.setDynamicPeriodTime(null);
+        configuration.setSpike(spikeConfig);
+
+        RateLimit rateLimit = new RateLimit("test-key");
+        rateLimit.setCounter(1);
+        rateLimit.setLimit(100);
+        rateLimit.setResetTime(System.currentTimeMillis() + 1000);
+
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.just(rateLimit));
+
+        vertx.runOnContext(v ->
+            policy
+                .onRequest(executionContext)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnComplete(() -> {
+                    verify(httpHeaders).set(eq("X-Spike-Arrest-Limit"), anyString());
+                    verify(httpHeaders).set(eq("X-Spike-Arrest-Slice-Period"), anyString());
+                })
+                .subscribe(new SubscribeAdapter(testContext))
         );
     }
 

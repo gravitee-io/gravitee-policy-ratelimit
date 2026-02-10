@@ -36,17 +36,30 @@ public class QuotaConfiguration implements KeyConfiguration {
 
     private String dynamicLimit;
 
-    private Long periodTime;
+    @Builder.Default
+    private Long periodTime = 1L;
 
     private String dynamicPeriodTime;
 
-    private ChronoUnit periodTimeUnit;
+    @Builder.Default
+    private ChronoUnit periodTimeUnit = ChronoUnit.MONTHS;
 
     private String key;
 
     private boolean useKeyOnly;
 
-    public boolean hasValidPeriodTime() {
-        return periodTime != null && periodTime > 0;
+    public boolean hasValidDynamicPeriodTime() {
+        return dynamicPeriodTime != null && !dynamicPeriodTime.isBlank();
+    }
+
+    public ChronoUnit getPeriodTimeUnit() {
+        if (hasValidDynamicPeriodTime()) {
+            return ChronoUnit.HOURS;
+        }
+        return periodTimeUnit != null ? periodTimeUnit : ChronoUnit.MONTHS;
+    }
+
+    public Long getOrDefaultPeriodTime() {
+        return periodTime != null && periodTime > 0 ? periodTime : 1L;
     }
 }

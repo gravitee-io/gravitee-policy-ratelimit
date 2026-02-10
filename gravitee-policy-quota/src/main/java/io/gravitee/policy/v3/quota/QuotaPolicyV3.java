@@ -104,10 +104,10 @@ public class QuotaPolicyV3 {
         long limit = (quotaConfiguration.getLimit() > 0)
             ? quotaConfiguration.getLimit()
             : executionContext.getTemplateEngine().evalNow(quotaConfiguration.getDynamicLimit(), Long.class);
-        var timeDuration = quotaConfiguration.hasValidPeriodTime()
-            ? quotaConfiguration.getPeriodTime()
-            : executionContext.getTemplateEngine().evalNow(quotaConfiguration.getDynamicPeriodTime(), Long.class);
-        var timeUnit = quotaConfiguration.hasValidPeriodTime() ? quotaConfiguration.getPeriodTimeUnit() : ChronoUnit.HOURS;
+        Long timeDuration = quotaConfiguration.hasValidDynamicPeriodTime()
+            ? executionContext.getTemplateEngine().evalNow(quotaConfiguration.getDynamicPeriodTime(), Long.class)
+            : quotaConfiguration.getOrDefaultPeriodTime();
+        var timeUnit = quotaConfiguration.getPeriodTimeUnit();
 
         Context context = Vertx.currentContext();
 

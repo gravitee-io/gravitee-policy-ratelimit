@@ -110,10 +110,11 @@ public class RateLimitPolicyV3 {
         var limit = (rateLimitConfiguration.getLimit() > 0)
             ? rateLimitConfiguration.getLimit()
             : executionContext.getTemplateEngine().evalNow(rateLimitConfiguration.getDynamicLimit(), Long.class);
-        var timeDuration = rateLimitConfiguration.hasValidPeriodTime()
-            ? rateLimitConfiguration.getPeriodTime()
-            : executionContext.getTemplateEngine().evalNow(rateLimitConfiguration.getDynamicPeriodTime(), Long.class);
-        var timeUnit = rateLimitConfiguration.hasValidPeriodTime() ? rateLimitConfiguration.getPeriodTimeUnit() : TimeUnit.SECONDS;
+
+        Long timeDuration = rateLimitConfiguration.hasValidDynamicPeriodTime()
+            ? executionContext.getTemplateEngine().evalNow(rateLimitConfiguration.getDynamicPeriodTime(), Long.class)
+            : rateLimitConfiguration.getOrDefaultPeriodTime();
+        var timeUnit = rateLimitConfiguration.getOrDefaultPeriodTimeUnit();
 
         Context context = Vertx.currentContext();
 

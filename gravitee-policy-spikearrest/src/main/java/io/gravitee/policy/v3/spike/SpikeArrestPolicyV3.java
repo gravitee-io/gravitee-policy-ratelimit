@@ -105,10 +105,10 @@ public class SpikeArrestPolicyV3 {
         final long limit = (spikeArrestConfiguration.getLimit() > 0)
             ? spikeArrestConfiguration.getLimit()
             : executionContext.getTemplateEngine().evalNow(spikeArrestConfiguration.getDynamicLimit(), Long.class);
-        long timeDuration = spikeArrestConfiguration.hasValidPeriodTime()
-            ? spikeArrestConfiguration.getPeriodTime()
-            : executionContext.getTemplateEngine().evalNow(spikeArrestConfiguration.getDynamicPeriodTime(), Long.class);
-        TimeUnit timeUnit = spikeArrestConfiguration.hasValidPeriodTime() ? spikeArrestConfiguration.getPeriodTimeUnit() : TimeUnit.SECONDS;
+        Long timeDuration = spikeArrestConfiguration.hasValidDynamicPeriodTime()
+            ? executionContext.getTemplateEngine().evalNow(spikeArrestConfiguration.getDynamicPeriodTime(), Long.class)
+            : spikeArrestConfiguration.getOrDefaultPeriodTime();
+        TimeUnit timeUnit = spikeArrestConfiguration.getPeriodTimeUnit();
 
         SliceLimit slice = computeSliceLimit(limit, timeDuration, timeUnit);
 

@@ -239,22 +239,112 @@ class QuotaPolicyTest {
         }
 
         @Test
-        void should_use_dynamic_period_time_when_period_time_is_zero(Vertx vertx, VertxTestContext testContext) {
+        void should_use_dynamic_period_time_over_static_when_both_are_set(Vertx vertx, VertxTestContext testContext) {
             QuotaPolicy policy = new QuotaPolicy(
                 QuotaPolicyConfiguration.builder()
                     .addHeaders(true)
                     .quota(
                         QuotaConfiguration.builder()
                             .limit(10)
-                            .periodTime(0L)
-                            .dynamicPeriodTime("{(5+5)}")
+                            .periodTime(10L)
                             .periodTimeUnit(ChronoUnit.HOURS)
+                            .dynamicPeriodTime("{(20)}")
                             .build()
                     )
                     .build()
             );
 
-            vertx.runOnContext(v -> policy.onMessageRequest(messageContext).subscribe(new SubscribeAdapter(testContext)));
+            vertx.runOnContext(v ->
+                policy
+                    .onRequest(plainContext)
+                    .timeout(2, TimeUnit.SECONDS)
+                    .doOnComplete(() -> {
+                        verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_LIMIT), anyString());
+                        verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_REMAINING), anyString());
+                        verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_RESET), anyString());
+                    })
+                    .subscribe(new SubscribeAdapter(testContext))
+            );
+        }
+
+        @Test
+        void should_fallback_to_static_period_time_when_dynamic_is_null(Vertx vertx, VertxTestContext testContext) {
+            QuotaPolicy policy = new QuotaPolicy(
+                QuotaPolicyConfiguration.builder()
+                    .addHeaders(true)
+                    .quota(
+                        QuotaConfiguration.builder()
+                            .limit(10)
+                            .periodTime(5L)
+                            .periodTimeUnit(ChronoUnit.HOURS)
+                            .dynamicPeriodTime(null)
+                            .build()
+                    )
+                    .build()
+            );
+
+            vertx.runOnContext(v ->
+                policy
+                    .onRequest(plainContext)
+                    .timeout(2, TimeUnit.SECONDS)
+                    .doOnComplete(() -> {
+                        verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_LIMIT), anyString());
+                        verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_REMAINING), anyString());
+                        verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_RESET), anyString());
+                    })
+                    .subscribe(new SubscribeAdapter(testContext))
+            );
+        }
+
+        @Test
+        void should_fallback_to_static_period_time_when_dynamic_is_blank(Vertx vertx, VertxTestContext testContext) {
+            QuotaPolicy policy = new QuotaPolicy(
+                QuotaPolicyConfiguration.builder()
+                    .addHeaders(true)
+                    .quota(
+                        QuotaConfiguration.builder()
+                            .limit(10)
+                            .periodTime(5L)
+                            .periodTimeUnit(ChronoUnit.HOURS)
+                            .dynamicPeriodTime("   ")
+                            .build()
+                    )
+                    .build()
+            );
+
+            vertx.runOnContext(v ->
+                policy
+                    .onRequest(plainContext)
+                    .timeout(2, TimeUnit.SECONDS)
+                    .doOnComplete(() -> {
+                        verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_LIMIT), anyString());
+                        verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_REMAINING), anyString());
+                        verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_RESET), anyString());
+                    })
+                    .subscribe(new SubscribeAdapter(testContext))
+            );
+        }
+
+        @Test
+        void should_default_period_time_to_1_when_null_and_no_dynamic(Vertx vertx, VertxTestContext testContext) {
+            QuotaPolicy policy = new QuotaPolicy(
+                QuotaPolicyConfiguration.builder()
+                    .addHeaders(true)
+                    .quota(QuotaConfiguration.builder().limit(10).periodTime(null).periodTimeUnit(null).build())
+                    .build()
+            );
+
+            vertx.runOnContext(v ->
+                policy
+                    .onRequest(plainContext)
+                    .timeout(2, TimeUnit.SECONDS)
+                    .doOnComplete(() -> {
+                        verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_LIMIT), anyString());
+                        verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_REMAINING), anyString());
+                        verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_RESET), anyString());
+                    })
+                    .subscribe(new SubscribeAdapter(testContext))
+            );
         }
     }
 

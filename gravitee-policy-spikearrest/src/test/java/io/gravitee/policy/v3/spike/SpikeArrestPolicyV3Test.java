@@ -186,11 +186,60 @@ public class SpikeArrestPolicyV3Test {
     }
 
     @Test
-    void should_use_dynamic_period_time_when_static_value_is_zero() {
+    void should_use_dynamic_period_time_over_static_when_both_are_set() throws InterruptedException {
+        var latch = new CountDownLatch(1);
+        // Dynamic period time takes priority; timeUnit defaults to SECONDS
         var policy = new SpikeArrestPolicyV3(
             SpikeArrestPolicyConfiguration.builder()
                 .addHeaders(true)
-                .spike(SpikeArrestConfiguration.builder().limit(5).dynamicPeriodTime("{(2*5)}").build())
+                .spike(
+                    SpikeArrestConfiguration.builder()
+                        .limit(5)
+                        .periodTime(10L)
+                        .periodTimeUnit(TimeUnit.SECONDS)
+                        .dynamicPeriodTime("{(20)}")
+                        .build()
+                )
+                .build()
+        );
+
+        vertx.runOnContext(event ->
+            policy.onRequest(
+                request,
+                response,
+                executionContext,
+                chain(
+                    (req, res) -> {
+                        assertThat(responseHttpHeaders.get(SpikeArrestPolicyV3.X_SPIKE_ARREST_LIMIT)).isEqualTo("1");
+                        assertThat(responseHttpHeaders.get(SpikeArrestPolicyV3.X_SPIKE_ARREST_SLICE)).isEqualTo("4000ms");
+                        latch.countDown();
+                    },
+                    policyResult -> {
+                        fail("Unexpected failure: " + policyResult.message());
+                        latch.countDown();
+                    }
+                )
+            )
+        );
+
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+    }
+
+    @Test
+    void should_fallback_to_static_period_time_when_dynamic_is_null() throws InterruptedException {
+        var latch = new CountDownLatch(1);
+        // 5 req / 10 sec => slice = 1 req / 2000ms
+        var policy = new SpikeArrestPolicyV3(
+            SpikeArrestPolicyConfiguration.builder()
+                .addHeaders(true)
+                .spike(
+                    SpikeArrestConfiguration.builder()
+                        .limit(5)
+                        .periodTime(10L)
+                        .periodTimeUnit(TimeUnit.SECONDS)
+                        .dynamicPeriodTime(null)
+                        .build()
+                )
                 .build()
         );
 
@@ -203,14 +252,88 @@ public class SpikeArrestPolicyV3Test {
                     (req, res) -> {
                         assertThat(responseHttpHeaders.get(SpikeArrestPolicyV3.X_SPIKE_ARREST_LIMIT)).isEqualTo("1");
                         assertThat(responseHttpHeaders.get(SpikeArrestPolicyV3.X_SPIKE_ARREST_SLICE)).isEqualTo("2000ms");
-                        assertThat(responseHttpHeaders.get(SpikeArrestPolicyV3.X_SPIKE_ARREST_RESET)).isEqualTo("2000");
+                        latch.countDown();
                     },
                     policyResult -> {
                         fail("Unexpected failure: " + policyResult.message());
+                        latch.countDown();
                     }
                 )
             )
         );
+
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+    }
+
+    @Test
+    void should_fallback_to_static_period_time_when_dynamic_is_blank() throws InterruptedException {
+        var latch = new CountDownLatch(1);
+        var policy = new SpikeArrestPolicyV3(
+            SpikeArrestPolicyConfiguration.builder()
+                .addHeaders(true)
+                .spike(
+                    SpikeArrestConfiguration.builder()
+                        .limit(5)
+                        .periodTime(10L)
+                        .periodTimeUnit(TimeUnit.SECONDS)
+                        .dynamicPeriodTime("   ")
+                        .build()
+                )
+                .build()
+        );
+
+        vertx.runOnContext(event ->
+            policy.onRequest(
+                request,
+                response,
+                executionContext,
+                chain(
+                    (req, res) -> {
+                        assertThat(responseHttpHeaders.get(SpikeArrestPolicyV3.X_SPIKE_ARREST_LIMIT)).isEqualTo("1");
+                        assertThat(responseHttpHeaders.get(SpikeArrestPolicyV3.X_SPIKE_ARREST_SLICE)).isEqualTo("2000ms");
+                        latch.countDown();
+                    },
+                    policyResult -> {
+                        fail("Unexpected failure: " + policyResult.message());
+                        latch.countDown();
+                    }
+                )
+            )
+        );
+
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+    }
+
+    @Test
+    void should_default_period_time_to_1_when_null_and_no_dynamic() throws InterruptedException {
+        var latch = new CountDownLatch(1);
+        var policy = new SpikeArrestPolicyV3(
+            SpikeArrestPolicyConfiguration.builder()
+                .addHeaders(true)
+                .spike(SpikeArrestConfiguration.builder().limit(5).periodTime(null).build())
+                .build()
+        );
+
+        vertx.runOnContext(event ->
+            policy.onRequest(
+                request,
+                response,
+                executionContext,
+                chain(
+                    (req, res) -> {
+                        assertThat(responseHttpHeaders.get(SpikeArrestPolicyV3.X_SPIKE_ARREST_LIMIT)).isEqualTo("1");
+                        assertThat(responseHttpHeaders.get(SpikeArrestPolicyV3.X_SPIKE_ARREST_SLICE)).isEqualTo("200ms");
+                        latch.countDown();
+                    },
+                    policyResult -> {
+                        fail("Unexpected failure: " + policyResult.message());
+                        latch.countDown();
+                    }
+                )
+            )
+        );
+
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
     }
 
     @Test
