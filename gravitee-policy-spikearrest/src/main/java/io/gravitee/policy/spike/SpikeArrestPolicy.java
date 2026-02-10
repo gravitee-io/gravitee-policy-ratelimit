@@ -81,10 +81,12 @@ public class SpikeArrestPolicy extends SpikeArrestPolicyV3 implements HttpPolicy
         var l = (spikeArrestConfiguration.getLimit() > 0)
             ? Maybe.just(spikeArrestConfiguration.getLimit())
             : ctx.getTemplateEngine().eval(spikeArrestConfiguration.getDynamicLimit(), Long.class);
-        var timeDuration = spikeArrestConfiguration.hasValidPeriodTime()
-            ? Single.just(spikeArrestConfiguration.getPeriodTime())
-            : ctx.getTemplateEngine().eval(spikeArrestConfiguration.getDynamicPeriodTime(), Long.class).defaultIfEmpty(1L);
-        var timeUnit = spikeArrestConfiguration.hasValidPeriodTime() ? spikeArrestConfiguration.getPeriodTimeUnit() : TimeUnit.SECONDS;
+        var timeDuration = Single.just(
+            spikeArrestConfiguration.hasValidDynamicPeriodTime()
+                ? ctx.getTemplateEngine().evalNow(spikeArrestConfiguration.getDynamicPeriodTime(), Long.class)
+                : spikeArrestConfiguration.getOrDefaultPeriodTime()
+        );
+        var timeUnit = spikeArrestConfiguration.getPeriodTimeUnit();
 
         Context context = Vertx.currentContext();
 

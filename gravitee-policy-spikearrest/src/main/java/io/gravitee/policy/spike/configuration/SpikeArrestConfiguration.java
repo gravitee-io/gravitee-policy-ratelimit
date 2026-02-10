@@ -40,13 +40,25 @@ public class SpikeArrestConfiguration implements KeyConfiguration {
 
     private String dynamicPeriodTime;
 
-    private TimeUnit periodTimeUnit;
+    @Builder.Default
+    private TimeUnit periodTimeUnit = TimeUnit.SECONDS;
 
     private String key;
 
     private boolean useKeyOnly;
 
-    public boolean hasValidPeriodTime() {
-        return periodTime != null && periodTime > 0;
+    public boolean hasValidDynamicPeriodTime() {
+        return dynamicPeriodTime != null && !dynamicPeriodTime.isBlank();
+    }
+
+    public TimeUnit getPeriodTimeUnit() {
+        if (hasValidDynamicPeriodTime()) {
+            return TimeUnit.SECONDS;
+        }
+        return periodTimeUnit != null ? periodTimeUnit : TimeUnit.SECONDS;
+    }
+
+    public Long getOrDefaultPeriodTime() {
+        return periodTime != null && periodTime > 0 ? periodTime : 1L;
     }
 }

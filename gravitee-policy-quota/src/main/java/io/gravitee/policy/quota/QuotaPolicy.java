@@ -37,7 +37,6 @@ import io.reactivex.rxjava3.core.Single;
 import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
-import java.time.temporal.ChronoUnit;
 
 public class QuotaPolicy extends QuotaPolicyV3 implements HttpPolicy {
 
@@ -81,10 +80,12 @@ public class QuotaPolicy extends QuotaPolicyV3 implements HttpPolicy {
         var l = (quotaConfiguration.getLimit() > 0)
             ? Maybe.just(quotaConfiguration.getLimit())
             : ctx.getTemplateEngine().eval(quotaConfiguration.getDynamicLimit(), Long.class);
-        var timeDuration = quotaConfiguration.hasValidPeriodTime()
-            ? Single.just(quotaConfiguration.getPeriodTime())
-            : ctx.getTemplateEngine().eval(quotaConfiguration.getDynamicPeriodTime(), Long.class).defaultIfEmpty(1L);
-        var timeUnit = quotaConfiguration.hasValidPeriodTime() ? quotaConfiguration.getPeriodTimeUnit() : ChronoUnit.HOURS;
+        var timeDuration = Single.just(
+            quotaConfiguration.hasValidDynamicPeriodTime()
+                ? ctx.getTemplateEngine().evalNow(quotaConfiguration.getDynamicPeriodTime(), Long.class)
+                : quotaConfiguration.getOrDefaultPeriodTime()
+        );
+        var timeUnit = quotaConfiguration.getPeriodTimeUnit();
 
         Context context = Vertx.currentContext();
 

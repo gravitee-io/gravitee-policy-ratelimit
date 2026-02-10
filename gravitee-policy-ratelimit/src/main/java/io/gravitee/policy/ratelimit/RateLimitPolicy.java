@@ -37,7 +37,7 @@ import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -89,10 +89,12 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
         var l = (rateLimitConfiguration.getLimit() > 0)
             ? Single.just(rateLimitConfiguration.getLimit())
             : ctx.getTemplateEngine().eval(rateLimitConfiguration.getDynamicLimit(), Long.class).defaultIfEmpty(0L);
-        var timeDuration = rateLimitConfiguration.hasValidPeriodTime()
-            ? Single.just(rateLimitConfiguration.getPeriodTime())
-            : ctx.getTemplateEngine().eval(rateLimitConfiguration.getDynamicPeriodTime(), Long.class).defaultIfEmpty(1L);
-        var timeUnit = rateLimitConfiguration.hasValidPeriodTime() ? rateLimitConfiguration.getPeriodTimeUnit() : TimeUnit.SECONDS;
+        var timeDuration = Single.just(
+            rateLimitConfiguration.hasValidDynamicPeriodTime()
+                ? ctx.getTemplateEngine().evalNow(rateLimitConfiguration.getDynamicPeriodTime(), Long.class)
+                : rateLimitConfiguration.getOrDefaultPeriodTime()
+        );
+        var timeUnit = rateLimitConfiguration.getOrDefaultPeriodTimeUnit();
 
         Context context = Vertx.currentContext();
 
@@ -153,7 +155,7 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
         if (throwable instanceof PolicyRateLimitException ex) {
             return Completable.error(ex);
         }
-        return switch (getRateLimitPolicyConfiguration().getErrorStrategy()) {
+        return switch (Objects.requireNonNull(getRateLimitPolicyConfiguration()).getErrorStrategy()) {
             case BLOCK_ON_INTERNAL_ERROR -> {
                 var msg = "Rate limit blocked the query due to internal error";
                 yield Completable.error(PolicyRateLimitException.overflow(RATE_LIMIT_BLOCK_ON_INTERNAL_ERROR, msg, throwable));

@@ -152,11 +152,20 @@ public class RateLimitPolicyV3Test {
     }
 
     @Test
-    void should_use_dynamic_period_time_when_static_value_is_zero() {
+    void should_use_dynamic_period_time_over_static_when_both_are_set() throws InterruptedException {
+        var latch = new CountDownLatch(1);
+        // Dynamic period time takes priority; timeUnit defaults to SECONDS
         var policy = new RateLimitPolicyV3(
             RateLimitPolicyConfiguration.builder()
                 .addHeaders(true)
-                .rate(RateLimitConfiguration.builder().limit(10).dynamicPeriodTime("{(2*5*60)}").build())
+                .rate(
+                    RateLimitConfiguration.builder()
+                        .limit(10)
+                        .periodTime(10L)
+                        .periodTimeUnit(TimeUnit.MINUTES)
+                        .dynamicPeriodTime("{(20)}")
+                        .build()
+                )
                 .build()
         );
 
@@ -169,14 +178,131 @@ public class RateLimitPolicyV3Test {
                     (req, res) -> {
                         assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_LIMIT)).isEqualTo("10");
                         assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_REMAINING)).isEqualTo("9");
-                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_RESET)).isEqualTo("600000");
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_RESET)).isEqualTo("20000");
+                        latch.countDown();
                     },
                     policyResult -> {
                         fail("Unexpected failure: " + policyResult.message());
+                        latch.countDown();
                     }
                 )
             )
         );
+
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+    }
+
+    @Test
+    void should_fallback_to_static_period_time_when_dynamic_is_null() throws InterruptedException {
+        var latch = new CountDownLatch(1);
+        var policy = new RateLimitPolicyV3(
+            RateLimitPolicyConfiguration.builder()
+                .addHeaders(true)
+                .rate(
+                    RateLimitConfiguration.builder()
+                        .limit(10)
+                        .periodTime(5L)
+                        .periodTimeUnit(TimeUnit.MINUTES)
+                        .dynamicPeriodTime(null)
+                        .build()
+                )
+                .build()
+        );
+
+        vertx.runOnContext(event ->
+            policy.onRequest(
+                request,
+                response,
+                executionContext,
+                chain(
+                    (req, res) -> {
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_LIMIT)).isEqualTo("10");
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_REMAINING)).isEqualTo("9");
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_RESET)).isEqualTo("300000");
+                        latch.countDown();
+                    },
+                    policyResult -> {
+                        fail("Unexpected failure: " + policyResult.message());
+                        latch.countDown();
+                    }
+                )
+            )
+        );
+
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+    }
+
+    @Test
+    void should_fallback_to_static_period_time_when_dynamic_is_blank() throws InterruptedException {
+        var latch = new CountDownLatch(1);
+        var policy = new RateLimitPolicyV3(
+            RateLimitPolicyConfiguration.builder()
+                .addHeaders(true)
+                .rate(
+                    RateLimitConfiguration.builder()
+                        .limit(10)
+                        .periodTime(5L)
+                        .periodTimeUnit(TimeUnit.MINUTES)
+                        .dynamicPeriodTime("   ")
+                        .build()
+                )
+                .build()
+        );
+
+        vertx.runOnContext(event ->
+            policy.onRequest(
+                request,
+                response,
+                executionContext,
+                chain(
+                    (req, res) -> {
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_LIMIT)).isEqualTo("10");
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_REMAINING)).isEqualTo("9");
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_RESET)).isEqualTo("300000");
+                        latch.countDown();
+                    },
+                    policyResult -> {
+                        fail("Unexpected failure: " + policyResult.message());
+                        latch.countDown();
+                    }
+                )
+            )
+        );
+
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+    }
+
+    @Test
+    void should_default_period_time_to_1_when_null_and_no_dynamic() throws InterruptedException {
+        var latch = new CountDownLatch(1);
+        var policy = new RateLimitPolicyV3(
+            RateLimitPolicyConfiguration.builder()
+                .addHeaders(true)
+                .rate(RateLimitConfiguration.builder().limit(10).periodTime(null).build())
+                .build()
+        );
+
+        vertx.runOnContext(event ->
+            policy.onRequest(
+                request,
+                response,
+                executionContext,
+                chain(
+                    (req, res) -> {
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_LIMIT)).isEqualTo("10");
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_REMAINING)).isEqualTo("9");
+                        assertThat(responseHttpHeaders.get(RateLimitPolicyV3.X_RATE_LIMIT_RESET)).isEqualTo("1000");
+                        latch.countDown();
+                    },
+                    policyResult -> {
+                        fail("Unexpected failure: " + policyResult.message());
+                        latch.countDown();
+                    }
+                )
+            )
+        );
+
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
     }
 
     @Test

@@ -63,8 +63,9 @@
                 "periodTime": {
                     "type": "integer",
                     "title": "Static time duration",
-                    "description": "If defined, will be used instead of 'Dynamic time duration'.",
-                    "minimum": 0
+                    "description": "A numeric positive value default set to 1, ignored when a dynamic expression used.",
+                    "minimum": 1,
+                    "default": 1
                 },
                 "periodTimeUnit": {
                     "type": "string",
@@ -75,7 +76,7 @@
                 "dynamicPeriodTime": {
                     "type": "string",
                     "title": "Dynamic time duration (Supports EL)",
-                    "description": "The 'Static time duration' must be empty to use the dynamic period. The time unit is set to SECONDS by default.",
+                    "description": "If provided, expression takes priority over static time duration, sets time unit to SECONDS and fallback value as 1 when left blank.",
                     "x-schema-form": {
                         "expression-language": true
                     },

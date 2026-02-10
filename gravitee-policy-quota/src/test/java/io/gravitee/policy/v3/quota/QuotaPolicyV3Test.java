@@ -155,10 +155,20 @@ class QuotaPolicyV3Test {
     }
 
     @Test
-    void should_use_dynamic_period_time_when_period_time_is_zero() {
+    void should_use_dynamic_period_time_over_static_when_both_are_set() throws InterruptedException {
+        var latch = new CountDownLatch(1);
+        // Dynamic period time takes priority; timeUnit defaults to HOURS
         var policy = new QuotaPolicyV3(
             QuotaPolicyConfiguration.builder()
-                .quota(QuotaConfiguration.builder().limit(10).periodTime(0L).dynamicPeriodTime("{(1*1)}").build())
+                .addHeaders(true)
+                .quota(
+                    QuotaConfiguration.builder()
+                        .limit(10)
+                        .periodTime(10L)
+                        .periodTimeUnit(ChronoUnit.SECONDS)
+                        .dynamicPeriodTime("{(20)}")
+                        .build()
+                )
                 .build()
         );
 
@@ -171,14 +181,126 @@ class QuotaPolicyV3Test {
                     (req, res) -> {
                         assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_LIMIT)).isEqualTo("10");
                         assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_REMAINING)).isEqualTo("9");
-                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_RESET)).isEqualTo("3600000");
+                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_RESET)).isEqualTo("72000000");
+                        latch.countDown();
                     },
                     policyResult -> {
                         fail("Unexpected failure: " + policyResult.message());
+                        latch.countDown();
                     }
                 )
             )
         );
+
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+    }
+
+    @Test
+    void should_fallback_to_static_period_time_when_dynamic_is_null() throws InterruptedException {
+        var latch = new CountDownLatch(1);
+        var policy = new QuotaPolicyV3(
+            QuotaPolicyConfiguration.builder()
+                .addHeaders(true)
+                .quota(
+                    QuotaConfiguration.builder().limit(10).periodTime(5L).periodTimeUnit(ChronoUnit.SECONDS).dynamicPeriodTime(null).build()
+                )
+                .build()
+        );
+
+        vertx.runOnContext(event ->
+            policy.onRequest(
+                request,
+                response,
+                executionContext,
+                chain(
+                    (req, res) -> {
+                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_LIMIT)).isEqualTo("10");
+                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_REMAINING)).isEqualTo("9");
+                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_RESET)).isEqualTo("5000");
+                        latch.countDown();
+                    },
+                    policyResult -> {
+                        fail("Unexpected failure: " + policyResult.message());
+                        latch.countDown();
+                    }
+                )
+            )
+        );
+
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+    }
+
+    @Test
+    void should_fallback_to_static_period_time_when_dynamic_is_blank() throws InterruptedException {
+        var latch = new CountDownLatch(1);
+        var policy = new QuotaPolicyV3(
+            QuotaPolicyConfiguration.builder()
+                .addHeaders(true)
+                .quota(
+                    QuotaConfiguration.builder()
+                        .limit(10)
+                        .periodTime(5L)
+                        .periodTimeUnit(ChronoUnit.SECONDS)
+                        .dynamicPeriodTime("   ")
+                        .build()
+                )
+                .build()
+        );
+
+        vertx.runOnContext(event ->
+            policy.onRequest(
+                request,
+                response,
+                executionContext,
+                chain(
+                    (req, res) -> {
+                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_LIMIT)).isEqualTo("10");
+                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_REMAINING)).isEqualTo("9");
+                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_RESET)).isEqualTo("5000");
+                        latch.countDown();
+                    },
+                    policyResult -> {
+                        fail("Unexpected failure: " + policyResult.message());
+                        latch.countDown();
+                    }
+                )
+            )
+        );
+
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+    }
+
+    @Test
+    void should_default_period_time_to_1_when_null_and_no_dynamic() throws InterruptedException {
+        var latch = new CountDownLatch(1);
+        var policy = new QuotaPolicyV3(
+            QuotaPolicyConfiguration.builder()
+                .addHeaders(true)
+                .quota(QuotaConfiguration.builder().limit(10).periodTime(null).periodTimeUnit(ChronoUnit.SECONDS).build())
+                .build()
+        );
+
+        vertx.runOnContext(event ->
+            policy.onRequest(
+                request,
+                response,
+                executionContext,
+                chain(
+                    (req, res) -> {
+                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_LIMIT)).isEqualTo("10");
+                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_REMAINING)).isEqualTo("9");
+                        assertThat(responseHttpHeaders.get(QuotaPolicyV3.X_QUOTA_RESET)).isEqualTo("1000");
+                        latch.countDown();
+                    },
+                    policyResult -> {
+                        fail("Unexpected failure: " + policyResult.message());
+                        latch.countDown();
+                    }
+                )
+            )
+        );
+
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
     }
 
     @Test

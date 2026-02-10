@@ -16,10 +16,10 @@
 package io.gravitee.policy.ratelimit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import io.gravitee.el.TemplateEngine;
 import io.gravitee.gateway.api.http.HttpHeaders;
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
 import io.gravitee.gateway.reactive.api.context.http.HttpMessageExecutionContext;
@@ -32,10 +32,7 @@ import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.gravitee.repository.ratelimit.api.RateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import io.reactivex.rxjava3.annotations.NonNull;
-import io.reactivex.rxjava3.core.Completable;
-import io.reactivex.rxjava3.core.CompletableObserver;
-import io.reactivex.rxjava3.core.Flowable;
-import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.core.*;
 import io.reactivex.rxjava3.disposables.Disposable;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -224,6 +221,123 @@ class RateLimitPolicyTest {
                     verify(headers).set("X-Rate-Limit-Limit", "10");
                     verify(headers).set("X-Rate-Limit-Remaining", "5");
                     verify(headers).set(eq("X-Rate-Limit-Reset"), anyString());
+                })
+                .subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
+    @Test
+    void should_use_dynamic_period_time_over_static_when_both_are_set(Vertx vertx, VertxTestContext testContext) {
+        RateLimitConfiguration rateLimitConfig = new RateLimitConfiguration();
+        rateLimitConfig.setLimit(10);
+        rateLimitConfig.setPeriodTime(10L);
+        rateLimitConfig.setPeriodTimeUnit(TimeUnit.MINUTES);
+        rateLimitConfig.setDynamicPeriodTime("{(20)}");
+        configuration.setRate(rateLimitConfig);
+
+        TemplateEngine templateEngine = mock(TemplateEngine.class);
+        when(templateEngine.evalNow("{(20)}", Long.class)).thenReturn(20L);
+        lenient().when(templateEngine.eval(anyString(), eq(String.class))).thenReturn(Maybe.just("test-key"));
+        when(messageContext.getTemplateEngine()).thenReturn(templateEngine);
+
+        RateLimit rateLimit = new RateLimit("test-key");
+        rateLimit.setCounter(5);
+        rateLimit.setLimit(10);
+        rateLimit.setResetTime(System.currentTimeMillis() + 1200000);
+
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.just(rateLimit));
+
+        vertx.runOnContext(v ->
+            policy
+                .onMessageRequest(messageContext)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnComplete(() -> {
+                    verify(headers).set("X-Rate-Limit-Limit", "10");
+                    verify(headers).set("X-Rate-Limit-Remaining", "5");
+                })
+                .subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
+    @Test
+    void should_fallback_to_static_period_time_when_dynamic_is_null(Vertx vertx, VertxTestContext testContext) {
+        RateLimitConfiguration rateLimitConfig = new RateLimitConfiguration();
+        rateLimitConfig.setLimit(10);
+        rateLimitConfig.setPeriodTime(5L);
+        rateLimitConfig.setPeriodTimeUnit(TimeUnit.MINUTES);
+        rateLimitConfig.setDynamicPeriodTime(null);
+        configuration.setRate(rateLimitConfig);
+
+        RateLimit rateLimit = new RateLimit("test-key");
+        rateLimit.setCounter(3);
+        rateLimit.setLimit(10);
+        rateLimit.setResetTime(System.currentTimeMillis() + 300000);
+
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.just(rateLimit));
+
+        vertx.runOnContext(v ->
+            policy
+                .onMessageRequest(messageContext)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnComplete(() -> {
+                    verify(headers).set("X-Rate-Limit-Limit", "10");
+                    verify(headers).set("X-Rate-Limit-Remaining", "7");
+                })
+                .subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
+    @Test
+    void should_fallback_to_static_period_time_when_dynamic_is_blank(Vertx vertx, VertxTestContext testContext) {
+        RateLimitConfiguration rateLimitConfig = new RateLimitConfiguration();
+        rateLimitConfig.setLimit(10);
+        rateLimitConfig.setPeriodTime(5L);
+        rateLimitConfig.setPeriodTimeUnit(TimeUnit.MINUTES);
+        rateLimitConfig.setDynamicPeriodTime("   ");
+        configuration.setRate(rateLimitConfig);
+
+        RateLimit rateLimit = new RateLimit("test-key");
+        rateLimit.setCounter(3);
+        rateLimit.setLimit(10);
+        rateLimit.setResetTime(System.currentTimeMillis() + 300000);
+
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.just(rateLimit));
+
+        vertx.runOnContext(v ->
+            policy
+                .onMessageRequest(messageContext)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnComplete(() -> {
+                    verify(headers).set("X-Rate-Limit-Limit", "10");
+                    verify(headers).set("X-Rate-Limit-Remaining", "7");
+                })
+                .subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
+    @Test
+    void should_default_period_time_to_1_when_null_and_no_dynamic(Vertx vertx, VertxTestContext testContext) {
+        RateLimitConfiguration rateLimitConfig = new RateLimitConfiguration();
+        rateLimitConfig.setLimit(10);
+        rateLimitConfig.setPeriodTime(null);
+        rateLimitConfig.setPeriodTimeUnit(null);
+        rateLimitConfig.setDynamicPeriodTime(null);
+        configuration.setRate(rateLimitConfig);
+
+        RateLimit rateLimit = new RateLimit("test-key");
+        rateLimit.setCounter(2);
+        rateLimit.setLimit(10);
+        rateLimit.setResetTime(System.currentTimeMillis() + 1000);
+
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.just(rateLimit));
+
+        vertx.runOnContext(v ->
+            policy
+                .onMessageRequest(messageContext)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnComplete(() -> {
+                    verify(headers).set("X-Rate-Limit-Limit", "10");
+                    verify(headers).set("X-Rate-Limit-Remaining", "8");
                 })
                 .subscribe(new SubscribeAdapter(testContext))
         );

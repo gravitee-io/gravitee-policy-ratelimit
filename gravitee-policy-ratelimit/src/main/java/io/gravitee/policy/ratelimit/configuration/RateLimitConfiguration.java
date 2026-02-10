@@ -38,7 +38,8 @@ public class RateLimitConfiguration implements KeyConfiguration {
 
     private Long periodTime;
 
-    private TimeUnit periodTimeUnit;
+    @Builder.Default
+    private TimeUnit periodTimeUnit = TimeUnit.SECONDS;
 
     private String dynamicPeriodTime;
 
@@ -46,7 +47,18 @@ public class RateLimitConfiguration implements KeyConfiguration {
 
     private boolean useKeyOnly;
 
-    public boolean hasValidPeriodTime() {
-        return periodTime != null && periodTime > 0;
+    public boolean hasValidDynamicPeriodTime() {
+        return dynamicPeriodTime != null && !dynamicPeriodTime.isBlank();
+    }
+
+    public TimeUnit getOrDefaultPeriodTimeUnit() {
+        if (hasValidDynamicPeriodTime()) {
+            return TimeUnit.SECONDS;
+        }
+        return periodTimeUnit != null ? periodTimeUnit : TimeUnit.SECONDS;
+    }
+
+    public Long getOrDefaultPeriodTime() {
+        return periodTime != null && periodTime > 0 ? periodTime : 1L;
     }
 }
