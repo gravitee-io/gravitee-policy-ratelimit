@@ -1,3 +1,10 @@
+## [4.2.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.2.0...4.2.1) (2026-02-13)
+
+
+### Bug Fixes
+
+* provide minimum value for periodTime in quota and rate-limit policies ([1f6bb5f](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/1f6bb5fbde65fccf3d39e829c8aaaa12ffdc0da5))
+
 # [4.2.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.1.1...4.2.0) (2025-12-11)
 
 
