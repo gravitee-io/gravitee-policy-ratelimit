@@ -1,3 +1,10 @@
+# [4.3.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.2.1...4.3.0) (2026-02-23)
+
+
+### Features
+
+* enable A2A Proxy support ([7661482](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/766148226e213c9cf7451b8704879d88220c305f))
+
 ## [4.2.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.2.0...4.2.1) (2026-02-13)
 
 
