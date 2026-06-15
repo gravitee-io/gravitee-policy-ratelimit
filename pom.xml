@@ -36,7 +36,7 @@
 
     <properties>
         <gravitee-apim.version>4.11.10</gravitee-apim.version>
-        <gravitee-bom.version>8.3.61</gravitee-bom.version>
+        <gravitee-bom.version>8.3.62</gravitee-bom.version>
     </properties>
 
     <modules>
