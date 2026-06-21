@@ -19,6 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
@@ -70,6 +73,56 @@ public class AsyncRateLimitRepositoryTest {
     @AfterEach
     public void tearDown() {
         cut.clean();
+    }
+
+    @Test
+    public void reconciles_at_the_configured_flush_interval() throws InterruptedException {
+        RateLimit remote = new RateLimit(key);
+        remote.setCounter(11);
+        when(remoteCacheRateLimitRepository.incrementAndGet(anyString(), anyLong(), any())).thenReturn(
+            Single.just(new LocalRateLimit(remote))
+        );
+
+        AsyncRateLimitRepository fast = new AsyncRateLimitRepository(vertx);
+        fast.setRemoteCacheRateLimitRepository(remoteCacheRateLimitRepository);
+        fast.setLocalCacheRateLimitRepository(new LocalRateLimitRepository());
+        fast.setFlushIntervalMillis(500L); // much shorter than the default 5s
+        fast.initialize();
+        try {
+            RateLimit seed = new RateLimit(key);
+            seed.setCounter(1);
+            seed.setResetTime(Instant.now().plus(20, ChronoUnit.SECONDS).toEpochMilli());
+            fast.incrementAndGet(key, 1L, () -> seed).blockingGet();
+
+            Thread.sleep(1_500); // > configured 500ms, well under the 5s default
+
+            // With the hardcoded 5s delay the reconcile would not have fired yet; the configured 500ms must.
+            verify(remoteCacheRateLimitRepository, atLeastOnce()).incrementAndGet(anyString(), anyLong(), any());
+        } finally {
+            fast.clean();
+        }
+    }
+
+    @Test
+    public void non_positive_flush_interval_falls_back_to_the_default() throws InterruptedException {
+        AsyncRateLimitRepository zero = new AsyncRateLimitRepository(vertx);
+        zero.setRemoteCacheRateLimitRepository(remoteCacheRateLimitRepository);
+        zero.setLocalCacheRateLimitRepository(new LocalRateLimitRepository());
+        zero.setFlushIntervalMillis(0L); // invalid: a 0ms delay would busy-loop the reconcile at 100% CPU
+        zero.initialize();
+        try {
+            RateLimit seed = new RateLimit(key);
+            seed.setCounter(1);
+            seed.setResetTime(Instant.now().plus(20, ChronoUnit.SECONDS).toEpochMilli());
+            zero.incrementAndGet(key, 1L, () -> seed).blockingGet();
+
+            Thread.sleep(1_500); // well under the 5s default
+
+            // Clamped to the 5s default: no reconcile yet. A 0ms interval would have fired immediately and repeatedly.
+            verify(remoteCacheRateLimitRepository, never()).incrementAndGet(anyString(), anyLong(), any());
+        } finally {
+            zero.clean();
+        }
     }
 
     @Test

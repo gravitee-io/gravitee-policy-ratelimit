@@ -42,14 +42,24 @@ public class AsyncTokenBucketRateLimitRepository implements TokenBucketRateLimit
 
     private static final Long LOCK_TIMEOUT_MILLIS = 250L;
 
+    /** Default reconcile interval, preserved from the original hardcoded value. */
+    public static final long DEFAULT_FLUSH_INTERVAL_MILLIS = 5000L;
+
     private final Set<String> keys = new CopyOnWriteArraySet<>();
     private final SharedData sharedData;
     private LocalTokenBucketRateLimitRepository localCacheTokenBucketRepository;
     private TokenBucketRateLimitRepository<TokenBucket> remoteCacheTokenBucketRepository;
     private Disposable mergeSubscription;
 
+    /** How often the local deltas are reconciled to the store (ms). Configured globally via the gateway service. */
+    private long flushIntervalMillis = DEFAULT_FLUSH_INTERVAL_MILLIS;
+
     public AsyncTokenBucketRateLimitRepository(final Vertx vertx) {
         this.sharedData = vertx.sharedData();
+    }
+
+    public void setFlushIntervalMillis(long flushIntervalMillis) {
+        this.flushIntervalMillis = flushIntervalMillis > 0 ? flushIntervalMillis : DEFAULT_FLUSH_INTERVAL_MILLIS;
     }
 
     @Override
@@ -83,7 +93,7 @@ public class AsyncTokenBucketRateLimitRepository implements TokenBucketRateLimit
                 return state + 1;
             }
         )
-            .delay(5000, TimeUnit.MILLISECONDS)
+            .delay(flushIntervalMillis, TimeUnit.MILLISECONDS)
             .rebatchRequests(1)
             .filter(interval -> !keys.isEmpty())
             .concatMapCompletable(interval ->
