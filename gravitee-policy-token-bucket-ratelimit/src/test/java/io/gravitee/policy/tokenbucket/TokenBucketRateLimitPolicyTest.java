@@ -23,6 +23,7 @@ import io.gravitee.el.TemplateEngine;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.http.HttpHeaders;
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
+import io.gravitee.gateway.reactive.api.context.http.HttpMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpResponse;
 import io.gravitee.policy.tokenbucket.configuration.TokenBucketRateLimitPolicyConfiguration;
@@ -59,6 +60,9 @@ class TokenBucketRateLimitPolicyTest {
     private HttpPlainExecutionContext ctx;
 
     @Mock(strictness = Mock.Strictness.LENIENT)
+    private HttpMessageExecutionContext messageContext;
+
+    @Mock(strictness = Mock.Strictness.LENIENT)
     private HttpResponse response;
 
     @Mock(strictness = Mock.Strictness.LENIENT)
@@ -89,6 +93,82 @@ class TokenBucketRateLimitPolicyTest {
         when(ctx.getTemplateEngine()).thenReturn(templateEngine);
         when(templateEngine.eval("test-key", String.class)).thenReturn(Maybe.just("test-key"));
         when(ctx.interruptWith(any())).thenAnswer(invocation -> Completable.error(new MyException(invocation.getArgument(0))));
+
+        // Message context mirrors the plain one; on a message API the policy interrupts the message stream
+        // (interruptMessagesWith) instead of the HTTP request.
+        when(messageContext.metrics()).thenReturn(new Metrics());
+        when(messageContext.getComponent(TokenBucketRateLimitRepository.class)).thenReturn(repository);
+        when(messageContext.response()).thenReturn(response);
+        when(messageContext.timestamp()).thenReturn(1_000L);
+        when(messageContext.getTemplateEngine()).thenReturn(templateEngine);
+        when(messageContext.interruptMessagesWith(any())).thenAnswer(invocation ->
+            Flowable.error(new MyException(invocation.getArgument(0)))
+        );
+    }
+
+    @Test
+    void should_allow_message_when_token_available(Vertx vertx, VertxTestContext testContext) {
+        when(repository.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any())).thenReturn(
+            Single.just(new TokenBucketConsumeResult(true, 299, 1_000L))
+        );
+
+        vertx.runOnContext(v ->
+            policy.onMessageRequest(messageContext).timeout(2, TimeUnit.SECONDS).subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
+    @Test
+    void should_interrupt_message_stream_when_bucket_empty(Vertx vertx, VertxTestContext testContext) {
+        when(repository.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any())).thenReturn(
+            Single.just(new TokenBucketConsumeResult(false, 0, 1_500L))
+        );
+
+        vertx.runOnContext(v ->
+            policy
+                .onMessageRequest(messageContext)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnError(th -> {
+                    assertThat(th).isInstanceOf(MyException.class);
+                    ExecutionFailure failure = ((MyException) th).getExecutionFailure();
+                    assertThat(failure.statusCode()).isEqualTo(429); // interrupts the message stream, not an HTTP 429 response
+                    assertThat(failure.message()).contains("Rate limit exceeded");
+                })
+                .subscribe(
+                    () -> testContext.failNow("must interrupt the message stream when the bucket is empty"),
+                    th -> {
+                        if (th instanceof MyException) {
+                            testContext.completeNow();
+                        } else {
+                            testContext.failNow(th);
+                        }
+                    }
+                )
+        );
+    }
+
+    @Test
+    void should_interrupt_message_stream_with_500_when_no_repository_installed(Vertx vertx, VertxTestContext testContext) {
+        when(messageContext.getComponent(TokenBucketRateLimitRepository.class)).thenReturn(null);
+
+        vertx.runOnContext(v ->
+            policy
+                .onMessageRequest(messageContext)
+                .timeout(2, TimeUnit.SECONDS)
+                .subscribe(
+                    () -> testContext.failNow("infra failure must interrupt the message stream"),
+                    th -> {
+                        if (
+                            th instanceof MyException ex &&
+                            ex.getExecutionFailure().statusCode() == 500 &&
+                            ex.getExecutionFailure().message().contains("No token-bucket rate-limit repository")
+                        ) {
+                            testContext.completeNow();
+                        } else {
+                            testContext.failNow(th);
+                        }
+                    }
+                )
+        );
     }
 
     @Test
