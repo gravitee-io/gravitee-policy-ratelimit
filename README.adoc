@@ -310,7 +310,9 @@ Dynamic Time Duration
 
 The Token-Bucket policy throttles requests with the token bucket algorithm. A bucket holds up to a burst capacity and gains a fixed number of tokens each period. Each request takes one token. When the bucket is empty the request is rejected with `429`. A fresh bucket starts full, so the first burst goes through right away, and after that traffic is held at the refill rate.
 
-The refill rate is a whole-token count per period. `refillRate` tokens are added every `refillPeriodTime` `refillPeriodTimeUnit` (for example, 100 tokens per 1 MINUTE), and `burstCapacity` is the bucket size, which sets the largest burst allowed. All arithmetic is integer, so there are no fractional rates. The policy is HTTP proxy only and runs on V4 APIs and on V2 APIs (through the v4-emulation engine).
+The refill rate is a whole-token count per period. `refillRate` tokens are added every `refillPeriodTime` `refillPeriodTimeUnit` (for example, 100 tokens per 1 MINUTE), and `burstCapacity` is the bucket size, which sets the largest burst allowed. All arithmetic is integer, so there are no fractional rates.
+
+It runs on HTTP proxy APIs (V4, and V2 through the v4-emulation engine) and on V4 message APIs. On a message API it meters the request (publish) phase the same way as the `rate-limit`, `quota` and `spike-arrest` policies: one consume per phase, and when the bucket is empty the message stream is interrupted instead of returning an HTTP `429`.
 
 |===
 |Property |Required |Description |Type |Default
