@@ -17,6 +17,8 @@ package io.gravitee.policy.tokenbucket;
 
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.reactive.api.ExecutionWarn;
+import io.gravitee.gateway.reactive.api.context.http.HttpBaseExecutionContext;
+import io.gravitee.gateway.reactive.api.context.http.HttpMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
 import io.gravitee.policy.tokenbucket.configuration.TokenBucketRateLimitPolicyConfiguration;
@@ -36,10 +38,14 @@ import java.util.concurrent.TimeUnit;
 /**
  * Opt-in token-bucket (burst) rate-limit policy: a steady refill rate accumulates tokens up to a
  * burst capacity, each request consumes one token, and requests are rejected with {@code 429} when
- * the bucket is empty. HTTP proxy only. Enforcement runs against the configured rate-limit store, but
- * the default {@code errorStrategy} is {@code FALLBACK_PASS_TROUGH} (fail open): while the store is
- * unavailable requests pass through and throttling is disabled. Set {@code BLOCK_ON_INTERNAL_ERROR}
- * to fail closed.
+ * the bucket is empty. Enforcement runs against the configured rate-limit store, but the default
+ * {@code errorStrategy} is {@code FALLBACK_PASS_TROUGH} (fail open): while the store is unavailable
+ * requests pass through and throttling is disabled. Set {@code BLOCK_ON_INTERNAL_ERROR} to fail closed.
+ *
+ * <p>Works on HTTP proxy APIs ({@code onRequest}) and on v4 message APIs ({@code onMessageRequest}).
+ * As with the {@code rate-limit}/{@code quota}/{@code spike-arrest} policies, the message phase reuses
+ * the same per-invocation consume and interrupts the message stream (rather than the HTTP request) when
+ * the bucket is empty.
  */
 public class TokenBucketRateLimitPolicy implements HttpPolicy {
 
@@ -73,8 +79,17 @@ public class TokenBucketRateLimitPolicy implements HttpPolicy {
         );
     }
 
+    @Override
+    public Completable onMessageRequest(HttpMessageExecutionContext ctx) {
+        // Same per-invocation consume as the HTTP path; on failure interrupt the message stream rather than
+        // the HTTP request. Mirrors rate-limit / quota / spike-arrest.
+        return Completable.defer(() -> run(ctx)).onErrorResumeNext(th ->
+            ctx.interruptMessagesWith(PolicyRateLimitException.getExecutionFailure(TOKEN_BUCKET_SERVER_ERROR, th)).ignoreElements()
+        );
+    }
+
     @SuppressWarnings("unchecked")
-    private Completable run(HttpPlainExecutionContext ctx) {
+    private Completable run(HttpBaseExecutionContext ctx) {
         // Captured on the event loop (policy entry) so we can resume on it after the store call.
         Context context = Vertx.currentContext();
         if (configuration == null) {
@@ -152,7 +167,7 @@ public class TokenBucketRateLimitPolicy implements HttpPolicy {
 
     // Evaluate an EL expression to a long via async eval() (which supports deferred variables), defaulting
     // to 0 when the expression is unset or yields nothing.
-    private static Single<Long> evalLong(HttpPlainExecutionContext ctx, String expression) {
+    private static Single<Long> evalLong(HttpBaseExecutionContext ctx, String expression) {
         if (expression == null || expression.isBlank()) {
             return Single.just(0L);
         }
@@ -161,7 +176,7 @@ public class TokenBucketRateLimitPolicy implements HttpPolicy {
 
     private record Resolved(String key, long refillRate, long capacity) {}
 
-    private Completable applyResult(HttpPlainExecutionContext ctx, TokenBucketConsumeResult result, long capacity, long now) {
+    private Completable applyResult(HttpBaseExecutionContext ctx, TokenBucketConsumeResult result, long capacity, long now) {
         if (configuration.isAddHeaders()) {
             var headers = ctx.response().headers();
             headers.set(X_RATE_LIMIT_LIMIT, Long.toString(capacity));
@@ -186,7 +201,7 @@ public class TokenBucketRateLimitPolicy implements HttpPolicy {
         );
     }
 
-    private Completable errorManagement(HttpPlainExecutionContext ctx, Throwable throwable, long capacity) {
+    private Completable errorManagement(HttpBaseExecutionContext ctx, Throwable throwable, long capacity) {
         if (throwable instanceof PolicyRateLimitException ex) {
             return Completable.error(ex);
         }
