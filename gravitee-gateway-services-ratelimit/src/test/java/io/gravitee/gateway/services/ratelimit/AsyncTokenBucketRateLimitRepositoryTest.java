@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -149,5 +150,34 @@ class AsyncTokenBucketRateLimitRepositoryTest {
         LocalTokenBucket local = localCache.get(key).blockingGet();
         assertThat(local.getLocalConsumed()).isEqualTo(0); // delta cleared, not left to accumulate
         assertThat(local.getTokens()).isEqualTo(8); // local bucket untouched: a no-op store does not re-anchor it
+    }
+
+    @Test
+    void reconciles_at_the_configured_flush_interval() throws InterruptedException {
+        when(remoteCache.refillAndTryConsume(eq(key), anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), any())).thenReturn(
+            Single.just(new TokenBucketConsumeResult(true, 4, 0))
+        );
+        cut.setFlushIntervalMillis(500L); // much shorter than the default 5s
+        cut.initialize();
+
+        cut.refillAndTryConsume(key, 1, 1, 1_000L, 5, 1_000L, () -> new TokenBucket(key)).blockingGet();
+
+        Thread.sleep(1_500); // > configured 500ms, but well under the 5s default
+
+        // With the hardcoded 5s delay the reconcile would not have fired yet; the configured 500ms must.
+        verify(remoteCache, atLeastOnce()).refillAndTryConsume(eq(key), anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), any());
+    }
+
+    @Test
+    void non_positive_flush_interval_falls_back_to_the_default() throws InterruptedException {
+        cut.setFlushIntervalMillis(0L); // invalid: a 0ms delay would busy-loop the reconcile at 100% CPU
+        cut.initialize();
+
+        cut.refillAndTryConsume(key, 1, 1, 1_000L, 5, 1_000L, () -> new TokenBucket(key)).blockingGet();
+
+        Thread.sleep(1_500); // well under the 5s default
+
+        // Clamped to the 5s default: no reconcile yet. A 0ms interval would have fired immediately and repeatedly.
+        verify(remoteCache, never()).refillAndTryConsume(anyString(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), any());
     }
 }

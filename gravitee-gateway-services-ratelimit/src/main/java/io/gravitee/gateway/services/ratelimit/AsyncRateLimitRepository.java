@@ -39,14 +39,24 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
 
     private static final Long LOCK_TIMEOUT_MILLIS = 250L;
 
+    /** Default reconcile interval, preserved from the original hardcoded value. */
+    public static final long DEFAULT_FLUSH_INTERVAL_MILLIS = 5000L;
+
     private final Set<String> keys = new CopyOnWriteArraySet<>();
     private final SharedData sharedData;
     private LocalRateLimitRepository localCacheRateLimitRepository;
     private RateLimitRepository<RateLimit> remoteCacheRateLimitRepository;
     private Disposable mergeSubscription;
 
+    /** How often the local counters are reconciled to the store (ms). Configured globally via the gateway service. */
+    private long flushIntervalMillis = DEFAULT_FLUSH_INTERVAL_MILLIS;
+
     public AsyncRateLimitRepository(final Vertx vertx) {
         this.sharedData = vertx.sharedData();
+    }
+
+    public void setFlushIntervalMillis(long flushIntervalMillis) {
+        this.flushIntervalMillis = flushIntervalMillis > 0 ? flushIntervalMillis : DEFAULT_FLUSH_INTERVAL_MILLIS;
     }
 
     public void initialize() {
@@ -57,7 +67,7 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
                 return state + 1;
             }
         )
-            .delay(5000, TimeUnit.MILLISECONDS)
+            .delay(flushIntervalMillis, TimeUnit.MILLISECONDS)
             .rebatchRequests(1)
             .filter(interval -> !keys.isEmpty())
             .concatMapCompletable(interval ->
