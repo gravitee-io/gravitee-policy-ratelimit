@@ -41,6 +41,11 @@ public class AsyncRateLimitService extends AbstractService {
     @Value("${services.ratelimit.enabled:true}")
     private boolean enabled;
 
+    // Global interval (ms) at which async (non-strict) local counters/buckets are reconciled to the store.
+    // Shared by both async repositories. Default preserves the original hardcoded 5s.
+    @Value("${services.ratelimit.async.flushInterval:5000}")
+    private long flushIntervalMillis;
+
     @Autowired
     private Vertx vertx;
 
@@ -69,6 +74,7 @@ public class AsyncRateLimitService extends AbstractService {
             beanFactory.autowireBean(asyncRateLimitRepository);
             asyncRateLimitRepository.setLocalCacheRateLimitRepository(localCacheRateLimitRepository);
             asyncRateLimitRepository.setRemoteCacheRateLimitRepository(rateLimitRepository);
+            asyncRateLimitRepository.setFlushIntervalMillis(flushIntervalMillis);
             asyncRateLimitRepository.initialize();
 
             LOGGER.info("Register the rate-limit service bridge for synchronous and asynchronous mode");
@@ -117,6 +123,7 @@ public class AsyncRateLimitService extends AbstractService {
             beanFactory.autowireBean(asyncTokenBucketRateLimitRepository);
             asyncTokenBucketRateLimitRepository.setLocalCacheTokenBucketRepository(localCacheTokenBucketRepository);
             asyncTokenBucketRateLimitRepository.setRemoteCacheTokenBucketRepository(tokenBucketRepository);
+            asyncTokenBucketRateLimitRepository.setFlushIntervalMillis(flushIntervalMillis);
             asyncTokenBucketRateLimitRepository.initialize();
 
             LOGGER.info("Register the token-bucket service bridge for synchronous and asynchronous mode");
