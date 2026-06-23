@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.gravitee.policy</groupId>
         <artifactId>gravitee-ratelimit-parent</artifactId>
-        <version>5.0.0-alpha.3</version>
+        <version>5.0.0-alpha.4</version>
     </parent>
 
     <artifactId>gravitee-policy-token-bucket-ratelimit</artifactId>

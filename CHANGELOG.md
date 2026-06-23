@@ -1,3 +1,10 @@
+# [5.0.0-alpha.4](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.0-alpha.3...5.0.0-alpha.4) (2026-06-23)
+
+
+### Features
+
+* **token-bucket:** async (non-strict) mode flag ([26585d8](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/26585d83bbd0dd2fc1743d09f551c71ff94dd924))
+
 # [5.0.0-alpha.3](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.0-alpha.2...5.0.0-alpha.3) (2026-06-23)
 
 
