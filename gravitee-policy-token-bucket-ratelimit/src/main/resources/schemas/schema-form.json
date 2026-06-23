@@ -59,6 +59,12 @@
             "title": "Use key only",
             "description": "When enabled, only the configured key identifies the consumer (the plan/subscription pair is ignored)."
         },
+        "async": {
+            "type": "boolean",
+            "default": false,
+            "title": "Non-strict mode (async)",
+            "description": "By activating this option, the bucket is enforced per node and reconciled to the store periodically. The distributed bucket becomes approximate (a backend can receive more requests than the configured rate) in exchange for higher throughput and fewer store round-trips."
+        },
         "addHeaders": {
             "type": "boolean",
             "default": false,
