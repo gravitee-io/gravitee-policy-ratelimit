@@ -18,7 +18,7 @@ endif::[]
 
 == Description
 
-There are three `rate-limit` policies:
+There are four `rate-limit` policies:
 
 * Quota: configures the number of requests allowed over a period of time (hours, days, weeks, months)
 image:https://img.shields.io/static/v1?label=Available%20at&message=Gravitee.io&color=1EC9D2["Gravitee.io", link="https://download.gravitee.io/#graviteeio-apim/plugins/policies/gravitee-policy-quota/"]
@@ -29,6 +29,9 @@ image:https://img.shields.io/static/v1?label=Available%20at&message=Gravitee.io&
 * Spike-Arrest: throttles the number of requests processed and sends them to the backend to avoid a spike
 image:https://img.shields.io/static/v1?label=Available%20at&message=Gravitee.io&color=1EC9D2["Gravitee.io", link="https://download.gravitee.io/#graviteeio-apim/plugins/policies/gravitee-policy-spikearrest/"]
 
+* Token-Bucket: a steady refill rate with room to burst up to a set capacity
+image:https://img.shields.io/static/v1?label=Available%20at&message=Gravitee.io&color=1EC9D2["Gravitee.io", link="https://download.gravitee.io/#graviteeio-apim/plugins/policies/gravitee-policy-token-bucket-ratelimit/"]
+
 == Compatibility with APIM
 
 |===
@@ -37,7 +40,8 @@ image:https://img.shields.io/static/v1?label=Available%20at&message=Gravitee.io&
 | 1.x                  | Up to 3.19
 | 2.x                  | 3.20 to 4.5
 | 3.x                  | 4.6 to 4.8
-| 4.x                  | 4.9 to latest
+| 4.x                  | 4.9 to 4.11
+| 5.x                  | 4.12 to latest
 |===
 
 == Configuration
@@ -302,6 +306,85 @@ Dynamic Time Duration
 }
 ----
 
+=== Token Bucket
+
+The Token-Bucket policy throttles requests with the token bucket algorithm. A bucket holds up to a burst capacity and gains a fixed number of tokens each period. Each request takes one token. When the bucket is empty the request is rejected with `429`. A fresh bucket starts full, so the first burst goes through right away, and after that traffic is held at the refill rate.
+
+The refill rate is a whole-token count per period. `refillRate` tokens are added every `refillPeriodTime` `refillPeriodTimeUnit` (for example, 100 tokens per 1 MINUTE), and `burstCapacity` is the bucket size, which sets the largest burst allowed. All arithmetic is integer, so there are no fractional rates. The policy is HTTP proxy only and runs on V4 APIs and on V2 APIs (through the v4-emulation engine).
+
+|===
+|Property |Required |Description |Type |Default
+
+|burstCapacity
+|Yes*
+|Largest number of tokens the bucket can hold, which sets the biggest burst allowed. Provide either this static value (≥ 1) or its dynamic variant `dynamicBurstCapacity`.
+|Long
+|none
+
+|refillRate
+|Yes*
+|Number of tokens added to the bucket each refill period. Provide either this static value (≥ 1) or its dynamic variant `dynamicRefillRate`.
+|Long
+|none
+
+|refillPeriodTime
+|Yes
+|Length of the refill period, combined with the unit below.
+|Long
+|1
+
+|refillPeriodTimeUnit
+|Yes
+|Time unit of the refill period: `SECONDS`, `MINUTES`, `HOURS` or `DAYS`.
+|String
+|SECONDS
+
+|addHeaders
+|No
+|Add `X-Rate-Limit-Limit`, `X-Rate-Limit-Remaining`, `X-Rate-Limit-Reset` (and `Retry-After` on rejection) headers in the HTTP response.
+|Boolean
+|false
+
+|key
+|No
+|Key to identify a consumer to apply the bucket against. Leave it empty to use the default behavior (plan/subscription pair). Supports Expression Language.
+|String
+|null
+
+|useKeyOnly
+|No
+|Only use the custom key to identify the consumer, regardless of the subscription and plan.
+|Boolean
+|false
+
+|errorStrategy
+|No
+|Behaviour when the rate-limit store fails: `FALLBACK_PASS_TROUGH` lets the request through (fail open); `BLOCK_ON_INTERNAL_ERROR` rejects it (fail closed). The default is fail open, so while the store is unavailable every request passes through and throttling is effectively disabled — set `BLOCK_ON_INTERNAL_ERROR` if the store outage must not bypass the limit.
+|String
+|FALLBACK_PASS_TROUGH
+
+|===
+
+[NOTE]
+====
+The `*` on `burstCapacity` and `refillRate`: each is required, but may be supplied *either* as the static value above *or* through its dynamic Expression Language variant (`dynamicBurstCapacity` / `dynamicRefillRate`), evaluated per request. Because the JSON schema cannot express that either/or it declares no `required` fields; a configuration where neither form resolves to a positive value is rejected at request time with a `500` (`TOKEN_BUCKET_RATE_LIMIT_SERVER_ERROR`).
+====
+
+==== Configuration example
+[source, json]
+----
+{
+  "burstCapacity": 100,
+  "refillRate": 10,
+  "refillPeriodTime": 1,
+  "refillPeriodTimeUnit": "SECONDS",
+  "addHeaders": true,
+  "errorStrategy": "FALLBACK_PASS_TROUGH"
+}
+----
+
+This allows an immediate burst of up to 100 requests, then a steady 10 requests per second. `refillRate` and `burstCapacity` also accept Expression Language through `dynamicRefillRate` and `dynamicBurstCapacity`, which are evaluated on each request when the static value is left unset.
+
 == Errors
 
 === Default response override
@@ -326,5 +409,8 @@ The error keys sent by these policies are as follows:
 
 .^|SPIKE_ARREST_TOO_MANY_REQUESTS
 ^.^|limit - period_time - period_unit - slice_limit - slice_period_time - slice_limit_period_unit
+
+.^|TOKEN_BUCKET_RATE_LIMIT_TOO_MANY_REQUESTS
+^.^|burst_capacity
 
 |===
