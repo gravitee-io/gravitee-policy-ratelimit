@@ -1,3 +1,15 @@
+# [5.0.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.3.0...5.0.0-alpha.1) (2026-06-23)
+
+
+### Features
+
+* **token-bucket:** add token-bucket-rate-limit policy ([54dafd1](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/54dafd1a3bff82fd426eec4f50d93b018adac9a3))
+
+
+### BREAKING CHANGES
+
+* **token-bucket:** now requires APIM 4.12.0+ (token-bucket SPI)
+
 # [4.3.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.2.1...4.3.0) (2026-02-23)
 
 
