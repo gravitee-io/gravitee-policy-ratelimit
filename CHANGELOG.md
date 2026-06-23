@@ -1,3 +1,10 @@
+# [5.0.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.0-alpha.1...5.0.0-alpha.2) (2026-06-23)
+
+
+### Features
+
+* **ratelimit-service:** async repository and service ([5346067](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/5346067f254e4d32881e9cb0bae9667acae73f19))
+
 # [5.0.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.3.0...5.0.0-alpha.1) (2026-06-23)
 
 
