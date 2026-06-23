@@ -365,12 +365,20 @@ It runs on HTTP proxy APIs (V4, and V2 through the v4-emulation engine) and on V
 |String
 |FALLBACK_PASS_TROUGH
 
+|async
+|No
+|By activating this option, rate-limiting is applied in an asynchronous (non-strict) way: the distributed bucket is approximate, so a backend can receive more requests than configured. See the note below.
+|Boolean
+|false
+
 |===
 
 [NOTE]
 ====
 The `*` on `burstCapacity` and `refillRate`: each is required, but may be supplied *either* as the static value above *or* through its dynamic Expression Language variant (`dynamicBurstCapacity` / `dynamicRefillRate`), evaluated per request. Because the JSON schema cannot express that either/or it declares no `required` fields; a configuration where neither form resolves to a positive value is rejected at request time with a `500` (`TOKEN_BUCKET_RATE_LIMIT_SERVER_ERROR`).
 ====
+
+By default (`async` = `false`) the bucket is strict and exact: every request runs an atomic refill-and-consume against the store. With `async` = `true` each gateway node keeps its own local bucket and reconciles it to the store on a short interval. This gives higher throughput and far fewer store round-trips, but the distributed bucket is only approximate: across several nodes a backend can receive more requests than the configured rate. Even on a single node the local bucket is reconciled to the store only periodically, so within a reconcile window the node can admit more than the configured rate before the store corrects it — async is not request-for-request identical to strict mode. The setting mirrors the `rate-limit` policy's `async` option.
 
 ==== Configuration example
 [source, json]

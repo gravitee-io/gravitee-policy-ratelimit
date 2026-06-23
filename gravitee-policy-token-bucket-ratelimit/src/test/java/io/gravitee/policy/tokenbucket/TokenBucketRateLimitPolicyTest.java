@@ -30,7 +30,7 @@ import io.gravitee.policy.tokenbucket.configuration.TokenBucketRateLimitPolicyCo
 import io.gravitee.ratelimit.ErrorStrategy;
 import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.gravitee.repository.ratelimit.api.TokenBucketConsumeResult;
-import io.gravitee.repository.ratelimit.api.TokenBucketRateLimitRepository;
+import io.gravitee.repository.ratelimit.api.TokenBucketRateLimitService;
 import io.reactivex.rxjava3.annotations.NonNull;
 import io.reactivex.rxjava3.core.*;
 import io.reactivex.rxjava3.disposables.Disposable;
@@ -54,7 +54,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class TokenBucketRateLimitPolicyTest {
 
     @Mock(strictness = Mock.Strictness.LENIENT)
-    private TokenBucketRateLimitRepository<io.gravitee.repository.ratelimit.model.TokenBucket> repository;
+    private TokenBucketRateLimitService service;
 
     @Mock(strictness = Mock.Strictness.LENIENT)
     private HttpPlainExecutionContext ctx;
@@ -86,7 +86,7 @@ class TokenBucketRateLimitPolicyTest {
         policy = new TokenBucketRateLimitPolicy(configuration);
 
         when(ctx.metrics()).thenReturn(new Metrics());
-        when(ctx.getComponent(TokenBucketRateLimitRepository.class)).thenReturn(repository);
+        when(ctx.getComponent(TokenBucketRateLimitService.class)).thenReturn(service);
         when(ctx.response()).thenReturn(response);
         when(response.headers()).thenReturn(headers);
         when(ctx.timestamp()).thenReturn(1_000L);
@@ -97,7 +97,7 @@ class TokenBucketRateLimitPolicyTest {
         // Message context mirrors the plain one; on a message API the policy interrupts the message stream
         // (interruptMessagesWith) instead of the HTTP request.
         when(messageContext.metrics()).thenReturn(new Metrics());
-        when(messageContext.getComponent(TokenBucketRateLimitRepository.class)).thenReturn(repository);
+        when(messageContext.getComponent(TokenBucketRateLimitService.class)).thenReturn(service);
         when(messageContext.response()).thenReturn(response);
         when(messageContext.timestamp()).thenReturn(1_000L);
         when(messageContext.getTemplateEngine()).thenReturn(templateEngine);
@@ -108,7 +108,7 @@ class TokenBucketRateLimitPolicyTest {
 
     @Test
     void should_allow_message_when_token_available(Vertx vertx, VertxTestContext testContext) {
-        when(repository.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any())).thenReturn(
+        when(service.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(
             Single.just(new TokenBucketConsumeResult(true, 299, 1_000L))
         );
 
@@ -119,7 +119,7 @@ class TokenBucketRateLimitPolicyTest {
 
     @Test
     void should_interrupt_message_stream_when_bucket_empty(Vertx vertx, VertxTestContext testContext) {
-        when(repository.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any())).thenReturn(
+        when(service.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(
             Single.just(new TokenBucketConsumeResult(false, 0, 1_500L))
         );
 
@@ -147,8 +147,8 @@ class TokenBucketRateLimitPolicyTest {
     }
 
     @Test
-    void should_interrupt_message_stream_with_500_when_no_repository_installed(Vertx vertx, VertxTestContext testContext) {
-        when(messageContext.getComponent(TokenBucketRateLimitRepository.class)).thenReturn(null);
+    void should_interrupt_message_stream_with_500_when_no_service_installed(Vertx vertx, VertxTestContext testContext) {
+        when(messageContext.getComponent(TokenBucketRateLimitService.class)).thenReturn(null);
 
         vertx.runOnContext(v ->
             policy
@@ -160,7 +160,7 @@ class TokenBucketRateLimitPolicyTest {
                         if (
                             th instanceof MyException ex &&
                             ex.getExecutionFailure().statusCode() == 500 &&
-                            ex.getExecutionFailure().message().contains("No token-bucket rate-limit repository")
+                            ex.getExecutionFailure().message().contains("No token-bucket rate-limit service")
                         ) {
                             testContext.completeNow();
                         } else {
@@ -173,7 +173,7 @@ class TokenBucketRateLimitPolicyTest {
 
     @Test
     void should_allow_request_when_token_available(Vertx vertx, VertxTestContext testContext) {
-        when(repository.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any())).thenReturn(
+        when(service.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(
             Single.just(new TokenBucketConsumeResult(true, 299, 1_000L))
         );
 
@@ -184,10 +184,50 @@ class TokenBucketRateLimitPolicyTest {
                 .doOnComplete(() -> {
                     // useKeyOnly=true + key="test-key" resolves to "test-key:tb" (the :tb type marker keeps
                     // token-bucket keys from clashing with rate-limit / quota / spike-arrest).
-                    verify(repository).refillAndTryConsume(eq("test-key:tb"), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any());
+                    verify(service).refillAndTryConsume(
+                        eq("test-key:tb"),
+                        eq(1L),
+                        eq(3L),
+                        eq(1_000L),
+                        eq(300L),
+                        eq(1_000L),
+                        eq(false),
+                        any()
+                    );
                     verify(headers).set("X-Rate-Limit-Limit", "300");
                     verify(headers).set("X-Rate-Limit-Remaining", "299");
                     verify(headers).set(eq("X-Rate-Limit-Reset"), anyString());
+                })
+                .subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
+    @Test
+    void should_pass_async_true_to_the_service_when_configured(Vertx vertx, VertxTestContext testContext) {
+        configuration = TokenBucketRateLimitPolicyConfiguration.builder()
+            .refillRate(3)
+            .burstCapacity(300)
+            .async(true)
+            .addHeaders(true)
+            .key("test-key")
+            .useKeyOnly(true)
+            .build();
+        policy = new TokenBucketRateLimitPolicy(configuration);
+        when(service.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(true), any())).thenReturn(
+            Single.just(new TokenBucketConsumeResult(true, 299, 1_000L))
+        );
+
+        vertx.runOnContext(v ->
+            policy
+                .onRequest(ctx)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnComplete(() -> {
+                    // The flag is threaded through to the service...
+                    verify(service).refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(true), any());
+                    // ...and the request takes the allowed path (headers are only written on a successful consume,
+                    // and the chain completes without a rejection).
+                    verify(headers).set("X-Rate-Limit-Remaining", "299");
+                    verify(ctx, never()).interruptWith(any());
                 })
                 .subscribe(new SubscribeAdapter(testContext))
         );
@@ -206,7 +246,7 @@ class TokenBucketRateLimitPolicyTest {
         // Dynamic values resolve via async eval() (supports deferred variables), not evalNow().
         when(templateEngine.eval("{(7)}", Long.class)).thenReturn(Maybe.just(7L));
         when(templateEngine.eval("{(2)}", Long.class)).thenReturn(Maybe.just(2L));
-        when(repository.refillAndTryConsume(any(), eq(1L), eq(2L), eq(1_000L), eq(7L), eq(1_000L), any())).thenReturn(
+        when(service.refillAndTryConsume(any(), eq(1L), eq(2L), eq(1_000L), eq(7L), eq(1_000L), eq(false), any())).thenReturn(
             Single.just(new TokenBucketConsumeResult(true, 6, 1_000L))
         );
 
@@ -215,7 +255,7 @@ class TokenBucketRateLimitPolicyTest {
                 .onRequest(ctx)
                 .timeout(2, TimeUnit.SECONDS)
                 .doOnComplete(() -> {
-                    verify(repository).refillAndTryConsume(any(), eq(1L), eq(2L), eq(1_000L), eq(7L), eq(1_000L), any());
+                    verify(service).refillAndTryConsume(any(), eq(1L), eq(2L), eq(1_000L), eq(7L), eq(1_000L), eq(false), any());
                     verify(headers).set("X-Rate-Limit-Limit", "7");
                 })
                 .subscribe(new SubscribeAdapter(testContext))
@@ -225,7 +265,7 @@ class TokenBucketRateLimitPolicyTest {
     @Test
     void should_reject_request_when_bucket_empty(Vertx vertx, VertxTestContext testContext) {
         // empty bucket; next token due 500ms later -> Retry-After = ceil(500/1000) = 1
-        when(repository.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any())).thenReturn(
+        when(service.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(
             Single.just(new TokenBucketConsumeResult(false, 0, 1_500L))
         );
 
@@ -258,7 +298,7 @@ class TokenBucketRateLimitPolicyTest {
     @Test
     void should_pass_through_on_internal_error_with_fallback_strategy(Vertx vertx, VertxTestContext testContext) {
         configuration.setErrorStrategy(ErrorStrategy.FALLBACK_PASS_TROUGH);
-        when(repository.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any())).thenReturn(
+        when(service.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(
             Single.error(new RuntimeException("store down"))
         );
 
@@ -278,7 +318,7 @@ class TokenBucketRateLimitPolicyTest {
     @Test
     void should_block_on_internal_error_with_block_strategy(Vertx vertx, VertxTestContext testContext) {
         configuration.setErrorStrategy(ErrorStrategy.BLOCK_ON_INTERNAL_ERROR);
-        when(repository.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any())).thenReturn(
+        when(service.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(
             Single.error(new RuntimeException("store down"))
         );
 
@@ -300,15 +340,16 @@ class TokenBucketRateLimitPolicyTest {
     }
 
     @Test
-    void should_pass_through_when_repository_returns_null(Vertx vertx, VertxTestContext testContext) {
-        when(repository.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any())).thenReturn(null);
+    void should_pass_through_when_service_returns_null(Vertx vertx, VertxTestContext testContext) {
+        // NoOp store (rate limiting disabled): the service propagates a null Single.
+        when(service.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(null);
 
         vertx.runOnContext(v -> policy.onRequest(ctx).timeout(2, TimeUnit.SECONDS).subscribe(new SubscribeAdapter(testContext)));
     }
 
     @Test
-    void should_error_when_no_repository_installed() {
-        when(ctx.getComponent(TokenBucketRateLimitRepository.class)).thenReturn(null);
+    void should_error_when_no_service_installed() {
+        when(ctx.getComponent(TokenBucketRateLimitService.class)).thenReturn(null);
 
         policy
             .onRequest(ctx)
@@ -317,7 +358,7 @@ class TokenBucketRateLimitPolicyTest {
                 throwable ->
                     throwable instanceof MyException ex &&
                     ex.getExecutionFailure().statusCode() == 500 && // infra failure must be a 500, never masked as a 429
-                    ex.getExecutionFailure().message().contains("No token-bucket rate-limit repository")
+                    ex.getExecutionFailure().message().contains("No token-bucket rate-limit service")
             );
     }
 
@@ -346,7 +387,7 @@ class TokenBucketRateLimitPolicyTest {
             .useKeyOnly(true)
             .build();
         policy = new TokenBucketRateLimitPolicy(configuration);
-        when(repository.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any())).thenReturn(
+        when(service.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(
             Single.just(new TokenBucketConsumeResult(true, 299, 1_000L))
         );
 
@@ -372,7 +413,7 @@ class TokenBucketRateLimitPolicyTest {
             .useKeyOnly(true)
             .build();
         policy = new TokenBucketRateLimitPolicy(configuration);
-        when(repository.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any())).thenReturn(
+        when(service.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(
             Single.just(new TokenBucketConsumeResult(true, 299, 1_000L))
         );
 
@@ -380,7 +421,9 @@ class TokenBucketRateLimitPolicyTest {
             policy
                 .onRequest(ctx)
                 .timeout(2, TimeUnit.SECONDS)
-                .doOnComplete(() -> verify(repository).refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any()))
+                .doOnComplete(() ->
+                    verify(service).refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())
+                )
                 .subscribe(new SubscribeAdapter(testContext))
         );
     }
@@ -397,7 +440,7 @@ class TokenBucketRateLimitPolicyTest {
         policy = new TokenBucketRateLimitPolicy(configuration);
         // useKeyOnly=false composes subscription + key + type: "<plan><subscription>:<key>:tb".
         when(ctx.getAttributes()).thenReturn(Map.of(ExecutionContext.ATTR_PLAN, "plan1", ExecutionContext.ATTR_SUBSCRIPTION_ID, "sub1"));
-        when(repository.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), any())).thenReturn(
+        when(service.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(
             Single.just(new TokenBucketConsumeResult(true, 299, 1_000L))
         );
 
@@ -406,13 +449,14 @@ class TokenBucketRateLimitPolicyTest {
                 .onRequest(ctx)
                 .timeout(2, TimeUnit.SECONDS)
                 .doOnComplete(() ->
-                    verify(repository).refillAndTryConsume(
+                    verify(service).refillAndTryConsume(
                         eq("plan1sub1:test-key:tb"),
                         eq(1L),
                         eq(3L),
                         eq(1_000L),
                         eq(300L),
                         eq(1_000L),
+                        eq(false),
                         any()
                     )
                 )
@@ -440,13 +484,60 @@ class TokenBucketRateLimitPolicyTest {
                             ex.getExecutionFailure().statusCode() == 500 &&
                             "TOKEN_BUCKET_RATE_LIMIT_SERVER_ERROR".equals(ex.getExecutionFailure().key())
                         ) {
-                            verify(repository, never()).refillAndTryConsume(
+                            verify(service, never()).refillAndTryConsume(
                                 any(),
                                 anyLong(),
                                 anyLong(),
                                 anyLong(),
                                 anyLong(),
                                 anyLong(),
+                                anyBoolean(),
+                                any()
+                            );
+                            testContext.completeNow();
+                        } else {
+                            testContext.failNow(th);
+                        }
+                    }
+                )
+        );
+    }
+
+    @Test
+    void should_error_with_500_when_dynamic_rate_resolves_to_empty(Vertx vertx, VertxTestContext testContext) {
+        // The dynamic EL expression resolves to no value: eval() returns an empty Maybe, so evalLong falls
+        // back to 0L. That 0 is not silently applied as "no limit" — the zero-config guard rejects it with a
+        // 500 and the store is never touched.
+        configuration = TokenBucketRateLimitPolicyConfiguration.builder()
+            .dynamicRefillRate("{#empty}")
+            .burstCapacity(300)
+            .addHeaders(false)
+            .key("test-key")
+            .useKeyOnly(true)
+            .build();
+        policy = new TokenBucketRateLimitPolicy(configuration);
+        when(templateEngine.eval("{#empty}", Long.class)).thenReturn(Maybe.empty());
+
+        vertx.runOnContext(v ->
+            policy
+                .onRequest(ctx)
+                .timeout(2, TimeUnit.SECONDS)
+                .subscribe(
+                    () -> testContext.failNow("this test must fail"),
+                    th -> {
+                        if (
+                            th instanceof MyException ex &&
+                            ex.getExecutionFailure().statusCode() == 500 &&
+                            "TOKEN_BUCKET_RATE_LIMIT_SERVER_ERROR".equals(ex.getExecutionFailure().key())
+                        ) {
+                            verify(service, never()).refillAndTryConsume(
+                                any(),
+                                anyLong(),
+                                anyLong(),
+                                anyLong(),
+                                anyLong(),
+                                anyLong(),
+                                anyBoolean(),
                                 any()
                             );
                             testContext.completeNow();
