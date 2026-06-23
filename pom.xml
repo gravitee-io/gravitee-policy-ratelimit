@@ -35,7 +35,7 @@
     </parent>
 
     <properties>
-        <gravitee-apim.version>4.11.11</gravitee-apim.version>
+        <gravitee-apim.version>4.12.0-milestone.6-SNAPSHOT</gravitee-apim.version>
         <gravitee-bom.version>8.3.63</gravitee-bom.version>
     </properties>
 
@@ -44,6 +44,7 @@
         <module>gravitee-policy-quota</module>
         <module>gravitee-policy-ratelimit</module>
         <module>gravitee-policy-spikearrest</module>
+        <module>gravitee-policy-token-bucket-ratelimit</module>
         <module>gravitee-ratelimit-shared</module>
     </modules>
 

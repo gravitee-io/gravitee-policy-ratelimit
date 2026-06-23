@@ -1,0 +1,83 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "refillRate": {
+            "type": "integer",
+            "title": "Refill rate (tokens)",
+            "description": "Number of tokens added to the bucket each refill period. Used when set; otherwise the dynamic refill rate is evaluated.",
+            "minimum": 0
+        },
+        "dynamicRefillRate": {
+            "type": "string",
+            "title": "Refill rate (dynamic)",
+            "description": "EL expression for the number of tokens added each period, evaluated per request. Used only when the static refill rate is not set.",
+            "x-schema-form": {
+                "expression-language": true
+            }
+        },
+        "refillPeriodTime": {
+            "type": "integer",
+            "title": "Refill period",
+            "description": "Length of the refill period, combined with the unit below. For example, refill rate 100 with period 1 MINUTE adds 100 tokens per minute.",
+            "default": 1,
+            "minimum": 1
+        },
+        "refillPeriodTimeUnit": {
+            "type": "string",
+            "title": "Refill period unit",
+            "description": "Time unit of the refill period.",
+            "default": "SECONDS",
+            "enum": ["SECONDS", "MINUTES", "HOURS", "DAYS"]
+        },
+        "burstCapacity": {
+            "type": "integer",
+            "title": "Burst capacity",
+            "description": "Maximum number of tokens the bucket can accumulate. A request consumes one token; requests are rejected with 429 when the bucket is empty. Used when set; otherwise the dynamic burst capacity is evaluated.",
+            "minimum": 1
+        },
+        "dynamicBurstCapacity": {
+            "type": "string",
+            "title": "Burst capacity (dynamic)",
+            "description": "EL expression for the burst capacity, evaluated per request. Used only when the static burst capacity is not set.",
+            "x-schema-form": {
+                "expression-language": true
+            }
+        },
+        "key": {
+            "type": "string",
+            "default": "",
+            "title": "Key",
+            "description": "Key to identify a consumer against whom the rate-limiting is applied. Leave empty to use the default behavior (plan/subscription pair). Supports EL.",
+            "x-schema-form": {
+                "expression-language": true
+            }
+        },
+        "useKeyOnly": {
+            "type": "boolean",
+            "default": false,
+            "title": "Use key only",
+            "description": "When enabled, only the configured key identifies the consumer (the plan/subscription pair is ignored)."
+        },
+        "addHeaders": {
+            "type": "boolean",
+            "default": false,
+            "title": "Add response headers",
+            "description": "Add X-Rate-Limit-Limit, X-Rate-Limit-Remaining, X-Rate-Limit-Reset and (on throttling) Retry-After headers to the HTTP response."
+        },
+        "errorStrategy": {
+            "type": "string",
+            "title": "Error strategy",
+            "description": "Strategy applied to handle internal errors. The default FALLBACK_PASS_TROUGH fails open: while the rate-limit store is unavailable every request passes through and throttling is disabled. Use BLOCK_ON_INTERNAL_ERROR to fail closed if a store outage must not bypass the limit.",
+            "default": "FALLBACK_PASS_TROUGH",
+            "enum": ["BLOCK_ON_INTERNAL_ERROR", "FALLBACK_PASS_TROUGH"],
+            "gioConfig": {
+                "enumLabelMap": {
+                    "BLOCK_ON_INTERNAL_ERROR": "Block queries in case of internal failure",
+                    "FALLBACK_PASS_TROUGH": "Accept queries in case of internal failure (default behavior)"
+                }
+            }
+        }
+    },
+    "required": []
+}
