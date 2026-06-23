@@ -1,3 +1,10 @@
+# [5.0.0-alpha.3](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.0-alpha.2...5.0.0-alpha.3) (2026-06-23)
+
+
+### Features
+
+* **token-bucket:** support v4 message APIs ([d8ac357](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/d8ac357e591927f03d8bc3695b9e1477c2aeae14))
+
 # [5.0.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.0-alpha.1...5.0.0-alpha.2) (2026-06-23)
 
 
