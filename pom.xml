@@ -22,7 +22,7 @@
 
     <groupId>io.gravitee.policy</groupId>
     <artifactId>gravitee-ratelimit-parent</artifactId>
-    <version>5.0.0-alpha.4</version>
+    <version>5.0.0-alpha.5</version>
     <packaging>pom</packaging>
 
     <name>Gravitee.io APIM - Policy - Rate Limit Parent</name>

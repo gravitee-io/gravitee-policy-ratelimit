@@ -1,3 +1,10 @@
+# [5.0.0-alpha.5](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.0-alpha.4...5.0.0-alpha.5) (2026-06-23)
+
+
+### Features
+
+* **ratelimit:** tunable async flush interval ([2f18a09](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/2f18a09508bd85c5f5a3588b7545331e559924b1))
+
 # [5.0.0-alpha.4](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.0-alpha.3...5.0.0-alpha.4) (2026-06-23)
 
 
