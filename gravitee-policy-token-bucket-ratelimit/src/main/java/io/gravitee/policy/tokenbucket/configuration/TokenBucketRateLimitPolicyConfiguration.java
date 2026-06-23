@@ -42,6 +42,14 @@ public class TokenBucketRateLimitPolicyConfiguration implements PolicyConfigurat
     @Builder.Default
     private ErrorStrategy errorStrategy = ErrorStrategy.FALLBACK_PASS_TROUGH;
 
+    /**
+     * Non-strict mode. When {@code false} (default) enforcement is strict and exact (per-request atomic
+     * refill+consume against the store). When {@code true} the bucket is enforced locally per node and
+     * reconciled to the store periodically: higher throughput, but the distributed bucket is approximate
+     * so a backend may receive more than the configured rate. Mirrors the {@code rate-limit} policy.
+     */
+    private boolean async;
+
     private boolean addHeaders;
 
     /** Whole tokens added to the bucket each refill period. Used when {@code > 0}; otherwise {@link #dynamicRefillRate} is evaluated. */

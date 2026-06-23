@@ -25,7 +25,7 @@ import io.gravitee.policy.tokenbucket.configuration.TokenBucketRateLimitPolicyCo
 import io.gravitee.ratelimit.KeyFactory;
 import io.gravitee.ratelimit.PolicyRateLimitException;
 import io.gravitee.repository.ratelimit.api.TokenBucketConsumeResult;
-import io.gravitee.repository.ratelimit.api.TokenBucketRateLimitRepository;
+import io.gravitee.repository.ratelimit.api.TokenBucketRateLimitService;
 import io.gravitee.repository.ratelimit.model.TokenBucket;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Single;
@@ -88,7 +88,6 @@ public class TokenBucketRateLimitPolicy implements HttpPolicy {
         );
     }
 
-    @SuppressWarnings("unchecked")
     private Completable run(HttpBaseExecutionContext ctx) {
         // Captured on the event loop (policy entry) so we can resume on it after the store call.
         Context context = Vertx.currentContext();
@@ -98,9 +97,11 @@ public class TokenBucketRateLimitPolicy implements HttpPolicy {
             return Completable.error(PolicyRateLimitException.serverError(TOKEN_BUCKET_SERVER_ERROR, message));
         }
 
-        TokenBucketRateLimitRepository<TokenBucket> repository = ctx.getComponent(TokenBucketRateLimitRepository.class);
-        if (repository == null) {
-            String message = "No token-bucket rate-limit repository has been installed";
+        // The service bridge (registered by the rate-limit gateway service) selects the strict or async
+        // path from the configured flag — the policy itself stays mode-agnostic.
+        TokenBucketRateLimitService service = ctx.getComponent(TokenBucketRateLimitService.class);
+        if (service == null) {
+            String message = "No token-bucket rate-limit service has been installed";
             ctx.metrics().setErrorMessage(message);
             return Completable.error(PolicyRateLimitException.serverError(TOKEN_BUCKET_SERVER_ERROR, message));
         }
@@ -132,13 +133,14 @@ public class TokenBucketRateLimitPolicy implements HttpPolicy {
                 ctx.metrics().setErrorMessage(message);
                 return Completable.error(PolicyRateLimitException.serverError(TOKEN_BUCKET_SERVER_ERROR, message));
             }
-            Single<TokenBucketConsumeResult> consume = repository.refillAndTryConsume(
+            Single<TokenBucketConsumeResult> consume = service.refillAndTryConsume(
                 resolved.key(),
                 1,
                 resolved.refillRate(),
                 refillPeriodMillis,
                 capacity,
                 now,
+                configuration.isAsync(),
                 () -> {
                     TokenBucket bucket = new TokenBucket(resolved.key());
                     bucket.setSubscription(ctx.getAttribute(ExecutionContext.ATTR_SUBSCRIPTION_ID));
@@ -146,7 +148,7 @@ public class TokenBucketRateLimitPolicy implements HttpPolicy {
                 }
             );
             if (consume == null) {
-                // No-op repository (rate limiting disabled): pass through.
+                // No-op store (rate limiting disabled): pass through.
                 return Completable.complete();
             }
             // The store may emit on a non-event-loop thread (e.g. the reactive MongoDB driver). Resume on the
@@ -166,7 +168,8 @@ public class TokenBucketRateLimitPolicy implements HttpPolicy {
     }
 
     // Evaluate an EL expression to a long via async eval() (which supports deferred variables), defaulting
-    // to 0 when the expression is unset or yields nothing.
+    // to 0 when the expression is unset or yields nothing. A resulting 0 is not applied silently: the
+    // zero-config guard in run() rejects it with a 500 (TOKEN_BUCKET_RATE_LIMIT_SERVER_ERROR).
     private static Single<Long> evalLong(HttpBaseExecutionContext ctx, String expression) {
         if (expression == null || expression.isBlank()) {
             return Single.just(0L);
