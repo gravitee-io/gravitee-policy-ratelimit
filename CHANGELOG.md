@@ -1,3 +1,10 @@
+# [5.0.0-alpha.6](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.0-alpha.5...5.0.0-alpha.6) (2026-06-24)
+
+
+### Bug Fixes
+
+* **deps:** update gravitee-apim.version to 4.12.0-milestone.6 ([a756e15](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/a756e152d07b966f60c77474e0bef8bd0ef3c0bc))
+
 # [5.0.0-alpha.5](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.0-alpha.4...5.0.0-alpha.5) (2026-06-23)
 
 
