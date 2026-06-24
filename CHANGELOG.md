@@ -1,3 +1,24 @@
+# [5.0.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.3.0...5.0.0) (2026-06-24)
+
+
+### Bug Fixes
+
+* **deps:** update gravitee-apim.version to 4.12.0-milestone.6 ([7192f4d](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/7192f4dfef5ccac20d379108e6b2b56c4a2d71f2))
+
+
+### Features
+
+* **ratelimit-service:** async repository and service ([d614869](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/d6148697c4716360e1b42985151fb9ffb5e1067c))
+* **ratelimit:** tunable async flush interval ([560c4d3](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/560c4d3febd8af5c6b81e24afabb9da0db67ac32))
+* **token-bucket:** add token-bucket-rate-limit policy ([576f48f](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/576f48fe54b44473e8e34849fcc089de3fb0d348))
+* **token-bucket:** async (non-strict) mode flag ([ff704ca](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/ff704caa49fa9afc366a30833769555fbc7e4cb2))
+* **token-bucket:** support v4 message APIs ([5d41d06](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/5d41d068a107fb45807f1257d96daee37d5f1592))
+
+
+### BREAKING CHANGES
+
+* **token-bucket:** now requires APIM 4.12.0+ (token-bucket SPI)
+
 # [4.3.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.2.1...4.3.0) (2026-02-23)
 
 
