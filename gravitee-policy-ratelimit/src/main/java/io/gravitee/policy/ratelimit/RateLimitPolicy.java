@@ -44,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
 
     private static final KeyFactory KEY_FACTORY = new KeyFactory("rl");
+    private static final Completable COMPLETED = Completable.complete();
 
     public RateLimitPolicy(RateLimitPolicyConfiguration rateLimitPolicyConfiguration) {
         super(rateLimitPolicyConfiguration);
@@ -123,7 +124,7 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
                     }
 
                     if (rateLimit.getCounter() <= limit) {
-                        return Completable.complete();
+                        return COMPLETED;
                     } else {
                         String message = String.format(
                             "Rate limit exceeded! You reached the limit of %d requests per %d %s",
@@ -173,7 +174,7 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
                         .message("Request bypassed rate limit policy due to internal error")
                         .cause(throwable)
                 );
-                yield Completable.complete();
+                yield COMPLETED;
             }
         };
     }
