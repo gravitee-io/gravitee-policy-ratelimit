@@ -1,3 +1,10 @@
+## [5.0.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.0...5.0.1) (2026-07-03)
+
+
+### Bug Fixes
+
+* **ratelimit:** reuse static Completable on success path ([13d7462](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/13d746252f164284e8c698fff773fa0e0ca17bef))
+
 # [5.0.0](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/4.3.0...5.0.0) (2026-06-24)
 
 
