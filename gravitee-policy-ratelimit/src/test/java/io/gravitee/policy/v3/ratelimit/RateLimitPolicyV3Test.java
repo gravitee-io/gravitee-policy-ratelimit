@@ -378,6 +378,43 @@ public class RateLimitPolicyV3Test {
     }
 
     @Test
+    public void should_gracefully_reject_instead_of_crashing_when_static_and_dynamic_limit_are_missing() throws InterruptedException {
+        // Neither limit nor dynamicLimit is set (reproduces the "no limit configured" case from APIM-14930).
+        // Previously this threw evaluating a null EL expression, causing every request to fail with a 500.
+        var latch = new CountDownLatch(1);
+        var policy = new RateLimitPolicyV3(
+            RateLimitPolicyConfiguration.builder()
+                .rate(RateLimitConfiguration.builder().periodTime(1L).periodTimeUnit(TimeUnit.SECONDS).build())
+                .build()
+        );
+        vertx.runOnContext(event ->
+            policy.onRequest(
+                request,
+                response,
+                executionContext,
+                chain(
+                    (req, res) -> {
+                        fail("Should fail");
+                        latch.countDown();
+                    },
+                    policyResult -> {
+                        SoftAssertions.assertSoftly(soft -> {
+                            soft.assertThat(policyResult.statusCode()).isEqualTo(429);
+                            soft.assertThat(policyResult.key()).isEqualTo("RATE_LIMIT_TOO_MANY_REQUESTS");
+                            soft
+                                .assertThat(policyResult.message())
+                                .isEqualTo("Rate limit exceeded! You reached the limit of 0 requests per 1 seconds");
+                        });
+                        latch.countDown();
+                    }
+                )
+            )
+        );
+
+        assertThat(latch.await(10000, TimeUnit.MILLISECONDS)).isTrue();
+    }
+
+    @Test
     public void should_fail_once_static_limit_is_reached() throws InterruptedException {
         int calls = 15;
         var latch = new CountDownLatch(calls);

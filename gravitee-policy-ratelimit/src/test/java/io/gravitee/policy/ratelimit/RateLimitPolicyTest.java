@@ -343,6 +343,35 @@ class RateLimitPolicyTest {
         );
     }
 
+    @Test
+    void should_default_limit_to_0_when_static_and_dynamic_limit_are_missing(Vertx vertx, VertxTestContext testContext) {
+        RateLimitConfiguration rateLimitConfig = new RateLimitConfiguration();
+        rateLimitConfig.setPeriodTime(1L);
+        rateLimitConfig.setPeriodTimeUnit(TimeUnit.MINUTES);
+        // Neither limit nor dynamicLimit is set (reproduces the "no limit configured" case from APIM-14930).
+        configuration.setRate(rateLimitConfig);
+
+        RateLimit rateLimit = new RateLimit("test-key");
+        rateLimit.setCounter(0);
+        rateLimit.setLimit(0);
+        rateLimit.setResetTime(System.currentTimeMillis() + 60000);
+
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.just(rateLimit));
+
+        vertx.runOnContext(v ->
+            policy
+                .onMessageRequest(messageContext)
+                .timeout(2, TimeUnit.SECONDS)
+                // Must not error (previously threw an NPE evaluating a null EL expression, causing a 500).
+                .doOnComplete(() -> {
+                    verify(headers).set("X-Rate-Limit-Limit", "0");
+                    verify(headers).set("X-Rate-Limit-Remaining", "0");
+                    verify(headers).set(eq("X-Rate-Limit-Reset"), anyString());
+                })
+                .subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
     private record SubscribeAdapter(VertxTestContext testContext) implements CompletableObserver {
         @Override
         public void onSubscribe(@NonNull Disposable d) {}

@@ -89,7 +89,9 @@ public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
         var k = KEY_FACTORY.createRateLimitKey(ctx, rateLimitConfiguration);
         var l = (rateLimitConfiguration.getLimit() > 0)
             ? Single.just(rateLimitConfiguration.getLimit())
-            : ctx.getTemplateEngine().eval(rateLimitConfiguration.getDynamicLimit(), Long.class).defaultIfEmpty(0L);
+            : rateLimitConfiguration.hasValidDynamicLimit()
+                ? ctx.getTemplateEngine().eval(rateLimitConfiguration.getDynamicLimit(), Long.class).defaultIfEmpty(0L)
+                : Single.just(0L);
         var timeDuration = Single.just(
             rateLimitConfiguration.hasValidDynamicPeriodTime()
                 ? ctx.getTemplateEngine().evalNow(rateLimitConfiguration.getDynamicPeriodTime(), Long.class)

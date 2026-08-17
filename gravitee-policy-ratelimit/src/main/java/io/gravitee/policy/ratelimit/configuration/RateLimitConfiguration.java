@@ -51,6 +51,10 @@ public class RateLimitConfiguration implements KeyConfiguration {
         return dynamicPeriodTime != null && !dynamicPeriodTime.isBlank();
     }
 
+    public boolean hasValidDynamicLimit() {
+        return dynamicLimit != null && !dynamicLimit.isBlank();
+    }
+
     public TimeUnit getOrDefaultPeriodTimeUnit() {
         if (hasValidDynamicPeriodTime()) {
             return TimeUnit.SECONDS;

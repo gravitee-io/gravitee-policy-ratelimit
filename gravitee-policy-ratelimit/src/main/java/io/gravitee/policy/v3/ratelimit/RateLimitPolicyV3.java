@@ -109,7 +109,9 @@ public class RateLimitPolicyV3 {
         ).blockingGet();
         var limit = (rateLimitConfiguration.getLimit() > 0)
             ? rateLimitConfiguration.getLimit()
-            : executionContext.getTemplateEngine().evalNow(rateLimitConfiguration.getDynamicLimit(), Long.class);
+            : rateLimitConfiguration.hasValidDynamicLimit()
+                ? executionContext.getTemplateEngine().evalNow(rateLimitConfiguration.getDynamicLimit(), Long.class)
+                : 0L;
 
         Long timeDuration = rateLimitConfiguration.hasValidDynamicPeriodTime()
             ? executionContext.getTemplateEngine().evalNow(rateLimitConfiguration.getDynamicPeriodTime(), Long.class)

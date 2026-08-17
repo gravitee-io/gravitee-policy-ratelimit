@@ -79,7 +79,9 @@ public class QuotaPolicy extends QuotaPolicyV3 implements HttpPolicy {
         var k = KEY_FACTORY.createRateLimitKey(ctx, quotaConfiguration);
         var l = (quotaConfiguration.getLimit() > 0)
             ? Maybe.just(quotaConfiguration.getLimit())
-            : ctx.getTemplateEngine().eval(quotaConfiguration.getDynamicLimit(), Long.class);
+            : quotaConfiguration.hasValidDynamicLimit()
+                ? ctx.getTemplateEngine().eval(quotaConfiguration.getDynamicLimit(), Long.class)
+                : Maybe.<Long>empty();
         var timeDuration = Single.just(
             quotaConfiguration.hasValidDynamicPeriodTime()
                 ? ctx.getTemplateEngine().evalNow(quotaConfiguration.getDynamicPeriodTime(), Long.class)

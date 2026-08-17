@@ -52,6 +52,10 @@ public class QuotaConfiguration implements KeyConfiguration {
         return dynamicPeriodTime != null && !dynamicPeriodTime.isBlank();
     }
 
+    public boolean hasValidDynamicLimit() {
+        return dynamicLimit != null && !dynamicLimit.isBlank();
+    }
+
     public ChronoUnit getPeriodTimeUnit() {
         if (hasValidDynamicPeriodTime()) {
             return ChronoUnit.HOURS;

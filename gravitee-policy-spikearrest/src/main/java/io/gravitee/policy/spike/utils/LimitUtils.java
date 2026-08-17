@@ -38,6 +38,15 @@ public final class LimitUtils {
             throw new IllegalArgumentException("SpikeArrest requires a non zero Limit");
         }
 
+        if (limit == 0) {
+            // Dividing by a zero limit below would yield an infinite slice period, which overflows once added to
+            // the current timestamp and wraps around to a reset time in the past — making the window look
+            // permanently expired and letting every request through. Return a finite, real period with a 0 slice
+            // limit instead, so a zero limit blocks every request within that period, consistent with the
+            // rate-limit and quota policies.
+            return new SliceLimit(periodTimeUnit.toMillis(periodTime), 0);
+        }
+
         // get slice period for ONE request
         float slicePeriod = computeSlicePeriod(limit, periodTime, periodTimeUnit);
 
