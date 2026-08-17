@@ -38,6 +38,9 @@ class LimitUtilsTest {
 
     private static Stream<Arguments> data() {
         return Stream.of(
+            // A zero limit (missing/unconfigured, APIM-14930) must block every request within a real, finite
+            // period, not silently let everything through via an overflowed reset time.
+            Arguments.of(0, 1, TimeUnit.MINUTES, new LimitUtils.SliceLimit(60000, 0)),
             Arguments.of(30, 1, TimeUnit.MINUTES, new LimitUtils.SliceLimit(2000, 1)), // 1 req / 2s
             Arguments.of(30, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 3)), // 3 req / 100ms
             Arguments.of(1000, 1, TimeUnit.SECONDS, new LimitUtils.SliceLimit(100, 100)),

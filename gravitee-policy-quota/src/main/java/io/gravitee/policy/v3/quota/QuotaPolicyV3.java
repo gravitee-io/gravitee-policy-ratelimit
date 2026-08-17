@@ -103,7 +103,9 @@ public class QuotaPolicyV3 {
         ).blockingGet();
         long limit = (quotaConfiguration.getLimit() > 0)
             ? quotaConfiguration.getLimit()
-            : executionContext.getTemplateEngine().evalNow(quotaConfiguration.getDynamicLimit(), Long.class);
+            : quotaConfiguration.hasValidDynamicLimit()
+                ? executionContext.getTemplateEngine().evalNow(quotaConfiguration.getDynamicLimit(), Long.class)
+                : 0L;
         Long timeDuration = quotaConfiguration.hasValidDynamicPeriodTime()
             ? executionContext.getTemplateEngine().evalNow(quotaConfiguration.getDynamicPeriodTime(), Long.class)
             : quotaConfiguration.getOrDefaultPeriodTime();

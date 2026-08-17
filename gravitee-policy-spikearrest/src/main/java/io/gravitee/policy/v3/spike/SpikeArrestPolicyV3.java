@@ -104,7 +104,9 @@ public class SpikeArrestPolicyV3 {
         ).blockingGet();
         final long limit = (spikeArrestConfiguration.getLimit() > 0)
             ? spikeArrestConfiguration.getLimit()
-            : executionContext.getTemplateEngine().evalNow(spikeArrestConfiguration.getDynamicLimit(), Long.class);
+            : spikeArrestConfiguration.hasValidDynamicLimit()
+                ? executionContext.getTemplateEngine().evalNow(spikeArrestConfiguration.getDynamicLimit(), Long.class)
+                : 0L;
         Long timeDuration = spikeArrestConfiguration.hasValidDynamicPeriodTime()
             ? executionContext.getTemplateEngine().evalNow(spikeArrestConfiguration.getDynamicPeriodTime(), Long.class)
             : spikeArrestConfiguration.getOrDefaultPeriodTime();

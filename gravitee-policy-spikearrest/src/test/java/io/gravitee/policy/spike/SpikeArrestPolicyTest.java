@@ -250,15 +250,18 @@ class SpikeArrestPolicyTest {
     }
 
     @Test
-    void should_default_limit_to_0_when_static_and_dynamic_limit_are_missing(Vertx vertx, VertxTestContext testContext) {
+    void should_gracefully_reject_instead_of_crashing_when_static_and_dynamic_limit_are_missing(Vertx vertx, VertxTestContext testContext) {
         SpikeArrestConfiguration spikeConfig = new SpikeArrestConfiguration();
         spikeConfig.setPeriodTime(1L);
         spikeConfig.setPeriodTimeUnit(TimeUnit.SECONDS);
         // Neither limit nor dynamicLimit is set (reproduces the "no limit configured" case from APIM-14930).
+        // Previously this threw an NPE evaluating a null EL expression, causing every request to fail with a 500.
+        // The effective limit now gracefully resolves to a slice limit of 0, so the first request (counter=1) is
+        // cleanly rejected with a 429 instead of the reset-time overflow silently letting every request through.
         configuration.setSpike(spikeConfig);
 
         RateLimit rateLimit = new RateLimit("test-key");
-        rateLimit.setCounter(0);
+        rateLimit.setCounter(1);
         rateLimit.setLimit(0);
         rateLimit.setResetTime(System.currentTimeMillis() + 1000);
 
@@ -268,12 +271,17 @@ class SpikeArrestPolicyTest {
             policy
                 .onRequest(executionContext)
                 .timeout(2, TimeUnit.SECONDS)
-                // Must not error (previously threw an NPE evaluating a null EL expression, causing a 500).
-                .doOnComplete(() -> {
-                    verify(httpHeaders).set(eq("X-Spike-Arrest-Limit"), anyString());
-                    verify(httpHeaders).set(eq("X-Spike-Arrest-Slice-Period"), anyString());
-                })
-                .subscribe(new SubscribeAdapter(testContext))
+                .doOnError(th -> verify(httpHeaders).set(eq("X-Spike-Arrest-Limit"), eq("0")))
+                .subscribe(
+                    () -> testContext.failNow("Should have failed"),
+                    error -> {
+                        if (error instanceof MyException) {
+                            testContext.completeNow();
+                        } else {
+                            testContext.failNow("Wrong exception type");
+                        }
+                    }
+                )
         );
     }
 
