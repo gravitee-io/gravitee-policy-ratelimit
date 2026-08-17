@@ -1,3 +1,10 @@
+## [5.0.2](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.1...5.0.2) (2026-08-17)
+
+
+### Bug Fixes
+
+* prevent 500s when rate-limit, quota and spike-arrest are saved without a limit ([#153](https://github.com/gravitee-io/gravitee-policy-ratelimit/issues/153)) ([02c5ee6](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/02c5ee68b10f96d63154b93ffa710d5fc63dcef3))
+
 ## [5.0.1](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.0...5.0.1) (2026-07-03)
 
 
