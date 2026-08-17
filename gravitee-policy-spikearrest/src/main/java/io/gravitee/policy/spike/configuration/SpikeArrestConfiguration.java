@@ -51,6 +51,10 @@ public class SpikeArrestConfiguration implements KeyConfiguration {
         return dynamicPeriodTime != null && !dynamicPeriodTime.isBlank();
     }
 
+    public boolean hasValidDynamicLimit() {
+        return dynamicLimit != null && !dynamicLimit.isBlank();
+    }
+
     public TimeUnit getPeriodTimeUnit() {
         if (hasValidDynamicPeriodTime()) {
             return TimeUnit.SECONDS;

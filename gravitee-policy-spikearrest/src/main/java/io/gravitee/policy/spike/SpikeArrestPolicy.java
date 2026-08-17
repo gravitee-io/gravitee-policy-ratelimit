@@ -80,7 +80,9 @@ public class SpikeArrestPolicy extends SpikeArrestPolicyV3 implements HttpPolicy
         var k = KEY_FACTORY.createRateLimitKey(ctx, spikeArrestConfiguration);
         var l = (spikeArrestConfiguration.getLimit() > 0)
             ? Maybe.just(spikeArrestConfiguration.getLimit())
-            : ctx.getTemplateEngine().eval(spikeArrestConfiguration.getDynamicLimit(), Long.class);
+            : spikeArrestConfiguration.hasValidDynamicLimit()
+                ? ctx.getTemplateEngine().eval(spikeArrestConfiguration.getDynamicLimit(), Long.class)
+                : Maybe.<Long>empty();
         var timeDuration = Single.just(
             spikeArrestConfiguration.hasValidDynamicPeriodTime()
                 ? ctx.getTemplateEngine().evalNow(spikeArrestConfiguration.getDynamicPeriodTime(), Long.class)

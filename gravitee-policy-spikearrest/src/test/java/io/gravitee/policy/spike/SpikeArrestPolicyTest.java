@@ -249,6 +249,34 @@ class SpikeArrestPolicyTest {
         );
     }
 
+    @Test
+    void should_default_limit_to_0_when_static_and_dynamic_limit_are_missing(Vertx vertx, VertxTestContext testContext) {
+        SpikeArrestConfiguration spikeConfig = new SpikeArrestConfiguration();
+        spikeConfig.setPeriodTime(1L);
+        spikeConfig.setPeriodTimeUnit(TimeUnit.SECONDS);
+        // Neither limit nor dynamicLimit is set (reproduces the "no limit configured" case from APIM-14930).
+        configuration.setSpike(spikeConfig);
+
+        RateLimit rateLimit = new RateLimit("test-key");
+        rateLimit.setCounter(0);
+        rateLimit.setLimit(0);
+        rateLimit.setResetTime(System.currentTimeMillis() + 1000);
+
+        when(rateLimitService.incrementAndGet(any(), anyBoolean(), any())).thenReturn(Single.just(rateLimit));
+
+        vertx.runOnContext(v ->
+            policy
+                .onRequest(executionContext)
+                .timeout(2, TimeUnit.SECONDS)
+                // Must not error (previously threw an NPE evaluating a null EL expression, causing a 500).
+                .doOnComplete(() -> {
+                    verify(httpHeaders).set(eq("X-Spike-Arrest-Limit"), anyString());
+                    verify(httpHeaders).set(eq("X-Spike-Arrest-Slice-Period"), anyString());
+                })
+                .subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
     private record SubscribeAdapter(VertxTestContext testContext) implements CompletableObserver {
         @Override
         public void onSubscribe(@NonNull Disposable d) {}

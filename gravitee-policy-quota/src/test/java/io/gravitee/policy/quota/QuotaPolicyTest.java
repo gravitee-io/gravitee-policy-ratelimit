@@ -197,6 +197,44 @@ class QuotaPolicyTest {
         );
     }
 
+    @Test
+    void should_gracefully_reject_instead_of_crashing_when_static_and_dynamic_limit_are_missing(Vertx vertx, VertxTestContext testContext) {
+        // Neither limit nor dynamicLimit is set (reproduces the "no limit configured" case from APIM-14930).
+        // Previously this threw an NPE evaluating a null EL expression, causing every request to fail with a 500.
+        // The effective limit now gracefully resolves to 0, so the first request is cleanly rejected with a 429.
+        QuotaPolicy policy = new QuotaPolicy(
+            QuotaPolicyConfiguration.builder()
+                .addHeaders(true)
+                .quota(QuotaConfiguration.builder().periodTime(10L).periodTimeUnit(ChronoUnit.HOURS).build())
+                .build()
+        );
+
+        vertx.runOnContext(v ->
+            policy
+                .onRequest(plainContext)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnError(th -> {
+                    assertThat(th).isInstanceOf(MyException.class);
+                    ExecutionFailure executionFailure = ((MyException) th).getExecutionFailure();
+                    assertThat(executionFailure.statusCode()).isEqualTo(429);
+                    assertThat(executionFailure.message()).contains("Quota exceeded! You reached the limit of 0 requests");
+                    verify(headers).set(QuotaPolicyV3.X_QUOTA_LIMIT, "0");
+                    verify(headers).set(QuotaPolicyV3.X_QUOTA_REMAINING, "0");
+                    verify(headers).set(eq(QuotaPolicyV3.X_QUOTA_RESET), anyString());
+                })
+                .subscribe(
+                    () -> testContext.failNow("this test must fail"),
+                    th -> {
+                        if (!(th instanceof MyException)) {
+                            testContext.failNow(th);
+                        } else {
+                            testContext.completeNow();
+                        }
+                    }
+                )
+        );
+    }
+
     @Nested
     class SuccessfulQuotaRequest {
 

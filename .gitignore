@@ -5,6 +5,7 @@ target/
 .idea/
 .DS_Store
 *.iml
+.local-tooling/
 
 *.class
 

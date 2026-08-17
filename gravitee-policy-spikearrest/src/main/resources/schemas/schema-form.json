@@ -50,7 +50,8 @@
                     "type": "integer",
                     "title": "Max requests (static)",
                     "description": "Static limit on the number of requests that can be sent (this limit is used if the value > 0).",
-                    "minimum": 0
+                    "minimum": 0,
+                    "default": 0
                 },
                 "dynamicLimit": {
                     "type": "string",
