@@ -24,6 +24,7 @@ import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
 import io.gravitee.policy.tokenbucket.configuration.TokenBucketRateLimitPolicyConfiguration;
 import io.gravitee.ratelimit.KeyFactory;
 import io.gravitee.ratelimit.PolicyRateLimitException;
+import io.gravitee.ratelimit.WeightResolver;
 import io.gravitee.repository.ratelimit.api.TokenBucketConsumeResult;
 import io.gravitee.repository.ratelimit.api.TokenBucketRateLimitService;
 import io.gravitee.repository.ratelimit.model.TokenBucket;
@@ -120,8 +121,14 @@ public class TokenBucketRateLimitPolicy implements HttpPolicy {
         Single<Long> capacitySingle = configuration.getBurstCapacity() > 0
             ? Single.just(configuration.getBurstCapacity())
             : evalLong(ctx, configuration.getDynamicBurstCapacity());
+        Single<Long> weightSingle = WeightResolver.resolve(
+            ctx,
+            configuration.isBudget(),
+            configuration.getWeight(),
+            configuration.getDynamicWeight()
+        );
 
-        return Single.zip(keySingle, refillRateSingle, capacitySingle, Resolved::new).flatMapCompletable(resolved -> {
+        return Single.zip(keySingle, refillRateSingle, capacitySingle, weightSingle, Resolved::new).flatMapCompletable(resolved -> {
             long capacity = resolved.capacity();
             // Neither the static value nor a dynamic EL expression resolved to a positive number, so the
             // bucket would have zero capacity / refill and silently reject (or never hold) every request.
@@ -135,7 +142,7 @@ public class TokenBucketRateLimitPolicy implements HttpPolicy {
             }
             Single<TokenBucketConsumeResult> consume = service.refillAndTryConsume(
                 resolved.key(),
-                1,
+                resolved.weight(),
                 resolved.refillRate(),
                 refillPeriodMillis,
                 capacity,
@@ -177,7 +184,7 @@ public class TokenBucketRateLimitPolicy implements HttpPolicy {
         return ctx.getTemplateEngine().eval(expression, Long.class).defaultIfEmpty(0L);
     }
 
-    private record Resolved(String key, long refillRate, long capacity) {}
+    private record Resolved(String key, long refillRate, long capacity, long weight) {}
 
     private Completable applyResult(HttpBaseExecutionContext ctx, TokenBucketConsumeResult result, long capacity, long now) {
         if (configuration.isAddHeaders()) {

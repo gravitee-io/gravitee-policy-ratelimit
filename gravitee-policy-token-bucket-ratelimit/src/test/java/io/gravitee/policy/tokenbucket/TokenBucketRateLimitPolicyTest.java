@@ -549,6 +549,122 @@ class TokenBucketRateLimitPolicyTest {
         );
     }
 
+    @Test
+    void should_consume_static_weight_when_budget_enabled(Vertx vertx, VertxTestContext testContext) {
+        // Budget mode on with a static cost of 10: each request drains 10 tokens from the bucket instead of 1.
+        configuration = TokenBucketRateLimitPolicyConfiguration.builder()
+            .refillRate(3)
+            .burstCapacity(300)
+            .budget(true)
+            .weight(10)
+            .addHeaders(false)
+            .key("test-key")
+            .useKeyOnly(true)
+            .build();
+        policy = new TokenBucketRateLimitPolicy(configuration);
+        when(service.refillAndTryConsume(any(), eq(10L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(
+            Single.just(new TokenBucketConsumeResult(true, 290, 1_000L))
+        );
+
+        vertx.runOnContext(v ->
+            policy
+                .onRequest(ctx)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnComplete(() ->
+                    verify(service).refillAndTryConsume(any(), eq(10L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())
+                )
+                .subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
+    @Test
+    void should_consume_dynamic_weight_from_el_when_budget_enabled(Vertx vertx, VertxTestContext testContext) {
+        // Budget mode on with no static cost: the per-request cost is resolved from the EL expression (e.g. a
+        // token-usage attribute set by an upstream policy) via async eval().
+        configuration = TokenBucketRateLimitPolicyConfiguration.builder()
+            .refillRate(3)
+            .burstCapacity(300)
+            .budget(true)
+            .dynamicWeight("{(42)}")
+            .addHeaders(false)
+            .key("test-key")
+            .useKeyOnly(true)
+            .build();
+        policy = new TokenBucketRateLimitPolicy(configuration);
+        when(templateEngine.eval("{(42)}", Long.class)).thenReturn(Maybe.just(42L));
+        when(service.refillAndTryConsume(any(), eq(42L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(
+            Single.just(new TokenBucketConsumeResult(true, 258, 1_000L))
+        );
+
+        vertx.runOnContext(v ->
+            policy
+                .onRequest(ctx)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnComplete(() ->
+                    verify(service).refillAndTryConsume(any(), eq(42L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())
+                )
+                .subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
+    @Test
+    void should_default_dynamic_weight_to_one_when_el_resolves_empty(Vertx vertx, VertxTestContext testContext) {
+        // Budget mode on but the cost expression resolves to nothing: rather than silently disabling
+        // enforcement (cost 0), the weight defaults to 1 so the request still counts.
+        configuration = TokenBucketRateLimitPolicyConfiguration.builder()
+            .refillRate(3)
+            .burstCapacity(300)
+            .budget(true)
+            .dynamicWeight("{#empty}")
+            .addHeaders(false)
+            .key("test-key")
+            .useKeyOnly(true)
+            .build();
+        policy = new TokenBucketRateLimitPolicy(configuration);
+        when(templateEngine.eval("{#empty}", Long.class)).thenReturn(Maybe.empty());
+        when(service.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(
+            Single.just(new TokenBucketConsumeResult(true, 299, 1_000L))
+        );
+
+        vertx.runOnContext(v ->
+            policy
+                .onRequest(ctx)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnComplete(() ->
+                    verify(service).refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())
+                )
+                .subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
+    @Test
+    void should_consume_one_when_budget_disabled_even_if_weight_set(Vertx vertx, VertxTestContext testContext) {
+        // The toggle gates the weight: with budget off, a configured weight is ignored and the request consumes 1.
+        configuration = TokenBucketRateLimitPolicyConfiguration.builder()
+            .refillRate(3)
+            .burstCapacity(300)
+            .budget(false)
+            .weight(10)
+            .addHeaders(false)
+            .key("test-key")
+            .useKeyOnly(true)
+            .build();
+        policy = new TokenBucketRateLimitPolicy(configuration);
+        when(service.refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())).thenReturn(
+            Single.just(new TokenBucketConsumeResult(true, 299, 1_000L))
+        );
+
+        vertx.runOnContext(v ->
+            policy
+                .onRequest(ctx)
+                .timeout(2, TimeUnit.SECONDS)
+                .doOnComplete(() ->
+                    verify(service).refillAndTryConsume(any(), eq(1L), eq(3L), eq(1_000L), eq(300L), eq(1_000L), eq(false), any())
+                )
+                .subscribe(new SubscribeAdapter(testContext))
+        );
+    }
+
     private record SubscribeAdapter(VertxTestContext testContext) implements CompletableObserver {
         @Override
         public void onSubscribe(@NonNull Disposable d) {}
