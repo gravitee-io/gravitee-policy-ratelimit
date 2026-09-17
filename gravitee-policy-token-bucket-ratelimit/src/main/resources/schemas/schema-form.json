@@ -44,6 +44,26 @@
                 "expression-language": true
             }
         },
+        "budget": {
+            "type": "boolean",
+            "default": false,
+            "title": "Token budget mode",
+            "description": "When enabled, each request consumes its cost (the weight below) from the bucket instead of 1 token, so the bucket is drained by accumulated token cost rather than a raw request count."
+        },
+        "weight": {
+            "type": "integer",
+            "title": "Cost per request (static)",
+            "description": "Static cost consumed per request when token budget mode is enabled (used if the value > 0).",
+            "minimum": 0
+        },
+        "dynamicWeight": {
+            "type": "string",
+            "title": "Cost per request (dynamic)",
+            "description": "Dynamic per-request cost (EL expression), used when token budget mode is enabled and the static cost = 0. For example reference a token-usage attribute set by an upstream policy. Defaults to 1 when blank.",
+            "x-schema-form": {
+                "expression-language": true
+            }
+        },
         "key": {
             "type": "string",
             "default": "",
