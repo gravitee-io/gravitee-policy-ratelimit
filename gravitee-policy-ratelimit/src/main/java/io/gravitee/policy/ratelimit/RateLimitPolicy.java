@@ -38,9 +38,9 @@ import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
 import java.util.Map;
 import java.util.Objects;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 
-@Slf4j
+@CustomLog
 public class RateLimitPolicy extends RateLimitPolicyV3 implements HttpPolicy {
 
     private static final KeyFactory KEY_FACTORY = new KeyFactory("rl");

@@ -27,8 +27,8 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import lombok.CustomLog;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Non-strict token-bucket repository. Every request refills and consumes against a node-local bucket
@@ -37,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
  * analogue of {@code AsyncRateLimitRepository}.
  */
 @Setter
-@Slf4j
+@CustomLog
 public class AsyncTokenBucketRateLimitRepository implements TokenBucketRateLimitRepository<TokenBucket> {
 
     private static final Long LOCK_TIMEOUT_MILLIS = 250L;

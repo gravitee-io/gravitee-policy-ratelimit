@@ -35,8 +35,7 @@ import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
 import java.time.temporal.ChronoUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.CustomLog;
 
 /**
  * The quota policy, also known as throttling insure that a user (given its api key or IP address) is allowed
@@ -48,14 +47,10 @@ import org.slf4j.LoggerFactory;
  * @author GraviteeSource Team
  */
 @SuppressWarnings("unused")
+@CustomLog
 public class QuotaPolicyV3 {
 
     private static final KeyFactory KEY_FACTORY = new KeyFactory("q");
-
-    /**
-     * LOGGER
-     */
-    private static final Logger LOGGER = LoggerFactory.getLogger(QuotaPolicyV3.class);
 
     protected static final String QUOTA_TOO_MANY_REQUESTS = "QUOTA_TOO_MANY_REQUESTS";
     protected static final String QUOTA_SERVER_ERROR = "QUOTA_SERVER_ERROR";
