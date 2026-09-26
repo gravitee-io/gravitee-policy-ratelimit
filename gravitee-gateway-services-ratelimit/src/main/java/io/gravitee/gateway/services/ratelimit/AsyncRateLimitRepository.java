@@ -26,15 +26,15 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import lombok.CustomLog;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
 @Setter
-@Slf4j
+@CustomLog
 public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> {
 
     private static final Long LOCK_TIMEOUT_MILLIS = 250L;

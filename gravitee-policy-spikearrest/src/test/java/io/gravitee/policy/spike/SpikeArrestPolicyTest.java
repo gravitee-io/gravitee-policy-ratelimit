@@ -68,6 +68,9 @@ class SpikeArrestPolicyTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient()
+            .when(executionContext.withLogger(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(org.slf4j.LoggerFactory.getLogger(getClass()));
         configuration = new SpikeArrestPolicyConfiguration();
         SpikeArrestConfiguration spikeConfig = new SpikeArrestConfiguration();
         spikeConfig.setLimit(100);

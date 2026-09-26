@@ -36,8 +36,7 @@ import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.CustomLog;
 
 /**
  * The rate limit policy, also known as throttling insure that a user (given its api key or IP address) is allowed
@@ -49,14 +48,10 @@ import org.slf4j.LoggerFactory;
  * @author GraviteeSource Team
  */
 @SuppressWarnings("unused")
+@CustomLog
 public class RateLimitPolicyV3 {
 
     private static final KeyFactory KEY_FACTORY = new KeyFactory("rl");
-
-    /**
-     * LOGGER
-     */
-    private static final Logger LOGGER = LoggerFactory.getLogger(RateLimitPolicyV3.class);
 
     protected static final String RATE_LIMIT_TOO_MANY_REQUESTS = "RATE_LIMIT_TOO_MANY_REQUESTS";
     protected static final String RATE_LIMIT_SERVER_ERROR = "RATE_LIMIT_SERVER_ERROR";
