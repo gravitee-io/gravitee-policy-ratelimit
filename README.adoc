@@ -35,14 +35,16 @@ image:https://img.shields.io/static/v1?label=Available%20at&message=Gravitee.io&
 == Compatibility with APIM
 
 |===
-|Plugin version | APIM version
+| Plugin version | APIM version   | Java version
 
-| 1.x                  | Up to 3.19
-| 2.x                  | 3.20 to 4.5
-| 3.x                  | 4.6 to 4.8
-| 4.x                  | 4.9 to 4.11
-| 5.x                  | 4.12 to latest
+| 1.x            | Up to 3.19     | 11
+| 2.x            | 3.20 to 4.5    | 11
+| 3.x            | 4.6 to 4.8     | 17
+| 4.x            | 4.9 to 4.11    | 21
+| 5.x            | 4.12 to latest | 21
 |===
+
+The *Java version* column is the bytecode level of the latest release of each line, which sets the minimum runtime able to load the artifact.
 
 == Configuration
 
