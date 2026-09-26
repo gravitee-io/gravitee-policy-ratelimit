@@ -32,12 +32,16 @@
     <description>Throttles the number of requests processed and sends them to the backend to avoid a spike</description>
 
     <properties>
-        <maven-plugin-assembly.version>3.8.0</maven-plugin-assembly.version>
         <!-- Property used by the publication job in CI-->
         <publish-folder-path>graviteeio-apim/plugins/services</publish-folder-path>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>io.gravitee.node</groupId>
+            <artifactId>gravitee-node-logging</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <!-- Gravitee.io dependencies -->
         <dependency>
             <groupId>io.gravitee.common</groupId>
@@ -110,7 +114,6 @@
             </plugin>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>${maven-plugin-assembly.version}</version>
                 <configuration>
                     <appendAssemblyId>false</appendAssemblyId>
                     <descriptors>
