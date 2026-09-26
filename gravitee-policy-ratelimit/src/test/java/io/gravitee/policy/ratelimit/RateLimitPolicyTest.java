@@ -72,6 +72,12 @@ class RateLimitPolicyTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient()
+            .when(messageContext.withLogger(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(org.slf4j.LoggerFactory.getLogger(getClass()));
+        org.mockito.Mockito.lenient()
+            .when(plainContext.withLogger(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(org.slf4j.LoggerFactory.getLogger(getClass()));
         configuration = new RateLimitPolicyConfiguration();
         RateLimitConfiguration rateLimitConfig = new RateLimitConfiguration();
         rateLimitConfig.setLimit(10);

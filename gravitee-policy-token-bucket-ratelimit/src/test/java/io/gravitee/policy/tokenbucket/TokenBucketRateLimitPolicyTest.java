@@ -76,6 +76,12 @@ class TokenBucketRateLimitPolicyTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.lenient()
+            .when(ctx.withLogger(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(org.slf4j.LoggerFactory.getLogger(getClass()));
+        org.mockito.Mockito.lenient()
+            .when(messageContext.withLogger(org.mockito.ArgumentMatchers.any()))
+            .thenReturn(org.slf4j.LoggerFactory.getLogger(getClass()));
         configuration = TokenBucketRateLimitPolicyConfiguration.builder()
             .refillRate(3)
             .burstCapacity(300)

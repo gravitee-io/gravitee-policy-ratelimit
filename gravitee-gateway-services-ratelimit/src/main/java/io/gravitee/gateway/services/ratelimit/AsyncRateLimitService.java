@@ -23,8 +23,7 @@ import io.gravitee.repository.ratelimit.api.TokenBucketRateLimitService;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import io.gravitee.repository.ratelimit.model.TokenBucket;
 import io.vertx.rxjava3.core.Vertx;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.CustomLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
@@ -34,9 +33,8 @@ import org.springframework.context.ConfigurableApplicationContext;
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
+@CustomLog
 public class AsyncRateLimitService extends AbstractService {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncRateLimitService.class);
 
     @Value("${services.ratelimit.enabled:true}")
     private boolean enabled;
@@ -63,13 +61,13 @@ public class AsyncRateLimitService extends AbstractService {
 
         // Retrieve the current rate-limit repository implementation
         RateLimitRepository<RateLimit> rateLimitRepository = parentBeanFactory.getBean(RateLimitRepository.class);
-        LOGGER.debug("Rate-limit repository implementation is {}", rateLimitRepository.getClass().getName());
+        log.debug("Rate-limit repository implementation is {}", rateLimitRepository.getClass().getName());
 
         if (enabled) {
             // Prepare local cache
             LocalRateLimitRepository localCacheRateLimitRepository = new LocalRateLimitRepository();
 
-            LOGGER.debug("Register rate-limit repository asynchronous implementation {}", AsyncRateLimitRepository.class.getName());
+            log.debug("Register rate-limit repository asynchronous implementation {}", AsyncRateLimitRepository.class.getName());
             asyncRateLimitRepository = new AsyncRateLimitRepository(vertx);
             beanFactory.autowireBean(asyncRateLimitRepository);
             asyncRateLimitRepository.setLocalCacheRateLimitRepository(localCacheRateLimitRepository);
@@ -77,14 +75,14 @@ public class AsyncRateLimitService extends AbstractService {
             asyncRateLimitRepository.setFlushIntervalMillis(flushIntervalMillis);
             asyncRateLimitRepository.initialize();
 
-            LOGGER.info("Register the rate-limit service bridge for synchronous and asynchronous mode");
+            log.info("Register the rate-limit service bridge for synchronous and asynchronous mode");
             DefaultRateLimitService rateLimitService = new DefaultRateLimitService();
             rateLimitService.setRateLimitRepository(rateLimitRepository);
             rateLimitService.setAsyncRateLimitRepository(asyncRateLimitRepository);
             parentBeanFactory.registerSingleton(RateLimitService.class.getName(), rateLimitService);
         } else {
             // By disabling async and cached rate limiting, only the strict mode is allowed
-            LOGGER.info("Register the rate-limit service bridge for strict mode only");
+            log.info("Register the rate-limit service bridge for strict mode only");
             DefaultRateLimitService rateLimitService = new DefaultRateLimitService();
             rateLimitService.setRateLimitRepository(rateLimitRepository);
             rateLimitService.setAsyncRateLimitRepository(rateLimitRepository);
@@ -102,12 +100,12 @@ public class AsyncRateLimitService extends AbstractService {
     @SuppressWarnings("unchecked")
     private void registerTokenBucketService(DefaultListableBeanFactory beanFactory, DefaultListableBeanFactory parentBeanFactory) {
         if (parentBeanFactory.getBeanNamesForType(TokenBucketRateLimitRepository.class).length == 0) {
-            LOGGER.warn("No token-bucket rate-limit repository found; the token-bucket service is not registered");
+            log.warn("No token-bucket rate-limit repository found; the token-bucket service is not registered");
             return;
         }
 
         TokenBucketRateLimitRepository<TokenBucket> tokenBucketRepository = parentBeanFactory.getBean(TokenBucketRateLimitRepository.class);
-        LOGGER.debug("Token-bucket repository implementation is {}", tokenBucketRepository.getClass().getName());
+        log.debug("Token-bucket repository implementation is {}", tokenBucketRepository.getClass().getName());
 
         DefaultTokenBucketRateLimitService tokenBucketService = new DefaultTokenBucketRateLimitService();
         tokenBucketService.setTokenBucketRateLimitRepository(tokenBucketRepository);
@@ -115,7 +113,7 @@ public class AsyncRateLimitService extends AbstractService {
         if (enabled) {
             LocalTokenBucketRateLimitRepository localCacheTokenBucketRepository = new LocalTokenBucketRateLimitRepository();
 
-            LOGGER.debug(
+            log.debug(
                 "Register token-bucket repository asynchronous implementation {}",
                 AsyncTokenBucketRateLimitRepository.class.getName()
             );
@@ -126,11 +124,11 @@ public class AsyncRateLimitService extends AbstractService {
             asyncTokenBucketRateLimitRepository.setFlushIntervalMillis(flushIntervalMillis);
             asyncTokenBucketRateLimitRepository.initialize();
 
-            LOGGER.info("Register the token-bucket service bridge for synchronous and asynchronous mode");
+            log.info("Register the token-bucket service bridge for synchronous and asynchronous mode");
             tokenBucketService.setAsyncTokenBucketRateLimitRepository(asyncTokenBucketRateLimitRepository);
         } else {
             // Async disabled: only strict token-bucket mode is allowed.
-            LOGGER.info("Register the token-bucket service bridge for strict mode only");
+            log.info("Register the token-bucket service bridge for strict mode only");
             tokenBucketService.setAsyncTokenBucketRateLimitRepository(tokenBucketRepository);
         }
 

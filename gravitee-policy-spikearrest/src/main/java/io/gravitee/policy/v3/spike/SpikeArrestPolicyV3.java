@@ -36,8 +36,7 @@ import io.vertx.rxjava3.core.Context;
 import io.vertx.rxjava3.core.RxHelper;
 import io.vertx.rxjava3.core.Vertx;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.CustomLog;
 
 /**
  * The spike arrest policy insures that the amount of requests is limited and smoothed to x requests per y time period.
@@ -48,14 +47,10 @@ import org.slf4j.LoggerFactory;
  * @author GraviteeSource Team
  */
 @SuppressWarnings("unused")
+@CustomLog
 public class SpikeArrestPolicyV3 {
 
     protected static final KeyFactory KEY_FACTORY = new KeyFactory("sa");
-
-    /**
-     * LOGGER
-     */
-    private static final Logger LOGGER = LoggerFactory.getLogger(SpikeArrestPolicyV3.class);
 
     protected static final String SPIKE_ARREST_TOO_MANY_REQUESTS = "SPIKE_ARREST_TOO_MANY_REQUESTS";
     protected static final String SPIKE_ARREST_SERVER_ERROR = "SPIKE_ARREST_SERVER_ERROR";
