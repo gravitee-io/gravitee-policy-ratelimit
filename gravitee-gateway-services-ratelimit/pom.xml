@@ -42,6 +42,7 @@
         <dependency>
             <groupId>io.gravitee.common</groupId>
             <artifactId>gravitee-common</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
