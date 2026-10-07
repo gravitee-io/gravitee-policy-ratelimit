@@ -1,3 +1,10 @@
+## [5.0.3](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.2...5.0.3) (2026-10-07)
+
+
+### Bug Fixes
+
+* **deps:** stop packaging libraries provided by the APIM runtime ([f56d093](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/f56d0938cb9e0fd19f032467c1f57e87007d29cb))
+
 ## [5.0.2](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.1...5.0.2) (2026-08-17)
 
 
