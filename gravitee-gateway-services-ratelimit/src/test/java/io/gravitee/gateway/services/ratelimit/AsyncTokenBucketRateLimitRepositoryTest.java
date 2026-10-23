@@ -30,6 +30,9 @@ import io.gravitee.repository.ratelimit.api.TokenBucketRateLimitRepository;
 import io.gravitee.repository.ratelimit.model.TokenBucket;
 import io.reactivex.rxjava3.core.Single;
 import io.vertx.rxjava3.core.Vertx;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -179,5 +182,35 @@ class AsyncTokenBucketRateLimitRepositoryTest {
 
         // Clamped to the 5s default: no reconcile yet. A 0ms interval would have fired immediately and repeatedly.
         verify(remoteCache, never()).refillAndTryConsume(anyString(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), any());
+    }
+
+    @Test
+    void reconciles_a_large_backlog_without_exceeding_the_flush_concurrency() throws InterruptedException {
+        int pendingKeys = 200;
+        int flushConcurrency = 4;
+        AtomicInteger inFlight = new AtomicInteger();
+        AtomicInteger peakInFlight = new AtomicInteger();
+        CountDownLatch reconciled = new CountDownLatch(pendingKeys);
+        when(remoteCache.refillAndTryConsume(anyString(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), any())).thenAnswer(
+            invocation ->
+                Single.defer(() -> {
+                    peakInFlight.accumulateAndGet(inFlight.incrementAndGet(), Math::max);
+                    return Single.timer(5, TimeUnit.MILLISECONDS).map(tick -> new TokenBucketConsumeResult(true, 4, 0));
+                }).doFinally(() -> {
+                    inFlight.decrementAndGet();
+                    reconciled.countDown();
+                })
+        );
+        cut.setFlushIntervalMillis(200L);
+        cut.setFlushConcurrency(flushConcurrency);
+        cut.initialize();
+
+        for (int i = 0; i < pendingKeys; i++) {
+            String pendingKey = "backlog-" + i;
+            cut.refillAndTryConsume(pendingKey, 1, 1, 1_000L, 5, 1_000L, () -> new TokenBucket(pendingKey)).blockingGet();
+        }
+
+        assertThat(reconciled.await(10, TimeUnit.SECONDS)).isTrue();
+        assertThat(peakInFlight.get()).isBetween(1, flushConcurrency);
     }
 }

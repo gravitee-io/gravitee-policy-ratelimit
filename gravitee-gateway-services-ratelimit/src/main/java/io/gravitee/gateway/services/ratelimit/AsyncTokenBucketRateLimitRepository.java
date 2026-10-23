@@ -18,6 +18,7 @@ package io.gravitee.gateway.services.ratelimit;
 import io.gravitee.repository.ratelimit.api.TokenBucketConsumeResult;
 import io.gravitee.repository.ratelimit.api.TokenBucketRateLimitRepository;
 import io.gravitee.repository.ratelimit.model.TokenBucket;
+import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
@@ -45,6 +46,9 @@ public class AsyncTokenBucketRateLimitRepository implements TokenBucketRateLimit
     /** Default reconcile interval, preserved from the original hardcoded value. */
     public static final long DEFAULT_FLUSH_INTERVAL_MILLIS = 5000L;
 
+    /** Default number of keys reconciled to the store at the same time, so a large backlog cannot flood the store connection. */
+    public static final int DEFAULT_FLUSH_CONCURRENCY = 16;
+
     private final Set<String> keys = new CopyOnWriteArraySet<>();
     private final SharedData sharedData;
     private LocalTokenBucketRateLimitRepository localCacheTokenBucketRepository;
@@ -54,12 +58,19 @@ public class AsyncTokenBucketRateLimitRepository implements TokenBucketRateLimit
     /** How often the local deltas are reconciled to the store (ms). Configured globally via the gateway service. */
     private long flushIntervalMillis = DEFAULT_FLUSH_INTERVAL_MILLIS;
 
+    /** Maximum number of keys reconciled to the store at the same time. Configured globally via the gateway service. */
+    private int flushConcurrency = DEFAULT_FLUSH_CONCURRENCY;
+
     public AsyncTokenBucketRateLimitRepository(final Vertx vertx) {
         this.sharedData = vertx.sharedData();
     }
 
     public void setFlushIntervalMillis(long flushIntervalMillis) {
         this.flushIntervalMillis = flushIntervalMillis > 0 ? flushIntervalMillis : DEFAULT_FLUSH_INTERVAL_MILLIS;
+    }
+
+    public void setFlushConcurrency(int flushConcurrency) {
+        this.flushConcurrency = flushConcurrency > 0 ? flushConcurrency : DEFAULT_FLUSH_CONCURRENCY;
     }
 
     @Override
@@ -96,27 +107,7 @@ public class AsyncTokenBucketRateLimitRepository implements TokenBucketRateLimit
             .delay(flushIntervalMillis, TimeUnit.MILLISECONDS)
             .rebatchRequests(1)
             .filter(interval -> !keys.isEmpty())
-            .concatMapCompletable(interval ->
-                Flowable.fromIterable(keys).flatMapCompletable(key ->
-                    sharedData
-                        .getLocalLock(key)
-                        .flatMapCompletable(lock ->
-                            localCacheTokenBucketRepository
-                                .get(key)
-                                .flatMapSingle(this::reconcile)
-                                .doFinally(lock::release)
-                                .doOnSuccess(local -> keys.remove(key))
-                                // Outer level so a get(key) failure is logged too, not only a reconcile() error
-                                // (matches AsyncRateLimitRepository). The key is removed only on success, so a
-                                // transient store error leaves it tracked and is retried next cycle.
-                                .doOnError(throwable ->
-                                    log.error("Failed to reconcile asynchronous token-bucket for key '{}'", key, throwable)
-                                )
-                                .onErrorComplete()
-                                .ignoreElement()
-                        )
-                )
-            )
+            .concatMapCompletable(interval -> Flowable.fromIterable(keys).flatMapCompletable(this::flushKey, false, flushConcurrency))
             .onErrorComplete()
             .subscribe();
     }
@@ -165,6 +156,24 @@ public class AsyncTokenBucketRateLimitRepository implements TokenBucketRateLimit
                 return local;
             })
             .flatMap(localCacheTokenBucketRepository::save);
+    }
+
+    private Completable flushKey(String key) {
+        return sharedData
+            .getLocalLock(key)
+            .flatMapCompletable(lock ->
+                localCacheTokenBucketRepository
+                    .get(key)
+                    .flatMapSingle(this::reconcile)
+                    .doFinally(lock::release)
+                    .doOnSuccess(local -> keys.remove(key))
+                    // Outer level so a get(key) failure is logged too, not only a reconcile() error
+                    // (matches AsyncRateLimitRepository). The key is removed only on success, so a
+                    // transient store error leaves it tracked and is retried next cycle.
+                    .doOnError(throwable -> log.error("Failed to reconcile asynchronous token-bucket for key '{}'", key, throwable))
+                    .onErrorComplete()
+                    .ignoreElement()
+            );
     }
 
     public void clean() {

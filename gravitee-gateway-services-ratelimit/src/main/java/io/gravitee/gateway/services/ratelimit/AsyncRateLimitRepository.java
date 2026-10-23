@@ -17,6 +17,7 @@ package io.gravitee.gateway.services.ratelimit;
 
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.model.RateLimit;
+import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
@@ -42,6 +43,9 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
     /** Default reconcile interval, preserved from the original hardcoded value. */
     public static final long DEFAULT_FLUSH_INTERVAL_MILLIS = 5000L;
 
+    /** Default number of keys reconciled to the store at the same time, so a large backlog cannot flood the store connection. */
+    public static final int DEFAULT_FLUSH_CONCURRENCY = 16;
+
     private final Set<String> keys = new CopyOnWriteArraySet<>();
     private final SharedData sharedData;
     private LocalRateLimitRepository localCacheRateLimitRepository;
@@ -51,12 +55,19 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
     /** How often the local counters are reconciled to the store (ms). Configured globally via the gateway service. */
     private long flushIntervalMillis = DEFAULT_FLUSH_INTERVAL_MILLIS;
 
+    /** Maximum number of keys reconciled to the store at the same time. Configured globally via the gateway service. */
+    private int flushConcurrency = DEFAULT_FLUSH_CONCURRENCY;
+
     public AsyncRateLimitRepository(final Vertx vertx) {
         this.sharedData = vertx.sharedData();
     }
 
     public void setFlushIntervalMillis(long flushIntervalMillis) {
         this.flushIntervalMillis = flushIntervalMillis > 0 ? flushIntervalMillis : DEFAULT_FLUSH_INTERVAL_MILLIS;
+    }
+
+    public void setFlushConcurrency(int flushConcurrency) {
+        this.flushConcurrency = flushConcurrency > 0 ? flushConcurrency : DEFAULT_FLUSH_CONCURRENCY;
     }
 
     public void initialize() {
@@ -70,42 +81,40 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
             .delay(flushIntervalMillis, TimeUnit.MILLISECONDS)
             .rebatchRequests(1)
             .filter(interval -> !keys.isEmpty())
-            .concatMapCompletable(interval ->
-                Flowable.fromIterable(keys).flatMapCompletable(key ->
-                    sharedData
-                        .getLocalLock(key)
-                        .flatMapCompletable(lock ->
-                            localCacheRateLimitRepository
-                                .get(key)
-                                // Remote rate is incremented by the local counter value
-                                // If the remote does not contain existing value, use the local counter
-                                .flatMapSingle(localRateLimit ->
-                                    remoteCacheRateLimitRepository
-                                        .incrementAndGet(key, localRateLimit.getLocal(), () -> localRateLimit)
-                                        .map(rateLimit -> {
-                                            // Set the counter with the latest value from the repository
-                                            localRateLimit.setCounter(rateLimit.getCounter());
-
-                                            // Re-init the local counter
-                                            localRateLimit.setLocal(0L);
-
-                                            return localRateLimit;
-                                        })
-                                        .flatMap(rateLimit -> localCacheRateLimitRepository.save(rateLimit))
-                                )
-                                .doFinally(lock::release)
-                                // And save the new counter value into the local cache
-                                .doOnSuccess(localRateLimit -> keys.remove(key))
-                                .doOnError(throwable ->
-                                    log.error("An unexpected error occurs while refreshing asynchronous rate-limit", throwable)
-                                )
-                                .onErrorComplete()
-                                .ignoreElement()
-                        )
-                )
-            )
+            .concatMapCompletable(interval -> Flowable.fromIterable(keys).flatMapCompletable(this::flushKey, false, flushConcurrency))
             .onErrorComplete()
             .subscribe();
+    }
+
+    private Completable flushKey(String key) {
+        return sharedData
+            .getLocalLock(key)
+            .flatMapCompletable(lock ->
+                localCacheRateLimitRepository
+                    .get(key)
+                    // Remote rate is incremented by the local counter value
+                    // If the remote does not contain existing value, use the local counter
+                    .flatMapSingle(localRateLimit ->
+                        remoteCacheRateLimitRepository
+                            .incrementAndGet(key, localRateLimit.getLocal(), () -> localRateLimit)
+                            .map(rateLimit -> {
+                                // Set the counter with the latest value from the repository
+                                localRateLimit.setCounter(rateLimit.getCounter());
+
+                                // Re-init the local counter
+                                localRateLimit.setLocal(0L);
+
+                                return localRateLimit;
+                            })
+                            .flatMap(rateLimit -> localCacheRateLimitRepository.save(rateLimit))
+                    )
+                    .doFinally(lock::release)
+                    // And save the new counter value into the local cache
+                    .doOnSuccess(localRateLimit -> keys.remove(key))
+                    .doOnError(throwable -> log.error("An unexpected error occurs while refreshing asynchronous rate-limit", throwable))
+                    .onErrorComplete()
+                    .ignoreElement()
+            );
     }
 
     public void clean() {
