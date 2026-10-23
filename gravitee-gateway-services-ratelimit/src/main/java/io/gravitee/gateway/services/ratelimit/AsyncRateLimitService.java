@@ -44,6 +44,13 @@ public class AsyncRateLimitService extends AbstractService {
     @Value("${services.ratelimit.async.flushInterval:5000}")
     private long flushIntervalMillis;
 
+    // Keys reconciled at once by each async repository (default 16). Timeout safety (one round-trip plus
+    // the serial script time of the in-flight batch) holds around that default. The repositories also
+    // clamp this so both flushers stay under the Redis waiting-handler limit (1024); that ceiling
+    // protects the queue only, not the timeout.
+    @Value("${services.ratelimit.async.flushConcurrency:16}")
+    private int flushConcurrency;
+
     @Autowired
     private Vertx vertx;
 
@@ -73,6 +80,7 @@ public class AsyncRateLimitService extends AbstractService {
             asyncRateLimitRepository.setLocalCacheRateLimitRepository(localCacheRateLimitRepository);
             asyncRateLimitRepository.setRemoteCacheRateLimitRepository(rateLimitRepository);
             asyncRateLimitRepository.setFlushIntervalMillis(flushIntervalMillis);
+            asyncRateLimitRepository.setFlushConcurrency(flushConcurrency);
             asyncRateLimitRepository.initialize();
 
             log.info("Register the rate-limit service bridge for synchronous and asynchronous mode");
@@ -122,6 +130,7 @@ public class AsyncRateLimitService extends AbstractService {
             asyncTokenBucketRateLimitRepository.setLocalCacheTokenBucketRepository(localCacheTokenBucketRepository);
             asyncTokenBucketRateLimitRepository.setRemoteCacheTokenBucketRepository(tokenBucketRepository);
             asyncTokenBucketRateLimitRepository.setFlushIntervalMillis(flushIntervalMillis);
+            asyncTokenBucketRateLimitRepository.setFlushConcurrency(flushConcurrency);
             asyncTokenBucketRateLimitRepository.initialize();
 
             log.info("Register the token-bucket service bridge for synchronous and asynchronous mode");

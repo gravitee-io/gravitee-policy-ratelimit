@@ -15,11 +15,13 @@
  */
 package io.gravitee.gateway.services.ratelimit;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,10 +30,15 @@ import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.model.RateLimit;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.observers.TestObserver;
+import io.reactivex.rxjava3.subjects.CompletableSubject;
 import io.vertx.rxjava3.core.Vertx;
+import io.vertx.rxjava3.core.shareddata.Lock;
+import io.vertx.rxjava3.core.shareddata.SharedData;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -122,6 +129,113 @@ public class AsyncRateLimitRepositoryTest {
             verify(remoteCacheRateLimitRepository, never()).incrementAndGet(anyString(), anyLong(), any());
         } finally {
             zero.clean();
+        }
+    }
+
+    @Test
+    public void reconciles_a_large_backlog_without_exceeding_the_flush_concurrency() throws InterruptedException {
+        int pendingKeys = 200;
+        int flushConcurrency = 4;
+
+        int peakInFlight = reconcileBacklog(pendingKeys, flushConcurrency);
+
+        assertThat(peakInFlight).isEqualTo(flushConcurrency);
+    }
+
+    @Test
+    public void non_positive_flush_concurrency_falls_back_to_the_default() throws InterruptedException {
+        int peakInFlight = reconcileBacklog(50, 0);
+
+        assertThat(peakInFlight).isEqualTo(AsyncRateLimitRepository.DEFAULT_FLUSH_CONCURRENCY);
+    }
+
+    @Test
+    public void flush_concurrency_above_the_ceiling_is_clamped() throws InterruptedException {
+        int peakInFlight = reconcileBacklog(200, 1000);
+
+        assertThat(peakInFlight).isEqualTo(AsyncRateLimitRepository.MAX_FLUSH_CONCURRENCY);
+    }
+
+    @Test
+    public void a_failed_lock_does_not_stop_later_reconcile_cycles() throws InterruptedException {
+        SharedData sharedData = mock(SharedData.class);
+        Vertx mockedVertx = mock(Vertx.class);
+        when(mockedVertx.sharedData()).thenReturn(sharedData);
+        Lock lock = mock(Lock.class);
+        when(sharedData.getLocalLockWithTimeout(anyString(), anyLong())).thenReturn(Single.just(lock));
+        AtomicInteger flushLocks = new AtomicInteger();
+        when(sharedData.getLocalLock(anyString())).thenAnswer(invocation -> {
+            if (flushLocks.getAndIncrement() == 0) {
+                return Single.error(new RuntimeException("lock failed"));
+            }
+            return Single.just(lock);
+        });
+        when(remoteCacheRateLimitRepository.incrementAndGet(anyString(), anyLong(), any())).thenReturn(
+            Single.just(new RateLimit("survives"))
+        );
+
+        AsyncRateLimitRepository repository = new AsyncRateLimitRepository(mockedVertx);
+        repository.setRemoteCacheRateLimitRepository(remoteCacheRateLimitRepository);
+        repository.setLocalCacheRateLimitRepository(new LocalRateLimitRepository());
+        repository.setFlushIntervalMillis(200L);
+        repository.initialize();
+        try {
+            RateLimit seed = new RateLimit("survives");
+            seed.setCounter(1);
+            seed.setResetTime(Instant.now().plus(1, ChronoUnit.MINUTES).toEpochMilli());
+            repository.incrementAndGet("survives", 1L, () -> seed).blockingGet();
+
+            Thread.sleep(1_000);
+
+            verify(remoteCacheRateLimitRepository, atLeastOnce()).incrementAndGet(anyString(), anyLong(), any());
+        } finally {
+            repository.clean();
+        }
+    }
+
+    private int reconcileBacklog(int pendingKeys, int flushConcurrency) throws InterruptedException {
+        int cap = flushConcurrency <= 0
+            ? AsyncRateLimitRepository.DEFAULT_FLUSH_CONCURRENCY
+            : Math.min(flushConcurrency, AsyncRateLimitRepository.MAX_FLUSH_CONCURRENCY);
+        int expectedInFlight = Math.min(pendingKeys, cap);
+        AtomicInteger inFlight = new AtomicInteger();
+        AtomicInteger peakInFlight = new AtomicInteger();
+        CountDownLatch reconciled = new CountDownLatch(pendingKeys);
+        // Hold the first wave until the cap is in flight. A short timer finishes before a large cap is subscribed, so the peak is short of the cap on a slow runner.
+        CompletableSubject firstWave = CompletableSubject.create();
+        when(remoteCacheRateLimitRepository.incrementAndGet(anyString(), anyLong(), any())).thenAnswer(invocation -> {
+            String reconciledKey = invocation.getArgument(0);
+            return Single.defer(() -> {
+                int now = inFlight.incrementAndGet();
+                peakInFlight.accumulateAndGet(now, Math::max);
+                if (now >= expectedInFlight) {
+                    firstWave.onComplete();
+                }
+                return firstWave.andThen(Single.just(new RateLimit(reconciledKey)));
+            }).doFinally(() -> {
+                inFlight.decrementAndGet();
+                reconciled.countDown();
+            });
+        });
+
+        AsyncRateLimitRepository bounded = new AsyncRateLimitRepository(vertx);
+        bounded.setRemoteCacheRateLimitRepository(remoteCacheRateLimitRepository);
+        bounded.setLocalCacheRateLimitRepository(new LocalRateLimitRepository());
+        bounded.setFlushIntervalMillis(200L);
+        bounded.setFlushConcurrency(flushConcurrency);
+        bounded.initialize();
+        try {
+            for (int i = 0; i < pendingKeys; i++) {
+                String pendingKey = "backlog-" + i;
+                RateLimit seed = new RateLimit(pendingKey);
+                seed.setResetTime(Instant.now().plus(1, ChronoUnit.MINUTES).toEpochMilli());
+                bounded.incrementAndGet(pendingKey, 1L, () -> seed).blockingGet();
+            }
+
+            assertThat(reconciled.await(10, TimeUnit.SECONDS)).isTrue();
+            return peakInFlight.get();
+        } finally {
+            bounded.clean();
         }
     }
 
