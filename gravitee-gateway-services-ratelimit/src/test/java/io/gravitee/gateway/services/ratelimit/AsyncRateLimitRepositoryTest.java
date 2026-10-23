@@ -15,6 +15,7 @@
  */
 package io.gravitee.gateway.services.ratelimit;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -31,7 +32,9 @@ import io.reactivex.rxjava3.observers.TestObserver;
 import io.vertx.rxjava3.core.Vertx;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -122,6 +125,59 @@ public class AsyncRateLimitRepositoryTest {
             verify(remoteCacheRateLimitRepository, never()).incrementAndGet(anyString(), anyLong(), any());
         } finally {
             zero.clean();
+        }
+    }
+
+    @Test
+    public void reconciles_a_large_backlog_without_exceeding_the_flush_concurrency() throws InterruptedException {
+        int pendingKeys = 200;
+        int flushConcurrency = 4;
+
+        int peakInFlight = reconcileBacklog(pendingKeys, flushConcurrency);
+
+        assertThat(peakInFlight).isBetween(1, flushConcurrency);
+    }
+
+    @Test
+    public void non_positive_flush_concurrency_falls_back_to_the_default() throws InterruptedException {
+        int peakInFlight = reconcileBacklog(50, 0);
+
+        assertThat(peakInFlight).isBetween(1, AsyncRateLimitRepository.DEFAULT_FLUSH_CONCURRENCY);
+    }
+
+    private int reconcileBacklog(int pendingKeys, int flushConcurrency) throws InterruptedException {
+        AtomicInteger inFlight = new AtomicInteger();
+        AtomicInteger peakInFlight = new AtomicInteger();
+        CountDownLatch reconciled = new CountDownLatch(pendingKeys);
+        when(remoteCacheRateLimitRepository.incrementAndGet(anyString(), anyLong(), any())).thenAnswer(invocation -> {
+            String reconciledKey = invocation.getArgument(0);
+            return Single.defer(() -> {
+                peakInFlight.accumulateAndGet(inFlight.incrementAndGet(), Math::max);
+                return Single.timer(5, TimeUnit.MILLISECONDS).map(tick -> new RateLimit(reconciledKey));
+            }).doFinally(() -> {
+                inFlight.decrementAndGet();
+                reconciled.countDown();
+            });
+        });
+
+        AsyncRateLimitRepository bounded = new AsyncRateLimitRepository(vertx);
+        bounded.setRemoteCacheRateLimitRepository(remoteCacheRateLimitRepository);
+        bounded.setLocalCacheRateLimitRepository(new LocalRateLimitRepository());
+        bounded.setFlushIntervalMillis(200L);
+        bounded.setFlushConcurrency(flushConcurrency);
+        bounded.initialize();
+        try {
+            for (int i = 0; i < pendingKeys; i++) {
+                String pendingKey = "backlog-" + i;
+                RateLimit seed = new RateLimit(pendingKey);
+                seed.setResetTime(Instant.now().plus(1, ChronoUnit.MINUTES).toEpochMilli());
+                bounded.incrementAndGet(pendingKey, 1L, () -> seed).blockingGet();
+            }
+
+            assertThat(reconciled.await(10, TimeUnit.SECONDS)).isTrue();
+            return peakInFlight.get();
+        } finally {
+            bounded.clean();
         }
     }
 

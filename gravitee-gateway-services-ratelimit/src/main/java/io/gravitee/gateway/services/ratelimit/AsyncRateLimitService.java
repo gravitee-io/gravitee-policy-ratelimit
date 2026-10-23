@@ -44,6 +44,10 @@ public class AsyncRateLimitService extends AbstractService {
     @Value("${services.ratelimit.async.flushInterval:5000}")
     private long flushIntervalMillis;
 
+    // Global maximum number of keys reconciled to the store at the same time by each async repository.
+    @Value("${services.ratelimit.async.flushConcurrency:16}")
+    private int flushConcurrency;
+
     @Autowired
     private Vertx vertx;
 
@@ -73,6 +77,7 @@ public class AsyncRateLimitService extends AbstractService {
             asyncRateLimitRepository.setLocalCacheRateLimitRepository(localCacheRateLimitRepository);
             asyncRateLimitRepository.setRemoteCacheRateLimitRepository(rateLimitRepository);
             asyncRateLimitRepository.setFlushIntervalMillis(flushIntervalMillis);
+            asyncRateLimitRepository.setFlushConcurrency(flushConcurrency);
             asyncRateLimitRepository.initialize();
 
             log.info("Register the rate-limit service bridge for synchronous and asynchronous mode");
@@ -122,6 +127,7 @@ public class AsyncRateLimitService extends AbstractService {
             asyncTokenBucketRateLimitRepository.setLocalCacheTokenBucketRepository(localCacheTokenBucketRepository);
             asyncTokenBucketRateLimitRepository.setRemoteCacheTokenBucketRepository(tokenBucketRepository);
             asyncTokenBucketRateLimitRepository.setFlushIntervalMillis(flushIntervalMillis);
+            asyncTokenBucketRateLimitRepository.setFlushConcurrency(flushConcurrency);
             asyncTokenBucketRateLimitRepository.initialize();
 
             log.info("Register the token-bucket service bridge for synchronous and asynchronous mode");
