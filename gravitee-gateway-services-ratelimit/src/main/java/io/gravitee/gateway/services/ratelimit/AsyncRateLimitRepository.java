@@ -17,6 +17,7 @@ package io.gravitee.gateway.services.ratelimit;
 
 import io.gravitee.repository.ratelimit.api.RateLimitRepository;
 import io.gravitee.repository.ratelimit.model.RateLimit;
+import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.disposables.Disposable;
@@ -39,14 +40,48 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
 
     private static final Long LOCK_TIMEOUT_MILLIS = 250L;
 
+    /** Default reconcile interval, preserved from the original hardcoded value. */
+    public static final long DEFAULT_FLUSH_INTERVAL_MILLIS = 5000L;
+
+    /**
+     * Keys reconciled at once. Assumes each command's timeout covers one round-trip plus the serial script
+     * time of the in-flight batch, so timeout safety holds around this default.
+     */
+    public static final int DEFAULT_FLUSH_CONCURRENCY = 16;
+
+    /**
+     * Ceiling so this flusher stays under the Redis client's assumed waiting-handler limit of ~1024, leaving
+     * room for strict-mode traffic on the same connection. This bounds the queue only. A value near the ceiling
+     * can still time out the tail of the batch; timeout safety is {@link #DEFAULT_FLUSH_CONCURRENCY}, not this ceiling.
+     */
+    public static final int MAX_FLUSH_CONCURRENCY = 128;
+
     private final Set<String> keys = new CopyOnWriteArraySet<>();
     private final SharedData sharedData;
     private LocalRateLimitRepository localCacheRateLimitRepository;
     private RateLimitRepository<RateLimit> remoteCacheRateLimitRepository;
     private Disposable mergeSubscription;
 
+    /** How often the local counters are reconciled to the store (ms). */
+    private long flushIntervalMillis = DEFAULT_FLUSH_INTERVAL_MILLIS;
+
+    /** Maximum number of keys reconciled to the store at the same time. */
+    private int flushConcurrency = DEFAULT_FLUSH_CONCURRENCY;
+
     public AsyncRateLimitRepository(final Vertx vertx) {
         this.sharedData = vertx.sharedData();
+    }
+
+    public void setFlushIntervalMillis(long flushIntervalMillis) {
+        this.flushIntervalMillis = flushIntervalMillis > 0 ? flushIntervalMillis : DEFAULT_FLUSH_INTERVAL_MILLIS;
+    }
+
+    public void setFlushConcurrency(int flushConcurrency) {
+        if (flushConcurrency <= 0) {
+            this.flushConcurrency = DEFAULT_FLUSH_CONCURRENCY;
+            return;
+        }
+        this.flushConcurrency = Math.min(flushConcurrency, MAX_FLUSH_CONCURRENCY);
     }
 
     public void initialize() {
@@ -57,45 +92,46 @@ public class AsyncRateLimitRepository implements RateLimitRepository<RateLimit> 
                 return state + 1;
             }
         )
-            .delay(5000, TimeUnit.MILLISECONDS)
+            .delay(flushIntervalMillis, TimeUnit.MILLISECONDS)
             .rebatchRequests(1)
             .filter(interval -> !keys.isEmpty())
-            .concatMapCompletable(interval ->
-                Flowable.fromIterable(keys).flatMapCompletable(key ->
-                    sharedData
-                        .getLocalLock(key)
-                        .flatMapCompletable(lock ->
-                            localCacheRateLimitRepository
-                                .get(key)
-                                // Remote rate is incremented by the local counter value
-                                // If the remote does not contain existing value, use the local counter
-                                .flatMapSingle(localRateLimit ->
-                                    remoteCacheRateLimitRepository
-                                        .incrementAndGet(key, localRateLimit.getLocal(), () -> localRateLimit)
-                                        .map(rateLimit -> {
-                                            // Set the counter with the latest value from the repository
-                                            localRateLimit.setCounter(rateLimit.getCounter());
-
-                                            // Re-init the local counter
-                                            localRateLimit.setLocal(0L);
-
-                                            return localRateLimit;
-                                        })
-                                        .flatMap(rateLimit -> localCacheRateLimitRepository.save(rateLimit))
-                                )
-                                .doFinally(lock::release)
-                                // And save the new counter value into the local cache
-                                .doOnSuccess(localRateLimit -> keys.remove(key))
-                                .doOnError(throwable ->
-                                    log.error("An unexpected error occurs while refreshing asynchronous rate-limit", throwable)
-                                )
-                                .onErrorComplete()
-                                .ignoreElement()
-                        )
-                )
-            )
+            .concatMapCompletable(interval -> Flowable.fromIterable(keys).flatMapCompletable(this::flushKey, false, flushConcurrency))
             .onErrorComplete()
             .subscribe();
+    }
+
+    private Completable flushKey(String key) {
+        return sharedData
+            .getLocalLock(key)
+            .flatMapCompletable(lock ->
+                localCacheRateLimitRepository
+                    .get(key)
+                    // Remote rate is incremented by the local counter value
+                    // If the remote does not contain existing value, use the local counter
+                    .flatMapSingle(localRateLimit ->
+                        remoteCacheRateLimitRepository
+                            .incrementAndGet(key, localRateLimit.getLocal(), () -> localRateLimit)
+                            .map(rateLimit -> {
+                                // Set the counter with the latest value from the repository
+                                localRateLimit.setCounter(rateLimit.getCounter());
+
+                                // Re-init the local counter
+                                localRateLimit.setLocal(0L);
+
+                                return localRateLimit;
+                            })
+                            .flatMap(rateLimit -> localCacheRateLimitRepository.save(rateLimit))
+                    )
+                    .doFinally(lock::release)
+                    // And save the new counter value into the local cache
+                    .doOnSuccess(localRateLimit -> keys.remove(key))
+                    .ignoreElement()
+            )
+            // Covers lock acquisition too. An error here must not complete the interval stream.
+            .doOnError(throwable ->
+                log.error("An unexpected error occurs while refreshing asynchronous rate-limit for key '{}'", key, throwable)
+            )
+            .onErrorComplete();
     }
 
     public void clean() {
