@@ -38,6 +38,12 @@ public class AsyncRateLimitService extends AbstractService {
     @Value("${services.ratelimit.enabled:true}")
     private boolean enabled;
 
+    @Value("${services.ratelimit.async.flushInterval:5000}")
+    private long flushIntervalMillis;
+
+    @Value("${services.ratelimit.async.flushConcurrency:16}")
+    private int flushConcurrency;
+
     @Autowired
     private Vertx vertx;
 
@@ -65,6 +71,8 @@ public class AsyncRateLimitService extends AbstractService {
             beanFactory.autowireBean(asyncRateLimitRepository);
             asyncRateLimitRepository.setLocalCacheRateLimitRepository(localCacheRateLimitRepository);
             asyncRateLimitRepository.setRemoteCacheRateLimitRepository(rateLimitRepository);
+            asyncRateLimitRepository.setFlushIntervalMillis(flushIntervalMillis);
+            asyncRateLimitRepository.setFlushConcurrency(flushConcurrency);
             asyncRateLimitRepository.initialize();
 
             LOGGER.info("Register the rate-limit service bridge for synchronous and asynchronous mode");
