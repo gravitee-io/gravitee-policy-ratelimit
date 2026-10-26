@@ -1,3 +1,10 @@
+## [5.0.4](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.3...5.0.4) (2026-10-26)
+
+
+### Bug Fixes
+
+* **ratelimit:** bound async flush concurrency ([79200a3](https://github.com/gravitee-io/gravitee-policy-ratelimit/commit/79200a3adc98953ea72e981e4e0031aa3c8ed6e0))
+
 ## [5.0.3](https://github.com/gravitee-io/gravitee-policy-ratelimit/compare/5.0.2...5.0.3) (2026-10-07)
 
 
