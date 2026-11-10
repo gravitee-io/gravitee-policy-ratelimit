@@ -75,4 +75,17 @@ public class TokenBucketRateLimitPolicyConfiguration implements PolicyConfigurat
     private String key;
 
     private boolean useKeyOnly;
+
+    /**
+     * Token-budget mode. When {@code false} (default) each request consumes {@code 1} token from the bucket.
+     * When {@code true} each request instead consumes its cost ({@link #weight} / {@link #dynamicWeight}), so
+     * the bucket is drained by accumulated token cost rather than a raw request count.
+     */
+    private boolean budget;
+
+    /** Static cost consumed per request when {@link #budget} is enabled. Used when {@code > 0}; otherwise {@link #dynamicWeight} is evaluated. */
+    private long weight;
+
+    /** EL expression for the per-request cost, evaluated when {@link #budget} is enabled and {@link #weight} is unset ({@code <= 0}). */
+    private String dynamicWeight;
 }
