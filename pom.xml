@@ -35,7 +35,7 @@
     </parent>
 
     <properties>
-        <gravitee-apim.version>4.12.20</gravitee-apim.version>
+        <gravitee-apim.version>4.14.0</gravitee-apim.version>
     </properties>
 
     <modules>
